@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "date": "2026-03-16T14:10:26.850Z",
+  "date": "2026-03-20T04:21:52.967Z",
   "progress": {
     "fin|0|theory|1": true,
     "fin|0|basic|11": true,
-    "fin|1|theory|6": false,
+    "fin|1|theory|6": true,
     "fin|1|basic|17": true,
     "fin|2|theory|15": true,
     "fin|2|adv|2": true,
@@ -31,14 +31,14 @@
     "fin|4|basic|8": true,
     "fin|5|adv|2": true,
     "fin|6|basic|2": true,
-    "fin|7|basic|1": false,
+    "fin|7|basic|1": true,
     "fin|8|theory|7": true,
     "fin|8|adv|7": true,
     "fin|10|theory|3": true,
     "fin|10|adv|5": true,
     "fin|11|basic|12": true,
     "fin|12|basic|8": true,
-    "fin|13|basic|4": false,
+    "fin|13|basic|4": true,
     "fin|14|basic|7": true,
     "fin|15|basic|3": true,
     "fin|0|basic|6": true,
@@ -58,12 +58,12 @@
     "fin|11|basic|11": true,
     "fin|12|basic|7": true,
     "fin|13|basic|3": true,
-    "fin|14|basic|6": false,
+    "fin|14|basic|6": true,
     "fin|15|basic|2": true,
     "fin|0|basic|5": true,
     "fin|0|adv|10": true,
     "fin|1|basic|12": true,
-    "fin|2|theory|9": false,
+    "fin|2|theory|9": true,
     "fin|2|basic|17": true,
     "fin|3|basic|6": true,
     "fin|4|basic|5": true,
@@ -74,7 +74,7 @@
     "fin|8|adv|5": true,
     "fin|9|adv|5": true,
     "fin|10|adv|3": true,
-    "fin|11|basic|9": false,
+    "fin|11|basic|9": true,
     "fin|12|basic|6": true,
     "fin|13|basic|2": true,
     "fin|14|basic|5": true,
@@ -82,7 +82,7 @@
     "fin|0|basic|4": true,
     "fin|0|adv|9": true,
     "fin|1|basic|11": true,
-    "fin|2|theory|7": false,
+    "fin|2|theory|7": true,
     "fin|2|basic|16": true,
     "fin|3|basic|4": true,
     "fin|4|basic|3": true,
@@ -120,15 +120,15 @@
     "fin|0|basic|2": true,
     "fin|0|adv|5": true,
     "fin|1|basic|9": true,
-    "fin|2|theory|3": false,
+    "fin|2|theory|3": true,
     "fin|2|basic|14": true,
     "fin|3|basic|1": true,
     "fin|4|basic|1": true,
     "fin|5|basic|11": true,
     "fin|6|theory|14": true,
     "fin|7|theory|3": true,
-    "fin|8|theory|2": false,
-    "fin|8|adv|1": false,
+    "fin|8|theory|2": true,
+    "fin|8|adv|1": true,
     "fin|9|adv|1": true,
     "fin|10|basic|11": true,
     "fin|11|basic|4": true,
@@ -146,9 +146,9 @@
     "fin|5|basic|7": true,
     "fin|6|theory|10": true,
     "fin|6|adv|7": true,
-    "fin|7|adv|4": false,
+    "fin|7|adv|4": true,
     "fin|8|basic|11": true,
-    "fin|9|basic|13": false,
+    "fin|9|basic|13": true,
     "fin|10|basic|9": true,
     "fin|11|basic|1": true,
     "fin|12|theory|10": true,
@@ -156,7 +156,7 @@
     "fin|14|theory|2": true,
     "fin|15|theory|3": true,
     "fin|15|adv|6": true,
-    "fin|0|basic|1": false,
+    "fin|0|basic|1": true,
     "fin|0|adv|3": true,
     "fin|1|basic|7": true,
     "fin|2|theory|2": true,
@@ -182,7 +182,7 @@
     "fin|1|adv|10": true,
     "fin|2|basic|9": true,
     "fin|3|theory|3": true,
-    "fin|4|theory|10": false,
+    "fin|4|theory|10": true,
     "fin|5|basic|6": true,
     "fin|6|theory|9": true,
     "fin|6|adv|4": true,
@@ -195,7 +195,7 @@
     "fin|12|adv|9": true,
     "fin|14|theory|1": true,
     "fin|14|adv|8": true,
-    "fin|15|adv|5": false,
+    "fin|15|adv|5": true,
     "fin|0|theory|11": true,
     "fin|0|basic|18": true,
     "fin|1|basic|2": true,
@@ -222,7 +222,7 @@
     "fin|1|adv|7": true,
     "fin|2|basic|5": true,
     "fin|2|adv|7": true,
-    "fin|4|theory|7": false,
+    "fin|4|theory|7": true,
     "fin|5|basic|4": true,
     "fin|6|theory|7": true,
     "fin|6|adv|2": true,
@@ -258,7 +258,7 @@
     "fin|15|adv|1": true,
     "fin|0|theory|5": true,
     "fin|0|basic|14": true,
-    "fin|1|theory|12": false,
+    "fin|1|theory|12": true,
     "fin|1|adv|2": true,
     "fin|2|basic|3": true,
     "fin|2|adv|5": true,
@@ -268,19 +268,19 @@
     "fin|6|basic|10": true,
     "fin|7|basic|9": true,
     "fin|8|basic|6": true,
-    "fin|9|basic|6": false,
+    "fin|9|basic|6": true,
     "fin|10|basic|4": true,
     "fin|11|theory|2": true,
     "fin|12|theory|2": true,
     "fin|12|adv|3": false,
     "fin|13|adv|1": true,
-    "fin|14|adv|3": false,
+    "fin|14|adv|3": true,
     "fin|15|basic|16": true,
     "fin|0|theory|4": true,
     "fin|0|basic|13": true,
     "fin|1|theory|11": true,
     "fin|1|adv|1": true,
-    "fin|2|basic|2": false,
+    "fin|2|basic|2": true,
     "fin|2|adv|4": true,
     "fin|4|theory|4": true,
     "fin|5|theory|4": true,
@@ -303,14 +303,14 @@
     "fin|2|basic|1": true,
     "fin|2|adv|3": true,
     "fin|4|theory|2": true,
-    "fin|5|theory|2": false,
+    "fin|5|theory|2": true,
     "fin|6|theory|1": true,
     "fin|6|basic|8": true,
     "fin|7|basic|7": true,
     "fin|8|basic|3": true,
     "fin|9|basic|3": true,
     "fin|10|theory|7": true,
-    "fin|10|adv|10": false,
+    "fin|10|adv|10": true,
     "fin|11|adv|4": true,
     "fin|12|basic|13": true,
     "fin|13|basic|10": true,
@@ -327,14 +327,14 @@
     "fin|6|basic|3": true,
     "fin|7|basic|2": true,
     "fin|8|theory|8": true,
-    "fin|9|theory|1": false,
+    "fin|9|theory|1": true,
     "fin|10|theory|4": true,
     "fin|10|adv|6": true,
     "fin|11|basic|14": true,
     "fin|12|basic|9": true,
     "fin|13|basic|6": true,
     "fin|14|basic|8": true,
-    "fin|15|basic|4": false,
+    "fin|15|basic|4": true,
     "fin|0|basic|10": true,
     "fin|1|theory|3": true,
     "fin|1|basic|16": true,
@@ -347,7 +347,7 @@
     "fin|7|basic|3": true,
     "fin|8|basic|1": true,
     "fin|9|theory|2": true,
-    "fin|10|theory|5": false,
+    "fin|10|theory|5": true,
     "fin|10|adv|8": true,
     "fin|11|adv|1": true,
     "fin|12|basic|10": true,
@@ -456,151 +456,291 @@
     "cost|11|single|31": true,
     "cost|13|single|7": true,
     "cost|14|single|21": true,
-    "cost|14|single|24": true
+    "cost|14|single|24": true,
+    "tax|0|theory|9": true,
+    "tax|1|theory|5": true,
+    "tax|2|theory|16": true,
+    "tax|2|theory|17": true,
+    "tax|4|theory|3": true,
+    "tax|4|calc|12": true,
+    "tax|5|theory|5": true,
+    "tax|5|calc|5": true,
+    "tax|6|calc|1": true,
+    "tax|6|calc|3": true,
+    "tax|7|theory|2": true,
+    "tax|8|calc|4": true,
+    "tax|9|theory|10": true,
+    "tax|10|theory|3": true,
+    "tax|11|theory|1": true,
+    "tax|12|calc|2": true,
+    "tax|13|theory|5": true,
+    "tax|14|theory|3": true,
+    "tax|15|theory|6": true,
+    "tax|15|calc|11": true,
+    "tax|16|theory|3": true,
+    "tax|17|theory|2": true,
+    "tax|17|calc|7": true,
+    "tax|18|theory|8": true,
+    "tax|18|theory|11": true,
+    "tax|19|calc|3": true,
+    "tax|20|calc|1": true,
+    "tax|21|theory|1": true,
+    "tax|22|theory|6": true,
+    "tax|22|calc|9": true,
+    "tax|23|theory|6": true,
+    "tax|23|calc|7": true,
+    "tax|25|theory|6": true,
+    "tax|25|calc|13": true,
+    "tax|26|calc|3": true,
+    "tax|27|theory|1": true,
+    "tax|27|calc|3": true,
+    "tax|27|calc|19": true,
+    "tax|28|theory|2": true,
+    "tax|30|theory|10": true,
+    "tax|30|calc|1": true,
+    "tax|31|theory|1": true,
+    "tax|32|theory|14": true,
+    "tax|32|theory|18": true,
+    "tax|32|calc|2": true,
+    "tax|22|theory|3": true,
+    "tax|21|calc|2": true,
+    "tax|20|calc|8": true,
+    "tax|18|theory|9": true,
+    "tax|18|calc|5": true,
+    "tax|17|calc|4": true,
+    "tax|16|calc|1": true,
+    "tax|15|theory|3": true,
+    "tax|14|calc|1": true,
+    "tax|14|calc|13": true,
+    "tax|13|theory|3": true,
+    "tax|13|calc|6": true,
+    "tax|12|calc|3": true,
+    "tax|11|theory|3": true,
+    "tax|10|calc|1": true,
+    "tax|8|theory|4": true,
+    "tax|6|calc|12": true,
+    "tax|6|calc|17": true,
+    "tax|5|theory|3": true,
+    "tax|5|calc|6": true,
+    "tax|5|calc|15": true,
+    "tax|4|theory|4": true,
+    "tax|4|calc|20": true,
+    "tax|3|theory|2": true,
+    "tax|2|theory|7": true,
+    "tax|2|theory|8": true,
+    "tax|1|theory|16": true,
+    "tax|0|theory|2": true,
+    "tax|22|calc|11": true,
+    "tax|23|calc|8": true,
+    "tax|23|calc|1": true,
+    "tax|25|calc|4": true,
+    "tax|24|theory|2": true,
+    "tax|26|calc|6": true,
+    "tax|27|theory|10": true,
+    "tax|27|calc|4": true,
+    "tax|27|calc|14": true,
+    "tax|28|theory|10": true,
+    "tax|29|calc|4": true,
+    "tax|30|theory|2": true,
+    "tax|30|calc|3": true,
+    "tax|30|calc|19": true,
+    "tax|31|theory|2": true,
+    "tax|32|theory|4": true,
+    "tax|32|calc|17": true,
+    "tax|17|theory|4": true,
+    "tax|0|theory|7": true,
+    "tax|1|theory|14": true,
+    "tax|2|theory|5": true,
+    "tax|3|theory|5": true,
+    "tax|4|theory|5": true,
+    "tax|4|calc|7": true,
+    "tax|5|theory|7": true,
+    "tax|5|calc|10": true,
+    "tax|6|calc|5": true,
+    "tax|8|theory|5": true,
+    "tax|9|theory|6": true,
+    "tax|10|theory|6": true,
+    "tax|11|theory|5": true,
+    "tax|12|theory|3": true,
+    "tax|13|theory|8": true,
+    "tax|14|calc|7": true,
+    "tax|15|calc|2": true,
+    "tax|15|calc|13": true,
+    "tax|16|calc|6": true,
+    "tax|18|theory|16": true,
+    "tax|18|calc|3": true,
+    "tax|18|calc|12": true,
+    "tax|20|theory|1": true,
+    "tax|21|theory|3": true,
+    "tax|22|calc|8": true,
+    "tax|23|calc|2": true,
+    "tax|23|calc|4": true,
+    "tax|24|theory|12": true,
+    "tax|25|theory|2": true,
+    "tax|25|calc|6": true,
+    "tax|25|calc|12": true,
+    "tax|26|calc|10": true,
+    "tax|27|theory|13": true,
+    "tax|27|calc|23": true,
+    "tax|28|theory|11": true,
+    "tax|28|calc|6": true,
+    "tax|29|calc|2": true,
+    "tax|30|theory|9": true,
+    "tax|30|calc|2": true,
+    "tax|30|calc|17": true,
+    "tax|31|calc|3": true,
+    "tax|32|theory|6": true,
+    "tax|32|theory|16": true,
+    "tax|32|calc|12": true,
+    "cost|0|single|9": true,
+    "cost|1|single|16": true,
+    "cost|2|single|23": true,
+    "cost|2|single|25": true,
+    "cost|3|single|4": true,
+    "cost|4|single|8": true,
+    "cost|4|single|33": true,
+    "cost|5|single|6": true,
+    "cost|6|single|9": true,
+    "cost|7|single|14": true,
+    "cost|7|single|21": true,
+    "cost|8|single|6": true,
+    "cost|8|single|11": true,
+    "cost|10|single|3": true,
+    "cost|11|single|3": true,
+    "cost|11|single|18": true,
+    "cost|12|single|16": true,
+    "cost|13|single|13": true,
+    "cost|14|single|5": true,
+    "cost|14|single|9": true,
+    "tax|8|calc|6": true,
+    "tax|6|calc|10": true,
+    "tax|5|calc|7": true,
+    "tax|5|calc|14": true,
+    "tax|4|theory|2": true,
+    "tax|4|calc|14": true,
+    "tax|4|calc|18": true,
+    "tax|4|calc|23": true,
+    "tax|3|theory|7": true,
+    "tax|2|theory|4": true,
+    "tax|1|theory|6": true,
+    "tax|0|theory|10": true,
+    "tax|9|theory|4": true,
+    "tax|10|theory|1": true,
+    "tax|13|calc|5": true,
+    "tax|12|calc|1": true,
+    "tax|12|calc|5": true,
+    "tax|11|calc|8": true,
+    "tax|14|theory|4": true,
+    "tax|14|calc|15": true,
+    "tax|15|calc|14": true,
+    "tax|17|theory|1": true,
+    "tax|18|theory|14": true,
+    "tax|21|calc|3": true,
+    "tax|20|calc|7": true,
+    "tax|19|calc|2": true,
+    "tax|22|theory|2": true,
+    "tax|23|theory|9": true,
+    "tax|22|calc|10": true,
+    "tax|23|calc|3": true,
+    "tax|23|calc|15": true,
+    "tax|24|theory|9": true,
+    "tax|25|theory|1": true,
+    "tax|26|theory|7": true,
+    "tax|26|calc|11": true,
+    "tax|27|theory|6": true,
+    "tax|27|calc|5": true,
+    "tax|27|calc|11": true,
+    "tax|28|theory|1": true,
+    "tax|28|theory|7": true,
+    "tax|29|theory|4": true,
+    "tax|30|theory|13": true,
+    "tax|30|calc|13": true,
+    "tax|32|theory|11": true,
+    "tax|32|calc|13": true
   },
   "finData": [
     {
       "ch": "4장",
       "t": [
         [
-          1,
+          2,
           6
         ],
         [
-          2,
-          4
-        ],
-        [
           4,
-          13
-        ],
-        [
-          5,
-          12
+          4
         ],
         [
           6,
-          1
-        ],
-        [
-          7,
-          10
+          2
         ],
         [
           11,
-          12
-        ],
-        [
-          13,
-          4
-        ],
-        [
-          14,
-          7
+          8
         ]
       ],
       "b": [
         [
           1,
-          14
-        ],
-        [
-          2,
-          13
-        ],
-        [
-          3,
           3
         ],
         [
           4,
-          8
+          7
         ],
         [
           5,
-          7
-        ],
-        [
-          6,
-          7
-        ],
-        [
-          7,
-          11
-        ],
-        [
-          9,
-          3
+          4
         ],
         [
           10,
-          13
-        ],
-        [
-          11,
-          12
-        ],
-        [
-          12,
-          8
-        ],
-        [
-          13,
           5
         ],
         [
+          11,
+          2
+        ],
+        [
           14,
-          1
+          3
         ],
         [
           15,
-          7
-        ],
-        [
-          16,
           6
         ],
         [
+          16,
+          1
+        ],
+        [
           18,
-          4
+          1
         ]
       ],
       "a": [
         [
-          1,
-          1
-        ],
-        [
           2,
-          9
+          7
         ],
         [
           3,
-          3
+          8
         ],
         [
           5,
-          4
-        ],
-        [
-          6,
-          11
-        ],
-        [
-          9,
-          10
-        ],
-        [
-          10,
           5
         ],
         [
-          11,
-          9
+          6,
+          6
+        ],
+        [
+          9,
+          1
         ],
         [
           12,
-          3
+          5
         ]
       ]
     },
@@ -609,123 +749,79 @@
       "t": [
         [
           2,
-          8
+          1
         ],
         [
           3,
-          2
+          3
         ],
         [
           6,
-          14
+          4
         ],
         [
           7,
-          4
+          7
         ],
         [
           11,
           2
         ],
         [
-          12,
-          14
-        ],
-        [
           16,
-          4
+          8
         ]
       ],
       "b": [
         [
           1,
-          5
-        ],
-        [
-          2,
-          7
+          8
         ],
         [
           3,
-          5
-        ],
-        [
-          4,
-          13
-        ],
-        [
-          7,
-          5
-        ],
-        [
-          9,
           6
         ],
         [
-          10,
-          9
+          9,
+          4
         ],
         [
           11,
-          11
-        ],
-        [
-          12,
-          13
-        ],
-        [
-          13,
-          10
-        ],
-        [
-          14,
-          9
+          2
         ],
         [
           15,
-          12
+          3
         ],
         [
           16,
-          13
+          5
         ],
         [
           17,
-          1
-        ],
-        [
-          18,
-          8
+          7
         ]
       ],
       "a": [
         [
           1,
-          4
+          1
         ],
         [
           2,
-          11
+          7
         ],
         [
           5,
-          12
-        ],
-        [
-          7,
-          9
+          4
         ],
         [
           9,
-          7
+          5
         ],
         [
           10,
-          7
-        ],
-        [
-          12,
-          10
+          8
         ]
       ]
     },
@@ -733,144 +829,76 @@
       "ch": "7장",
       "t": [
         [
-          2,
+          7,
           6
         ],
         [
-          3,
-          14
-        ],
-        [
-          5,
-          1
-        ],
-        [
-          7,
-          14
-        ],
-        [
           9,
-          14
+          4
         ],
         [
           10,
-          1
+          3
         ],
         [
           11,
-          11
+          8
         ],
         [
           12,
-          11
+          7
         ],
         [
           14,
-          9
+          1
         ],
         [
           15,
-          1
+          2
         ]
       ],
       "b": [
         [
           1,
-          7
-        ],
-        [
-          2,
-          14
-        ],
-        [
-          3,
-          7
-        ],
-        [
-          4,
           2
-        ],
-        [
-          5,
-          8
         ],
         [
           8,
           1
         ],
         [
-          9,
-          2
-        ],
-        [
-          10,
-          1
-        ],
-        [
           12,
-          9
+          3
         ],
         [
           14,
-          13
-        ],
-        [
-          15,
-          1
+          5
         ],
         [
           16,
-          4
-        ],
-        [
-          17,
-          8
+          3
         ],
         [
           18,
-          10
+          7
         ],
         [
           20,
-          12
-        ],
-        [
-          21,
-          4
-        ],
-        [
-          22,
-          12
+          6
         ]
       ],
       "a": [
         [
           2,
-          5
-        ],
-        [
-          3,
-          12
+          8
         ],
         [
           4,
-          8
-        ],
-        [
-          5,
-          8
-        ],
-        [
-          6,
-          10
+          4
         ],
         [
           7,
-          11
-        ],
-        [
-          8,
-          13
+          5
         ]
       ]
     },
@@ -878,64 +906,35 @@
       "ch": "8장",
       "t": [
         [
-          3,
-          2
-        ],
-        [
           4,
-          4
+          7
         ],
         [
           7,
-          10
+          6
         ]
       ],
       "b": [
         [
           1,
-          10
-        ],
-        [
-          2,
-          5
+          2
         ],
         [
           4,
-          4
+          1
         ],
         [
           6,
-          2
-        ],
-        [
-          7,
-          4
+          3
         ]
       ],
-      "a": [
-        [
-          1,
-          8
-        ],
-        [
-          2,
-          12
-        ],
-        [
-          3,
-          2
-        ]
-      ]
+      "a": []
     },
     {
       "ch": "9장",
       "t": [
         [
           1,
-          4
-        ],
-        [
-          2,
           6
         ],
         [
@@ -944,67 +943,47 @@
         ],
         [
           5,
-          10
+          1
         ],
         [
           6,
-          10
+          5
         ],
         [
           7,
-          14
-        ],
-        [
-          8,
-          9
+          4
         ],
         [
           10,
-          14
+          3
         ],
         [
           11,
-          13
+          7
         ],
         [
           12,
-          4
+          8
         ]
       ],
       "b": [
         [
-          1,
-          3
-        ],
-        [
-          2,
-          13
-        ],
-        [
           3,
-          1
+          7
         ],
         [
           5,
           3
         ],
         [
-          7,
-          13
-        ],
-        [
           8,
-          7
+          5
         ]
       ],
       "a": [
         [
           1,
-          7
-        ],
-        [
-          4,
-          1
+          4
         ]
       ]
     },
@@ -1017,79 +996,51 @@
         ],
         [
           2,
-          14
+          4
         ],
         [
           4,
-          11
+          8
         ]
       ],
       "b": [
         [
-          1,
-          6
-        ],
-        [
           3,
-          1
-        ],
-        [
-          4,
-          11
-        ],
-        [
-          5,
-          6
+          2
         ],
         [
           6,
-          9
-        ],
-        [
-          7,
-          8
+          3
         ],
         [
           9,
-          3
-        ],
-        [
-          11,
-          10
+          7
         ],
         [
           12,
-          11
-        ],
-        [
-          13,
           5
         ],
         [
+          13,
+          1
+        ],
+        [
           14,
-          3
+          6
         ]
       ],
       "a": [
         [
-          1,
+          2,
           3
         ],
         [
-          2,
-          11
-        ],
-        [
           4,
-          5
-        ],
-        [
-          5,
-          6
+          4
         ],
         [
           6,
-          6
+          7
         ]
       ]
     },
@@ -1097,116 +1048,76 @@
       "ch": "11장",
       "t": [
         [
-          1,
+          6,
           7
         ],
         [
-          2,
-          1
-        ],
-        [
-          4,
-          10
-        ],
-        [
-          6,
-          2
-        ],
-        [
           7,
-          6
-        ],
-        [
-          8,
-          10
+          1
         ],
         [
           9,
-          2
+          5
         ],
         [
           10,
-          2
+          1
         ],
         [
           11,
-          1
+          6
         ],
         [
           14,
-          12
+          4
         ],
         [
           16,
-          12
-        ],
-        [
-          17,
           2
         ],
         [
+          17,
+          8
+        ],
+        [
           20,
-          10
+          5
         ],
         [
           22,
-          1
+          3
         ]
       ],
       "b": [
         [
-          2,
-          2
-        ],
-        [
-          3,
-          11
-        ],
-        [
-          4,
-          2
-        ],
-        [
-          7,
-          13
-        ],
-        [
           8,
-          2
-        ],
-        [
-          9,
-          8
+          3
         ],
         [
           10,
-          13
+          6
         ],
         [
           12,
-          3
+          2
         ]
       ],
       "a": [
         [
           2,
-          3
+          8
         ],
         [
           3,
-          12
-        ],
-        [
-          4,
-          11
+          6
         ],
         [
           7,
-          11
+          4
         ],
         [
           8,
-          9
+          7
         ]
       ]
     },
@@ -1214,80 +1125,32 @@
       "ch": "12장",
       "t": [
         [
-          3,
-          1
-        ],
-        [
           4,
-          9
-        ],
-        [
-          5,
-          9
+          3
         ],
         [
           7,
-          6
+          2
         ],
         [
           8,
-          6
+          8
         ]
       ],
       "b": [
         [
           1,
-          14
-        ],
-        [
-          2,
-          13
-        ],
-        [
-          3,
-          13
-        ],
-        [
-          5,
-          7
-        ],
-        [
-          7,
           5
-        ],
-        [
-          8,
-          8
-        ],
-        [
-          9,
-          10
-        ],
-        [
-          10,
-          5
-        ],
-        [
-          11,
-          11
         ],
         [
           14,
-          2
+          4
         ]
       ],
       "a": [
         [
-          2,
-          9
-        ],
-        [
           4,
-          14
-        ],
-        [
-          5,
-          3
+          1
         ]
       ]
     },
@@ -1296,49 +1159,19 @@
       "t": [
         [
           2,
-          14
+          2
         ],
         [
           3,
-          11
+          1
         ],
         [
           4,
-          5
+          4
         ],
         [
           5,
-          1
-        ],
-        [
-          6,
-          10
-        ],
-        [
-          7,
-          1
-        ],
-        [
-          8,
-          11
-        ]
-      ],
-      "b": [
-        [
-          1,
-          7
-        ],
-        [
-          2,
-          12
-        ],
-        [
-          3,
-          12
-        ],
-        [
-          4,
-          6
+          5
         ],
         [
           6,
@@ -1346,15 +1179,37 @@
         ],
         [
           7,
-          2
+          7
         ],
         [
           8,
-          11
+          6
+        ]
+      ],
+      "b": [
+        [
+          2,
+          8
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          8,
+          6
         ],
         [
           9,
-          1
+          6
         ],
         [
           10,
@@ -1362,37 +1217,21 @@
         ],
         [
           11,
-          12
+          7
         ],
         [
           13,
-          5
+          8
         ]
       ],
       "a": [
         [
           1,
-          14
-        ],
-        [
-          2,
           4
-        ],
-        [
-          3,
-          4
-        ],
-        [
-          5,
-          1
         ],
         [
           6,
-          10
-        ],
-        [
-          7,
-          3
+          2
         ]
       ]
     },
@@ -1400,76 +1239,24 @@
       "ch": "14장",
       "t": [
         [
-          1,
-          14
-        ],
-        [
           2,
-          8
+          5
         ]
       ],
       "b": [
         [
-          2,
-          12
-        ],
-        [
-          3,
-          8
-        ],
-        [
-          5,
-          6
-        ],
-        [
-          6,
-          14
-        ],
-        [
-          8,
-          6
-        ],
-        [
-          9,
-          11
-        ],
-        [
-          10,
-          9
-        ],
-        [
-          11,
-          3
-        ],
-        [
-          13,
-          14
-        ],
-        [
           14,
-          1
+          4
         ]
       ],
       "a": [
         [
-          1,
-          1
-        ],
-        [
           2,
-          5
-        ],
-        [
-          3,
-          9
+          7
         ],
         [
           5,
-          3
-        ],
-        [
-          6,
-          5
+          6
         ]
       ]
     },
@@ -1478,45 +1265,29 @@
       "t": [
         [
           3,
-          9
+          4
         ],
         [
           4,
-          8
+          5
         ],
         [
           5,
-          14
-        ],
-        [
-          6,
-          8
+          3
         ],
         [
           7,
-          6
+          8
         ]
       ],
       "b": [
         [
           1,
-          12
+          1
         ],
         [
           4,
-          6
-        ],
-        [
-          5,
-          3
-        ],
-        [
-          6,
-          3
-        ],
-        [
-          7,
-          12
+          7
         ],
         [
           8,
@@ -1524,57 +1295,33 @@
         ],
         [
           9,
-          3
-        ],
-        [
-          10,
           6
         ],
         [
           11,
-          5
+          3
         ]
       ],
       "a": [
         [
-          1,
-          10
-        ],
-        [
           2,
-          2
-        ],
-        [
-          3,
-          12
-        ],
-        [
-          4,
-          7
+          4
         ],
         [
           5,
-          10
-        ],
-        [
-          6,
-          11
+          2
         ],
         [
           8,
-          7
+          3
         ],
         [
           9,
-          13
-        ],
-        [
-          10,
-          14
+          5
         ],
         [
           11,
-          7
+          8
         ]
       ]
     },
@@ -1583,61 +1330,57 @@
       "t": [
         [
           2,
-          6
+          2
         ],
         [
           3,
-          9
-        ],
-        [
-          7,
-          4
-        ],
-        [
-          8,
           1
         ],
         [
-          10,
+          7,
           8
-        ]
-      ],
-      "b": [
-        [
-          1,
-          4
-        ],
-        [
-          3,
-          4
-        ],
-        [
-          4,
-          8
-        ],
-        [
-          6,
-          7
         ],
         [
           8,
           5
         ],
         [
+          10,
+          7
+        ]
+      ],
+      "b": [
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          8,
+          4
+        ],
+        [
           9,
-          14
+          6
         ],
         [
           11,
-          13
+          1
         ],
         [
           12,
-          7
+          8
         ],
         [
           14,
-          3
+          7
         ]
       ],
       "a": [
@@ -1646,16 +1389,8 @@
           5
         ],
         [
-          3,
-          11
-        ],
-        [
           4,
-          6
-        ],
-        [
-          5,
-          3
+          2
         ]
       ]
     },
@@ -1664,99 +1399,63 @@
       "t": [
         [
           2,
-          9
+          6
         ],
         [
           3,
-          12
-        ],
-        [
-          4,
-          13
-        ],
-        [
-          6,
           4
         ],
         [
-          8,
-          12
+          6,
+          1
         ],
         [
           10,
-          9
+          7
         ]
       ],
       "b": [
         [
           1,
-          4
-        ],
-        [
-          2,
-          5
-        ],
-        [
-          4,
-          9
-        ],
-        [
-          5,
-          1
-        ],
-        [
-          6,
-          9
-        ],
-        [
-          7,
-          10
-        ],
-        [
-          8,
-          9
-        ],
-        [
-          9,
-          2
-        ],
-        [
-          10,
-          13
-        ],
-        [
-          11,
-          7
-        ],
-        [
-          13,
-          7
-        ]
-      ],
-      "a": [
-        [
-          1,
-          13
-        ],
-        [
-          3,
-          12
+          8
         ],
         [
           4,
           3
         ],
         [
-          5,
-          9
+          7,
+          1
         ],
         [
           8,
-          13
+          7
         ],
         [
-          9,
-          9
+          10,
+          2
+        ],
+        [
+          11,
+          5
+        ]
+      ],
+      "a": [
+        [
+          1,
+          6
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          1
         ]
       ]
     },
@@ -1765,75 +1464,51 @@
       "t": [
         [
           2,
-          4
+          1
         ],
         [
           3,
-          13
-        ],
-        [
-          5,
-          6
+          8
         ],
         [
           6,
-          7
+          2
         ]
       ],
       "b": [
         [
-          1,
-          2
-        ],
-        [
-          2,
-          11
-        ],
-        [
           3,
-          6
-        ],
-        [
-          4,
-          14
-        ],
-        [
-          6,
           5
         ],
         [
           7,
-          10
-        ],
-        [
-          9,
-          8
+          7
         ],
         [
           10,
-          10
+          3
         ],
         [
           11,
-          3
+          6
         ]
       ],
       "a": [
         [
           1,
-          7
+          4
         ],
         [
           2,
-          12
+          1
         ],
         [
           3,
-          6
+          8
         ],
         [
           5,
-          4
+          2
         ]
       ]
     },
@@ -1842,79 +1517,43 @@
       "t": [
         [
           1,
-          12
-        ],
-        [
-          2,
-          7
+          6
         ],
         [
           4,
-          4
+          7
         ],
         [
           5,
-          6
+          5
         ]
       ],
       "b": [
         [
-          2,
-          8
-        ],
-        [
-          4,
-          3
-        ],
-        [
           5,
-          12
+          8
         ],
         [
           6,
-          14
+          2
         ],
         [
           7,
-          11
-        ],
-        [
-          8,
-          11
-        ],
-        [
-          10,
-          8
-        ],
-        [
-          13,
-          13
-        ],
-        [
-          14,
-          8
+          1
         ]
       ],
       "a": [
         [
           2,
-          8
-        ],
-        [
-          3,
-          14
-        ],
-        [
-          4,
-          8
+          5
         ],
         [
           5,
-          2
+          6
         ],
         [
           7,
-          2
+          4
         ],
         [
           8,
@@ -1927,15 +1566,15 @@
       "t": [
         [
           3,
-          11
+          6
         ],
         [
           4,
-          2
+          5
         ],
         [
           5,
-          1
+          2
         ],
         [
           7,
@@ -1943,71 +1582,51 @@
         ],
         [
           9,
-          5
-        ],
-        [
-          11,
-          5
+          1
         ]
       ],
       "b": [
         [
           2,
-          9
-        ],
-        [
-          3,
-          10
-        ],
-        [
-          4,
-          14
-        ],
-        [
-          7,
-          2
-        ],
-        [
-          11,
-          5
-        ],
-        [
-          12,
-          5
-        ],
-        [
-          14,
           7
         ],
         [
-          16,
+          7,
           8
+        ],
+        [
+          11,
+          7
+        ],
+        [
+          12,
+          3
         ]
       ],
       "a": [
         [
           1,
-          13
+          8
         ],
         [
           2,
-          13
+          1
         ],
         [
           4,
-          5
+          2
         ],
         [
           5,
-          14
+          6
         ],
         [
           6,
-          10
+          5
         ],
         [
           7,
-          10
+          4
         ]
       ]
     }
@@ -4223,7 +3842,7 @@
         ],
         [
           4,
-          3
+          2
         ],
         [
           5,
@@ -4253,7 +3872,7 @@
         ],
         [
           4,
-          2
+          3
         ],
         [
           5,
@@ -4318,7 +3937,7 @@
         ],
         [
           11,
-          14
+          1
         ],
         [
           12,
@@ -4388,7 +4007,7 @@
         ],
         [
           11,
-          1
+          11
         ],
         [
           12,
