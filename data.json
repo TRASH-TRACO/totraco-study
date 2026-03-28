@@ -1,359 +1,7 @@
 {
   "version": 2,
-  "date": "2026-03-20T04:21:52.967Z",
+  "date": "2026-03-28T07:24:24.489Z",
   "progress": {
-    "fin|0|theory|1": true,
-    "fin|0|basic|11": true,
-    "fin|1|theory|6": true,
-    "fin|1|basic|17": true,
-    "fin|2|theory|15": true,
-    "fin|2|adv|2": true,
-    "fin|4|theory|1": true,
-    "fin|5|theory|1": true,
-    "fin|5|adv|6": true,
-    "fin|6|basic|7": true,
-    "fin|7|basic|5": true,
-    "fin|8|basic|2": true,
-    "fin|9|basic|2": true,
-    "fin|10|theory|6": true,
-    "fin|10|adv|9": true,
-    "fin|11|adv|3": true,
-    "fin|12|basic|11": true,
-    "fin|13|basic|9": true,
-    "fin|14|basic|13": true,
-    "fin|15|basic|11": true,
-    "fin|0|basic|7": true,
-    "fin|0|adv|12": true,
-    "fin|1|basic|14": true,
-    "fin|2|theory|11": true,
-    "fin|2|basic|20": true,
-    "fin|3|adv|1": true,
-    "fin|4|basic|8": true,
-    "fin|5|adv|2": true,
-    "fin|6|basic|2": true,
-    "fin|7|basic|1": true,
-    "fin|8|theory|7": true,
-    "fin|8|adv|7": true,
-    "fin|10|theory|3": true,
-    "fin|10|adv|5": true,
-    "fin|11|basic|12": true,
-    "fin|12|basic|8": true,
-    "fin|13|basic|4": true,
-    "fin|14|basic|7": true,
-    "fin|15|basic|3": true,
-    "fin|0|basic|6": true,
-    "fin|0|adv|11": true,
-    "fin|1|basic|13": true,
-    "fin|2|theory|10": true,
-    "fin|2|basic|18": true,
-    "fin|3|basic|7": true,
-    "fin|4|basic|7": true,
-    "fin|5|adv|1": true,
-    "fin|6|theory|22": true,
-    "fin|7|theory|8": true,
-    "fin|8|theory|6": true,
-    "fin|8|adv|6": true,
-    "fin|9|adv|6": true,
-    "fin|10|adv|4": true,
-    "fin|11|basic|11": true,
-    "fin|12|basic|7": true,
-    "fin|13|basic|3": true,
-    "fin|14|basic|6": true,
-    "fin|15|basic|2": true,
-    "fin|0|basic|5": true,
-    "fin|0|adv|10": true,
-    "fin|1|basic|12": true,
-    "fin|2|theory|9": true,
-    "fin|2|basic|17": true,
-    "fin|3|basic|6": true,
-    "fin|4|basic|5": true,
-    "fin|5|basic|14": true,
-    "fin|6|theory|20": true,
-    "fin|7|theory|7": true,
-    "fin|8|theory|5": true,
-    "fin|8|adv|5": true,
-    "fin|9|adv|5": true,
-    "fin|10|adv|3": true,
-    "fin|11|basic|9": true,
-    "fin|12|basic|6": true,
-    "fin|13|basic|2": true,
-    "fin|14|basic|5": true,
-    "fin|15|theory|11": true,
-    "fin|0|basic|4": true,
-    "fin|0|adv|9": true,
-    "fin|1|basic|11": true,
-    "fin|2|theory|7": true,
-    "fin|2|basic|16": true,
-    "fin|3|basic|4": true,
-    "fin|4|basic|3": true,
-    "fin|5|basic|13": true,
-    "fin|6|theory|17": true,
-    "fin|7|theory|5": true,
-    "fin|8|theory|4": true,
-    "fin|8|adv|3": true,
-    "fin|9|adv|3": true,
-    "fin|10|adv|2": true,
-    "fin|11|basic|8": true,
-    "fin|12|basic|5": true,
-    "fin|13|basic|1": true,
-    "fin|14|basic|4": true,
-    "fin|15|theory|9": true,
-    "fin|0|basic|3": true,
-    "fin|0|adv|6": true,
-    "fin|1|basic|10": true,
-    "fin|2|theory|5": true,
-    "fin|2|basic|15": true,
-    "fin|3|basic|2": true,
-    "fin|4|basic|2": true,
-    "fin|5|basic|12": true,
-    "fin|6|theory|16": true,
-    "fin|7|theory|4": true,
-    "fin|8|theory|3": true,
-    "fin|8|adv|2": true,
-    "fin|9|adv|2": true,
-    "fin|10|adv|1": true,
-    "fin|11|basic|6": true,
-    "fin|12|basic|4": true,
-    "fin|13|theory|6": true,
-    "fin|14|basic|2": true,
-    "fin|15|theory|7": true,
-    "fin|0|basic|2": true,
-    "fin|0|adv|5": true,
-    "fin|1|basic|9": true,
-    "fin|2|theory|3": true,
-    "fin|2|basic|14": true,
-    "fin|3|basic|1": true,
-    "fin|4|basic|1": true,
-    "fin|5|basic|11": true,
-    "fin|6|theory|14": true,
-    "fin|7|theory|3": true,
-    "fin|8|theory|2": true,
-    "fin|8|adv|1": true,
-    "fin|9|adv|1": true,
-    "fin|10|basic|11": true,
-    "fin|11|basic|4": true,
-    "fin|12|basic|2": true,
-    "fin|13|theory|5": true,
-    "fin|14|theory|5": true,
-    "fin|15|theory|5": true,
-    "fin|0|theory|14": true,
-    "fin|0|adv|2": true,
-    "fin|1|basic|4": true,
-    "fin|1|adv|12": true,
-    "fin|2|basic|10": true,
-    "fin|3|theory|4": true,
-    "fin|4|theory|11": true,
-    "fin|5|basic|7": true,
-    "fin|6|theory|10": true,
-    "fin|6|adv|7": true,
-    "fin|7|adv|4": true,
-    "fin|8|basic|11": true,
-    "fin|9|basic|13": true,
-    "fin|10|basic|9": true,
-    "fin|11|basic|1": true,
-    "fin|12|theory|10": true,
-    "fin|13|theory|2": true,
-    "fin|14|theory|2": true,
-    "fin|15|theory|3": true,
-    "fin|15|adv|6": true,
-    "fin|0|basic|1": true,
-    "fin|0|adv|3": true,
-    "fin|1|basic|7": true,
-    "fin|2|theory|2": true,
-    "fin|2|basic|12": true,
-    "fin|3|theory|7": true,
-    "fin|4|theory|12": true,
-    "fin|5|basic|9": true,
-    "fin|6|theory|11": true,
-    "fin|6|adv|8": true,
-    "fin|7|adv|5": true,
-    "fin|8|basic|13": true,
-    "fin|9|basic|14": true,
-    "fin|10|basic|10": true,
-    "fin|11|basic|3": true,
-    "fin|12|basic|1": true,
-    "fin|13|theory|3": true,
-    "fin|14|theory|4": true,
-    "fin|15|theory|4": true,
-    "fin|15|adv|7": true,
-    "fin|0|theory|13": true,
-    "fin|0|adv|1": true,
-    "fin|1|basic|3": true,
-    "fin|1|adv|10": true,
-    "fin|2|basic|9": true,
-    "fin|3|theory|3": true,
-    "fin|4|theory|10": true,
-    "fin|5|basic|6": true,
-    "fin|6|theory|9": true,
-    "fin|6|adv|4": true,
-    "fin|7|adv|2": true,
-    "fin|8|basic|10": true,
-    "fin|9|basic|11": true,
-    "fin|10|basic|8": true,
-    "fin|11|theory|10": true,
-    "fin|12|theory|8": true,
-    "fin|12|adv|9": true,
-    "fin|14|theory|1": true,
-    "fin|14|adv|8": true,
-    "fin|15|adv|5": true,
-    "fin|0|theory|11": true,
-    "fin|0|basic|18": true,
-    "fin|1|basic|2": true,
-    "fin|1|adv|9": true,
-    "fin|2|basic|8": true,
-    "fin|2|adv|8": true,
-    "fin|4|theory|8": true,
-    "fin|5|basic|5": true,
-    "fin|6|theory|8": true,
-    "fin|6|adv|3": true,
-    "fin|7|basic|14": true,
-    "fin|8|basic|9": true,
-    "fin|9|basic|10": true,
-    "fin|10|basic|7": true,
-    "fin|11|theory|8": true,
-    "fin|12|theory|6": true,
-    "fin|12|adv|8": true,
-    "fin|13|adv|5": true,
-    "fin|14|adv|7": true,
-    "fin|15|adv|4": true,
-    "fin|0|theory|7": true,
-    "fin|0|basic|16": true,
-    "fin|1|basic|1": true,
-    "fin|1|adv|7": true,
-    "fin|2|basic|5": true,
-    "fin|2|adv|7": true,
-    "fin|4|theory|7": true,
-    "fin|5|basic|4": true,
-    "fin|6|theory|7": true,
-    "fin|6|adv|2": true,
-    "fin|7|basic|11": true,
-    "fin|8|basic|8": true,
-    "fin|9|basic|9": true,
-    "fin|10|basic|6": true,
-    "fin|11|theory|7": true,
-    "fin|12|theory|4": true,
-    "fin|12|adv|5": true,
-    "fin|13|adv|3": true,
-    "fin|14|adv|5": true,
-    "fin|15|adv|2": true,
-    "fin|0|theory|6": true,
-    "fin|0|basic|15": true,
-    "fin|1|theory|16": true,
-    "fin|1|adv|5": true,
-    "fin|2|basic|4": true,
-    "fin|2|adv|6": true,
-    "fin|4|theory|6": true,
-    "fin|5|basic|3": true,
-    "fin|6|theory|6": true,
-    "fin|6|basic|12": true,
-    "fin|7|basic|10": true,
-    "fin|8|basic|7": true,
-    "fin|9|basic|8": true,
-    "fin|10|basic|5": true,
-    "fin|11|theory|3": true,
-    "fin|12|theory|3": true,
-    "fin|12|adv|4": true,
-    "fin|13|adv|2": true,
-    "fin|14|adv|4": true,
-    "fin|15|adv|1": true,
-    "fin|0|theory|5": true,
-    "fin|0|basic|14": true,
-    "fin|1|theory|12": true,
-    "fin|1|adv|2": true,
-    "fin|2|basic|3": true,
-    "fin|2|adv|5": true,
-    "fin|4|theory|5": true,
-    "fin|5|basic|1": true,
-    "fin|6|theory|4": true,
-    "fin|6|basic|10": true,
-    "fin|7|basic|9": true,
-    "fin|8|basic|6": true,
-    "fin|9|basic|6": true,
-    "fin|10|basic|4": true,
-    "fin|11|theory|2": true,
-    "fin|12|theory|2": true,
-    "fin|12|adv|3": false,
-    "fin|13|adv|1": true,
-    "fin|14|adv|3": true,
-    "fin|15|basic|16": true,
-    "fin|0|theory|4": true,
-    "fin|0|basic|13": true,
-    "fin|1|theory|11": true,
-    "fin|1|adv|1": true,
-    "fin|2|basic|2": true,
-    "fin|2|adv|4": true,
-    "fin|4|theory|4": true,
-    "fin|5|theory|4": true,
-    "fin|6|theory|2": true,
-    "fin|6|basic|9": true,
-    "fin|7|basic|8": true,
-    "fin|8|basic|4": true,
-    "fin|9|basic|5": true,
-    "fin|10|basic|1": true,
-    "fin|10|adv|11": true,
-    "fin|11|adv|5": true,
-    "fin|12|adv|1": true,
-    "fin|13|basic|11": true,
-    "fin|14|adv|2": true,
-    "fin|15|basic|14": true,
-    "fin|0|theory|2": true,
-    "fin|0|basic|12": true,
-    "fin|1|theory|7": true,
-    "fin|1|basic|18": true,
-    "fin|2|basic|1": true,
-    "fin|2|adv|3": true,
-    "fin|4|theory|2": true,
-    "fin|5|theory|2": true,
-    "fin|6|theory|1": true,
-    "fin|6|basic|8": true,
-    "fin|7|basic|7": true,
-    "fin|8|basic|3": true,
-    "fin|9|basic|3": true,
-    "fin|10|theory|7": true,
-    "fin|10|adv|10": true,
-    "fin|11|adv|4": true,
-    "fin|12|basic|13": true,
-    "fin|13|basic|10": true,
-    "fin|14|basic|14": true,
-    "fin|15|basic|12": true,
-    "fin|0|basic|9": true,
-    "fin|1|theory|2": true,
-    "fin|1|basic|15": true,
-    "fin|2|theory|12": true,
-    "fin|2|basic|21": true,
-    "fin|3|adv|2": true,
-    "fin|4|adv|1": true,
-    "fin|5|adv|4": true,
-    "fin|6|basic|3": true,
-    "fin|7|basic|2": true,
-    "fin|8|theory|8": true,
-    "fin|9|theory|1": true,
-    "fin|10|theory|4": true,
-    "fin|10|adv|6": true,
-    "fin|11|basic|14": true,
-    "fin|12|basic|9": true,
-    "fin|13|basic|6": true,
-    "fin|14|basic|8": true,
-    "fin|15|basic|4": true,
-    "fin|0|basic|10": true,
-    "fin|1|theory|3": true,
-    "fin|1|basic|16": true,
-    "fin|2|theory|14": true,
-    "fin|2|basic|22": true,
-    "fin|3|adv|3": true,
-    "fin|4|adv|4": true,
-    "fin|5|adv|5": true,
-    "fin|6|basic|4": true,
-    "fin|7|basic|3": true,
-    "fin|8|basic|1": true,
-    "fin|9|theory|2": true,
-    "fin|10|theory|5": true,
-    "fin|10|adv|8": true,
-    "fin|11|adv|1": true,
-    "fin|12|basic|10": true,
-    "fin|13|basic|7": true,
-    "fin|14|basic|10": true,
-    "fin|15|basic|7": true,
     "cost|7|single|43": true,
     "cost|7|single|28": true,
     "cost|7|single|24": true,
@@ -656,41 +304,294 @@
     "tax|30|theory|13": true,
     "tax|30|calc|13": true,
     "tax|32|theory|11": true,
-    "tax|32|calc|13": true
+    "tax|32|calc|13": true,
+    "tax|18|calc|15": true,
+    "tax|18|theory|13": true,
+    "tax|17|calc|8": true,
+    "tax|16|calc|3": true,
+    "tax|18|theory|3": true,
+    "tax|15|theory|7": true,
+    "tax|14|calc|8": true,
+    "tax|13|calc|3": true,
+    "tax|12|calc|12": true,
+    "tax|11|calc|5": true,
+    "tax|10|calc|2": true,
+    "tax|9|theory|7": true,
+    "tax|8|calc|1": true,
+    "tax|8|theory|2": true,
+    "tax|7|theory|5": true,
+    "tax|6|theory|1": true,
+    "tax|5|theory|12": true,
+    "tax|5|calc|16": true,
+    "tax|4|calc|1": true,
+    "tax|4|calc|6": true,
+    "tax|3|theory|1": true,
+    "tax|2|theory|9": true,
+    "tax|1|theory|9": true,
+    "tax|1|theory|10": true,
+    "tax|1|theory|12": true,
+    "tax|0|theory|12": true,
+    "tax|19|calc|1": true,
+    "tax|21|theory|2": true,
+    "tax|22|theory|8": true,
+    "tax|22|calc|1": true,
+    "tax|23|theory|3": true,
+    "tax|23|calc|17": true,
+    "tax|24|theory|4": true,
+    "tax|25|calc|8": true,
+    "tax|25|calc|9": true,
+    "tax|26|calc|7": true,
+    "tax|27|theory|4": true,
+    "tax|27|calc|10": true,
+    "tax|27|calc|15": true,
+    "tax|28|theory|13": true,
+    "tax|30|theory|16": true,
+    "tax|30|calc|12": true,
+    "tax|32|theory|12": true,
+    "tax|32|calc|4": true,
+    "tax|32|calc|6": true,
+    "cost|0|single|5": true,
+    "cost|1|single|13": true,
+    "cost|2|single|15": true,
+    "cost|2|single|22": true,
+    "cost|3|single|13": true,
+    "cost|4|single|28": true,
+    "cost|5|single|12": true,
+    "cost|6|single|13": true,
+    "cost|7|single|7": true,
+    "cost|7|single|12": true,
+    "cost|7|single|35": true,
+    "cost|8|single|7": true,
+    "cost|8|single|8": true,
+    "cost|8|single|20": true,
+    "cost|10|single|4": true,
+    "cost|11|single|24": true,
+    "cost|12|single|13": true,
+    "cost|13|single|4": true,
+    "cost|14|single|16": true,
+    "cost|14|single|17": true,
+    "tax|0|theory|4": true,
+    "tax|1|theory|3": true,
+    "tax|2|theory|13": true,
+    "tax|3|theory|4": true,
+    "tax|4|theory|1": true,
+    "tax|4|calc|8": true,
+    "tax|5|theory|1": true,
+    "tax|5|calc|2": true,
+    "tax|5|calc|20": true,
+    "tax|6|theory|3": true,
+    "tax|6|calc|14": true,
+    "tax|6|calc|18": true,
+    "tax|8|calc|3": true,
+    "tax|9|theory|1": true,
+    "tax|10|calc|3": true,
+    "tax|11|calc|3": true,
+    "tax|12|calc|8": true,
+    "tax|12|calc|15": true,
+    "tax|13|calc|4": true,
+    "tax|14|theory|1": true,
+    "tax|14|calc|4": true,
+    "tax|15|calc|15": true,
+    "tax|17|theory|6": true,
+    "tax|18|theory|17": true,
+    "tax|18|calc|4": true,
+    "tax|19|calc|4": true,
+    "tax|20|calc|6": true,
+    "tax|21|calc|1": true,
+    "tax|22|theory|5": true,
+    "tax|23|theory|4": true,
+    "tax|23|calc|12": true,
+    "tax|24|theory|3": true,
+    "tax|25|calc|14": true,
+    "tax|26|theory|2": true,
+    "tax|26|calc|4": true,
+    "tax|27|theory|9": true,
+    "tax|27|calc|12": true,
+    "tax|27|calc|22": true,
+    "tax|28|theory|8": true,
+    "tax|29|theory|2": true,
+    "tax|30|theory|3": true,
+    "tax|30|calc|10": true,
+    "tax|30|calc|11": true,
+    "tax|32|theory|17": true,
+    "tax|32|calc|15": true,
+    "tax|0|theory|1": true,
+    "tax|1|theory|7": true,
+    "tax|1|calc|2": true,
+    "tax|2|theory|1": true,
+    "tax|3|theory|8": true,
+    "tax|4|calc|2": true,
+    "tax|4|calc|10": true,
+    "tax|5|theory|2": true,
+    "tax|5|calc|9": true,
+    "tax|6|calc|9": true,
+    "tax|6|calc|13": true,
+    "tax|7|calc|1": true,
+    "tax|8|theory|3": true,
+    "tax|8|calc|5": true,
+    "tax|9|theory|9": true,
+    "tax|10|theory|4": true,
+    "tax|11|calc|1": true,
+    "tax|12|calc|11": true,
+    "tax|13|theory|9": true,
+    "tax|14|calc|14": true,
+    "tax|15|theory|2": true,
+    "tax|16|theory|4": true,
+    "tax|17|calc|2": true,
+    "tax|18|theory|4": true,
+    "tax|18|calc|8": true,
+    "tax|18|calc|10": true,
+    "tax|19|calc|7": true,
+    "tax|22|calc|12": true,
+    "tax|22|calc|13": true,
+    "tax|23|theory|7": true,
+    "tax|23|calc|18": true,
+    "tax|24|theory|5": true,
+    "tax|25|calc|2": true,
+    "tax|25|calc|11": true,
+    "tax|26|calc|2": true,
+    "tax|27|theory|3": true,
+    "tax|27|calc|7": true,
+    "tax|27|calc|21": true,
+    "tax|28|theory|15": true,
+    "tax|30|theory|4": true,
+    "tax|30|calc|16": true,
+    "tax|31|calc|2": true,
+    "tax|32|theory|13": true,
+    "tax|32|calc|1": true,
+    "tax|32|calc|11": true,
+    "cost|1|single|26": true,
+    "cost|1|single|28": true,
+    "cost|2|single|10": true,
+    "cost|2|single|13": true,
+    "cost|2|single|18": true,
+    "cost|3|single|8": true,
+    "cost|4|single|16": true,
+    "cost|4|single|19": true,
+    "cost|5|single|1": true,
+    "cost|5|single|14": true,
+    "cost|7|single|11": true,
+    "cost|7|single|39": true,
+    "cost|8|single|10": true,
+    "cost|9|single|11": true,
+    "cost|10|single|6": true,
+    "cost|11|single|5": true,
+    "cost|11|single|13": true,
+    "cost|12|single|15": true,
+    "cost|13|single|2": true,
+    "cost|14|single|14": true,
+    "cost|0|single|10": true,
+    "cost|1|single|4": true,
+    "cost|1|single|9": true,
+    "cost|2|single|14": true,
+    "cost|2|single|17": true,
+    "cost|3|single|21": true,
+    "cost|3|single|23": true,
+    "cost|4|single|2": true,
+    "cost|4|single|4": true,
+    "cost|4|single|23": true,
+    "cost|5|single|13": true,
+    "cost|6|single|1": true,
+    "cost|7|single|8": true,
+    "cost|7|single|47": true,
+    "cost|8|single|31": true,
+    "cost|10|single|15": true,
+    "cost|11|single|15": true,
+    "cost|11|single|33": true,
+    "cost|12|single|9": true,
+    "cost|14|single|20": true,
+    "cost|0|single|4": true,
+    "cost|1|single|1": true,
+    "cost|1|single|29": true,
+    "cost|2|single|19": true,
+    "cost|2|single|28": true,
+    "cost|3|single|11": true,
+    "cost|3|single|19": true,
+    "cost|4|single|11": true,
+    "cost|4|single|21": true,
+    "cost|5|single|17": true,
+    "cost|7|single|4": true,
+    "cost|7|single|6": true,
+    "cost|7|single|44": true,
+    "cost|8|single|28": true,
+    "cost|9|single|4": true,
+    "cost|10|single|10": true,
+    "cost|11|single|6": true,
+    "cost|11|single|11": true,
+    "cost|12|single|11": true,
+    "cost|14|single|15": true,
+    "tax|0|theory|8": true,
+    "tax|1|theory|1": true,
+    "tax|2|theory|14": true,
+    "tax|2|calc|1": true,
+    "tax|3|theory|3": true,
+    "tax|4|theory|6": true,
+    "tax|4|calc|11": true,
+    "tax|5|theory|11": true,
+    "tax|5|calc|3": true,
+    "tax|6|calc|8": true,
+    "tax|8|theory|1": true,
+    "tax|9|theory|8": true,
+    "tax|10|theory|9": true,
+    "tax|10|calc|6": true,
+    "tax|11|calc|6": true,
+    "tax|12|calc|10": true,
+    "tax|13|theory|7": true,
+    "tax|14|calc|6": true,
+    "tax|14|calc|10": true,
+    "tax|15|theory|4": true,
+    "tax|15|calc|6": true,
+    "tax|16|calc|4": true,
+    "tax|17|calc|6": true,
+    "tax|18|theory|10": true,
+    "tax|18|calc|1": true,
+    "tax|18|calc|9": true,
+    "tax|19|calc|5": true,
+    "tax|20|calc|2": true,
+    "tax|22|theory|4": true,
+    "tax|22|calc|5": true,
+    "tax|23|calc|13": true,
+    "tax|25|calc|3": true,
+    "tax|26|theory|8": true,
+    "tax|27|theory|8": true,
+    "tax|27|calc|8": true,
+    "tax|27|calc|17": true,
+    "tax|28|theory|6": true,
+    "tax|28|calc|2": true,
+    "tax|29|theory|3": true,
+    "tax|30|theory|7": true,
+    "tax|30|calc|7": true,
+    "tax|30|calc|15": true,
+    "tax|32|theory|2": true,
+    "tax|32|calc|10": true
   },
   "finData": [
     {
-      "ch": "4장",
+      "ch": "1장",
       "t": [
         [
-          2,
-          6
+          3,
+          1
         ],
         [
           4,
-          4
-        ],
-        [
-          6,
-          2
-        ],
-        [
-          11,
-          8
-        ]
-      ],
-      "b": [
-        [
-          1,
           3
-        ],
-        [
-          4,
-          7
         ],
         [
           5,
           4
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          9,
+          3
         ],
         [
           10,
@@ -701,42 +602,201 @@
           2
         ],
         [
+          12,
+          2
+        ],
+        [
+          13,
+          5
+        ],
+        [
           14,
-          3
-        ],
-        [
-          15,
-          6
-        ],
-        [
-          16,
           1
+        ],
+        [
+          17,
+          5
         ],
         [
           18,
+          2
+        ],
+        [
+          20,
           1
+        ],
+        [
+          21,
+          4
+        ],
+        [
+          22,
+          5
+        ],
+        [
+          24,
+          4
+        ],
+        [
+          25,
+          4
+        ],
+        [
+          26,
+          3
+        ]
+      ],
+      "b": [],
+      "a": [
+        [
+          1,
+          1
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          8,
+          3
+        ]
+      ]
+    },
+    {
+      "ch": "2장",
+      "t": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          9,
+          3
+        ]
+      ],
+      "b": [
+        [
+          3,
+          2
+        ],
+        [
+          5,
+          5
+        ]
+      ],
+      "a": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          1
+        ]
+      ]
+    },
+    {
+      "ch": "3장",
+      "t": [
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          11,
+          3
+        ],
+        [
+          14,
+          2
+        ]
+      ],
+      "b": [
+        [
+          1,
+          1
+        ]
+      ],
+      "a": []
+    },
+    {
+      "ch": "4장",
+      "t": [
+        [
+          2,
+          3
+        ],
+        [
+          11,
+          5
+        ]
+      ],
+      "b": [
+        [
+          4,
+          4
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          15,
+          2
         ]
       ],
       "a": [
         [
           2,
-          7
+          3
         ],
         [
           3,
-          8
+          2
         ],
         [
           5,
-          5
+          3
         ],
         [
           6,
-          6
-        ],
-        [
-          9,
-          1
+          2
         ],
         [
           12,
@@ -748,71 +808,35 @@
       "ch": "6장",
       "t": [
         [
-          2,
-          1
-        ],
-        [
-          3,
-          3
-        ],
-        [
-          6,
+          7,
           4
         ],
         [
-          7,
-          7
-        ],
-        [
-          11,
-          2
-        ],
-        [
           16,
-          8
+          2
         ]
       ],
       "b": [
         [
           1,
-          8
-        ],
-        [
-          3,
-          6
-        ],
-        [
-          9,
-          4
-        ],
-        [
-          11,
-          2
-        ],
-        [
-          15,
           3
         ],
         [
+          3,
+          1
+        ],
+        [
           16,
-          5
+          2
         ],
         [
           17,
-          7
+          5
         ]
       ],
       "a": [
         [
-          1,
-          1
-        ],
-        [
           2,
-          7
-        ],
-        [
-          5,
           4
         ],
         [
@@ -821,7 +845,7 @@
         ],
         [
           10,
-          8
+          3
         ]
       ]
     },
@@ -830,71 +854,39 @@
       "t": [
         [
           7,
-          6
-        ],
-        [
-          9,
-          4
-        ],
-        [
-          10,
           3
         ],
         [
+          10,
+          2
+        ],
+        [
           11,
-          8
+          4
         ],
         [
           12,
-          7
-        ],
-        [
-          14,
           1
-        ],
-        [
-          15,
-          2
         ]
       ],
       "b": [
         [
-          1,
-          2
-        ],
-        [
-          8,
-          1
-        ],
-        [
-          12,
-          3
-        ],
-        [
           14,
-          5
-        ],
-        [
-          16,
-          3
+          4
         ],
         [
           18,
-          7
+          5
         ],
         [
           20,
-          6
+          1
         ]
       ],
       "a": [
         [
           2,
-          8
-        ],
-        [
-          4,
-          4
+          2
         ],
         [
           7,
@@ -907,25 +899,17 @@
       "t": [
         [
           4,
-          7
+          2
         ],
         [
           7,
-          6
+          5
         ]
       ],
       "b": [
         [
-          1,
-          2
-        ],
-        [
-          4,
-          1
-        ],
-        [
           6,
-          3
+          4
         ]
       ],
       "a": []
@@ -935,112 +919,63 @@
       "t": [
         [
           1,
-          6
-        ],
-        [
-          4,
           2
         ],
         [
-          5,
-          1
-        ],
-        [
           6,
-          5
-        ],
-        [
-          7,
           4
         ],
         [
-          10,
+          11,
           3
         ],
         [
-          11,
-          7
-        ],
-        [
           12,
-          8
+          1
         ]
       ],
       "b": [
         [
           3,
-          7
-        ],
-        [
-          5,
-          3
+          5
         ],
         [
           8,
-          5
+          1
         ]
       ],
-      "a": [
-        [
-          1,
-          4
-        ]
-      ]
+      "a": []
     },
     {
       "ch": "10장",
       "t": [
         [
           1,
-          6
-        ],
-        [
-          2,
           4
         ],
         [
           4,
-          8
+          3
         ]
       ],
       "b": [
         [
-          3,
-          2
-        ],
-        [
-          6,
-          3
-        ],
-        [
           9,
-          7
+          2
         ],
         [
           12,
           5
         ],
         [
-          13,
-          1
-        ],
-        [
           14,
-          6
+          1
         ]
       ],
       "a": [
         [
-          2,
-          3
-        ],
-        [
-          4,
-          4
-        ],
-        [
           6,
-          7
+          3
         ]
       ]
     },
@@ -1049,75 +984,43 @@
       "t": [
         [
           6,
-          7
-        ],
-        [
-          7,
-          1
+          3
         ],
         [
           9,
-          5
-        ],
-        [
-          10,
-          1
-        ],
-        [
-          11,
-          6
-        ],
-        [
-          14,
-          4
-        ],
-        [
-          16,
           2
         ],
         [
-          17,
-          8
+          11,
+          4
         ],
         [
-          20,
+          17,
           5
         ],
         [
-          22,
-          3
+          20,
+          1
         ]
       ],
       "b": [
         [
-          8,
-          3
-        ],
-        [
           10,
-          6
-        ],
-        [
-          12,
-          2
+          3
         ]
       ],
       "a": [
         [
           2,
-          8
+          2
         ],
         [
           3,
-          6
-        ],
-        [
-          7,
-          4
+          3
         ],
         [
           8,
-          7
+          5
         ]
       ]
     },
@@ -1125,138 +1028,79 @@
       "ch": "12장",
       "t": [
         [
-          4,
-          3
-        ],
-        [
-          7,
-          2
-        ],
-        [
           8,
-          8
+          5
         ]
       ],
       "b": [
         [
           1,
-          5
-        ],
-        [
-          14,
-          4
+          2
         ]
       ],
-      "a": [
-        [
-          4,
-          1
-        ]
-      ]
+      "a": []
     },
     {
       "ch": "13장",
       "t": [
         [
-          2,
-          2
-        ],
-        [
-          3,
-          1
-        ],
-        [
-          4,
-          4
-        ],
-        [
           5,
           5
         ],
         [
-          6,
-          3
-        ],
-        [
           7,
-          7
+          4
         ],
         [
           8,
-          6
+          1
         ]
       ],
       "b": [
         [
           2,
-          8
-        ],
-        [
-          3,
-          5
-        ],
-        [
-          4,
           3
         ],
         [
-          7,
-          1
+          3,
+          3
         ],
         [
           8,
-          6
+          2
         ],
         [
           9,
-          6
-        ],
-        [
-          10,
-          2
-        ],
-        [
-          11,
-          7
-        ],
-        [
-          13,
-          8
-        ]
-      ],
-      "a": [
-        [
-          1,
           4
         ],
         [
-          6,
-          2
+          11,
+          4
+        ],
+        [
+          13,
+          1
         ]
-      ]
+      ],
+      "a": []
     },
     {
       "ch": "14장",
       "t": [
         [
           2,
-          5
+          1
         ]
       ],
-      "b": [
-        [
-          14,
-          4
-        ]
-      ],
+      "b": [],
       "a": [
         [
           2,
-          7
+          3
         ],
         [
           5,
-          6
+          4
         ]
       ]
     },
@@ -1264,64 +1108,32 @@
       "ch": "15장",
       "t": [
         [
-          3,
-          4
-        ],
-        [
           4,
           5
         ],
         [
-          5,
-          3
-        ],
-        [
           7,
-          8
+          4
         ]
       ],
       "b": [
         [
-          1,
-          1
-        ],
-        [
           4,
-          7
-        ],
-        [
-          8,
-          2
+          3
         ],
         [
           9,
-          6
-        ],
-        [
-          11,
-          3
+          1
         ]
       ],
       "a": [
         [
-          2,
+          9,
           4
         ],
         [
-          5,
-          2
-        ],
-        [
-          8,
-          3
-        ],
-        [
-          9,
-          5
-        ],
-        [
           11,
-          8
+          2
         ]
       ]
     },
@@ -1329,67 +1141,35 @@
       "ch": "16장",
       "t": [
         [
-          2,
-          2
-        ],
-        [
-          3,
-          1
-        ],
-        [
           7,
-          8
+          4
         ],
         [
           8,
-          5
+          1
         ],
         [
           10,
-          7
+          5
         ]
       ],
       "b": [
         [
-          3,
-          3
-        ],
-        [
-          4,
-          3
-        ],
-        [
-          6,
-          4
-        ],
-        [
-          8,
-          4
-        ],
-        [
           9,
-          6
-        ],
-        [
-          11,
-          1
+          3
         ],
         [
           12,
-          8
+          5
         ],
         [
           14,
-          7
+          2
         ]
       ],
       "a": [
         [
           1,
-          5
-        ],
-        [
-          4,
           2
         ]
       ]
@@ -1399,41 +1179,25 @@
       "t": [
         [
           2,
-          6
-        ],
-        [
-          3,
-          4
-        ],
-        [
-          6,
           1
         ],
         [
           10,
-          7
+          5
         ]
       ],
       "b": [
         [
           1,
-          8
+          4
         ],
         [
           4,
-          3
-        ],
-        [
-          7,
-          1
+          2
         ],
         [
           8,
-          7
-        ],
-        [
-          10,
-          2
+          3
         ],
         [
           11,
@@ -1443,18 +1207,10 @@
       "a": [
         [
           1,
-          6
-        ],
-        [
-          3,
-          8
-        ],
-        [
-          4,
           2
         ],
         [
-          5,
+          3,
           1
         ]
       ]
@@ -1463,52 +1219,32 @@
       "ch": "18장",
       "t": [
         [
-          2,
-          1
-        ],
-        [
           3,
-          8
-        ],
-        [
-          6,
-          2
+          4
         ]
       ],
       "b": [
         [
           3,
-          5
+          2
         ],
         [
           7,
-          7
-        ],
-        [
-          10,
           3
         ],
         [
           11,
-          6
+          1
         ]
       ],
       "a": [
         [
-          1,
-          4
-        ],
-        [
-          2,
-          1
-        ],
-        [
           3,
-          8
+          5
         ],
         [
           5,
-          2
+          1
         ]
       ]
     },
@@ -1517,47 +1253,31 @@
       "t": [
         [
           1,
-          6
+          5
         ],
         [
           4,
-          7
+          4
         ],
         [
           5,
-          5
+          3
         ]
       ],
       "b": [
         [
           5,
-          8
-        ],
-        [
-          6,
           2
-        ],
-        [
-          7,
-          1
         ]
       ],
       "a": [
         [
           2,
-          5
+          3
         ],
         [
           5,
-          6
-        ],
-        [
-          7,
-          4
-        ],
-        [
-          8,
-          3
+          1
         ]
       ]
     },
@@ -1566,67 +1286,47 @@
       "t": [
         [
           3,
-          6
-        ],
-        [
-          4,
           5
         ],
         [
-          5,
-          2
+          4,
+          1
         ],
         [
           7,
           4
-        ],
-        [
-          9,
-          1
         ]
       ],
       "b": [
         [
           2,
-          7
+          3
         ],
         [
           7,
-          8
+          5
         ],
         [
           11,
-          7
+          4
         ],
         [
           12,
-          3
+          2
         ]
       ],
       "a": [
         [
           1,
-          8
-        ],
-        [
-          2,
-          1
-        ],
-        [
-          4,
-          2
-        ],
-        [
-          5,
-          6
-        ],
-        [
-          6,
           5
         ],
         [
-          7,
+          5,
           4
+        ],
+        [
+          6,
+          1
         ]
       ]
     }
