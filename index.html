@@ -14,6 +14,9 @@
   --fin:#d44c47;--fin-bg:#fdf3f2;--fin-border:#f5c8c6;
   --cost:#448361;--cost-bg:#f1f8f4;--cost-border:#b8d9c4;
   --tax:#9065b0;--tax-bg:#f6f3fb;--tax-border:#d9c8eb;
+  --gib:#d08c3a;--gib-bg:#fdf6ee;--gib-border:#e8cfa0;
+  --jing:#3a8da0;--jing-bg:#eef7f9;--jing-border:#a0d4e0;
+  --beol:#8a6b8a;--beol-bg:#f5f0f5;--beol-border:#d0b8d0;
   --theory:#2383e2;--basic:#448361;--adv:#d44c47;
   --red:#e03e3e;--green:#0f7b6c;
   --r:6px;--r2:4px;
@@ -48,21 +51,30 @@ body{background:var(--bg2);min-height:100vh;font-family:'Inter',sans-serif;color
 .st.ac{color:var(--cost);background:var(--cost-bg);border-color:var(--cost-border);}
 .st.at{color:var(--tax);background:var(--tax-bg);border-color:var(--tax-border);}
 .st.aa{color:var(--text);background:var(--bg4);border-color:var(--border2);}
+.st.agi{color:var(--gib);background:var(--gib-bg);border-color:var(--gib-border);}
+.st.aji{color:var(--jing);background:var(--jing-bg);border-color:var(--jing-border);}
+.st.abe{color:var(--beol);background:var(--beol-bg);border-color:var(--beol-border);}
 .sbadge{font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;opacity:.8;}
 
 /* ── 진도 카드 ── */
-.prog-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.prog-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;}
 .prog-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;}
 .prog-card-label{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--text3);text-transform:uppercase;margin-bottom:8px;}
 .prog-card-pct{font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:6px;}
 .prog-card-pct.fin{color:var(--fin);}
 .prog-card-pct.cost{color:var(--cost);}
 .prog-card-pct.tax{color:var(--tax);}
+.prog-card-pct.gib{color:var(--gib);}
+.prog-card-pct.jing{color:var(--jing);}
+.prog-card-pct.beol{color:var(--beol);}
 .prog-track{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
 .prog-fill{height:100%;border-radius:2px;transition:width .4s ease;}
 .pf-fin{background:var(--fin);}
 .pf-cost{background:var(--cost);}
 .pf-tax{background:var(--tax);}
+.pf-gib{background:var(--gib);}
+.pf-jing{background:var(--jing);}
+.pf-beol{background:var(--beol);}
 .prog-total{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:20px;}
 .prog-total-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
 .prog-total-label{font-size:12px;font-weight:500;color:var(--text2);}
@@ -179,6 +191,9 @@ label.fbtn{cursor:pointer;}
 .ed-stab.fin.on{background:var(--fin-bg);border-color:var(--fin-border);color:var(--fin);}
 .ed-stab.cost.on{background:var(--cost-bg);border-color:var(--cost-border);color:var(--cost);}
 .ed-stab.tax.on{background:var(--tax-bg);border-color:var(--tax-border);color:var(--tax);}
+.ed-stab.gib.on{background:var(--gib-bg);border-color:var(--gib-border);color:var(--gib);}
+.ed-stab.jing.on{background:var(--jing-bg);border-color:var(--jing-border);color:var(--jing);}
+.ed-stab.beol.on{background:var(--beol-bg);border-color:var(--beol-border);color:var(--beol);}
 .ed-sep{width:1px;height:20px;background:var(--border);}
 .ed-mode-tabs{display:flex;gap:0;background:var(--bg3);border-radius:var(--r2);padding:2px;}
 .ed-mtab{padding:4px 10px;border-radius:3px;font-size:11px;font-weight:500;cursor:pointer;color:var(--text3);transition:all .12s;font-family:inherit;border:none;background:none;}
@@ -257,7 +272,7 @@ label.fbtn{cursor:pointer;}
       <div>
         <div class="hdr-eyebrow">Study Journal · 세무사 시험</div>
         <div class="hdr-title">객관식 필수문제 학습 일지</div>
-        <div class="hdr-sub">재무회계 · 원가회계 · 세법</div>
+        <div class="hdr-sub">재무회계 · 원가회계 · 세법 · 국기법 · 국징법 · 조처법</div>
       </div>
       <div class="hdr-date" id="today-date"></div>
     </div>
@@ -276,6 +291,9 @@ label.fbtn{cursor:pointer;}
       <div class="st af" id="st-fin" onclick="goSubj('fin')">재무회계 <span class="sbadge" id="b-fin">0%</span></div>
       <div class="st" id="st-cost" onclick="goSubj('cost')">원가회계 <span class="sbadge" id="b-cost">0%</span></div>
       <div class="st" id="st-tax" onclick="goSubj('tax')">세법 <span class="sbadge" id="b-tax">0%</span></div>
+      <div class="st" id="st-gib" onclick="goSubj('gib')">국기법 <span class="sbadge" id="b-gib">0%</span></div>
+      <div class="st" id="st-jing" onclick="goSubj('jing')">국징법 <span class="sbadge" id="b-jing">0%</span></div>
+      <div class="st" id="st-beol" onclick="goSubj('beol')">조처법 <span class="sbadge" id="b-beol">0%</span></div>
       <div class="st" id="st-all" onclick="goSubj('all')">전체 <span class="sbadge" id="b-all">0%</span></div>
     </div>
     <!-- 진도 카드 -->
@@ -294,6 +312,21 @@ label.fbtn{cursor:pointer;}
         <div class="prog-card-label">세법</div>
         <div class="prog-card-pct tax" id="lbl-tax">0%</div>
         <div class="prog-track"><div class="prog-fill pf-tax" id="bar-tax" style="width:0%"></div></div>
+      </div>
+      <div class="prog-card">
+        <div class="prog-card-label">국기법</div>
+        <div class="prog-card-pct gib" id="lbl-gib">0%</div>
+        <div class="prog-track"><div class="prog-fill pf-gib" id="bar-gib" style="width:0%"></div></div>
+      </div>
+      <div class="prog-card">
+        <div class="prog-card-label">국징법</div>
+        <div class="prog-card-pct jing" id="lbl-jing">0%</div>
+        <div class="prog-track"><div class="prog-fill pf-jing" id="bar-jing" style="width:0%"></div></div>
+      </div>
+      <div class="prog-card">
+        <div class="prog-card-label">조처법</div>
+        <div class="prog-card-pct beol" id="lbl-beol">0%</div>
+        <div class="prog-track"><div class="prog-fill pf-beol" id="bar-beol" style="width:0%"></div></div>
       </div>
     </div>
     <div class="prog-total">
@@ -336,6 +369,9 @@ label.fbtn{cursor:pointer;}
           <button class="ed-stab fin on" id="est-fin" onclick="goEdSubj('fin')">재무회계</button>
           <button class="ed-stab cost" id="est-cost" onclick="goEdSubj('cost')">원가회계</button>
           <button class="ed-stab tax" id="est-tax" onclick="goEdSubj('tax')">세법</button>
+          <button class="ed-stab gib" id="est-gib" onclick="goEdSubj('gib')">국기법</button>
+          <button class="ed-stab jing" id="est-jing" onclick="goEdSubj('jing')">국징법</button>
+          <button class="ed-stab beol" id="est-beol" onclick="goEdSubj('beol')">조처법</button>
         </div>
         <div class="ed-sep"></div>
         <div class="ed-mode-tabs">
@@ -381,6 +417,9 @@ label.fbtn{cursor:pointer;}
             <button class="ed-stab fin on" id="rst-fin" onclick="goRandSubj('fin')">재무회계</button>
             <button class="ed-stab cost" id="rst-cost" onclick="goRandSubj('cost')">원가회계</button>
             <button class="ed-stab tax" id="rst-tax" onclick="goRandSubj('tax')">세법</button>
+            <button class="ed-stab gib" id="rst-gib" onclick="goRandSubj('gib')">국기법</button>
+            <button class="ed-stab jing" id="rst-jing" onclick="goRandSubj('jing')">국징법</button>
+            <button class="ed-stab beol" id="rst-beol" onclick="goRandSubj('beol')">조처법</button>
           </div>
         </div>
         <div>
@@ -424,6 +463,9 @@ label.fbtn{cursor:pointer;}
     <button class="fbtn" onclick="resetSubj('fin')" title="재무회계 진도 초기화">🔄 재무</button>
     <button class="fbtn" onclick="resetSubj('cost')" title="원가회계 진도 초기화">🔄 원가</button>
     <button class="fbtn" onclick="resetSubj('tax')" title="세법 진도 초기화">🔄 세법</button>
+    <button class="fbtn" onclick="resetSubj('gib')" title="국기법 진도 초기화">🔄 국기</button>
+    <button class="fbtn" onclick="resetSubj('jing')" title="국징법 진도 초기화">🔄 국징</button>
+    <button class="fbtn" onclick="resetSubj('beol')" title="조처법 진도 초기화">🔄 조범</button>
   </div>
 </div>
 
@@ -433,11 +475,14 @@ label.fbtn{cursor:pointer;}
 // ══════════════════════════════════════════
 // 데이터
 // ══════════════════════════════════════════
-let DF=[],DC=[],DTAX=[];
+let DF=[],DC=[],DTAX=[],DGIB=[],DJING=[],DBEOL=[];
 
 let FD=JSON.parse(JSON.stringify(DF));
 let CD=JSON.parse(JSON.stringify(DC));
 let TAXD=JSON.parse(JSON.stringify(DTAX));
+let GIBD=JSON.parse(JSON.stringify(DGIB));
+let JINGD=JSON.parse(JSON.stringify(DJING));
+let BEOLD=JSON.parse(JSON.stringify(DBEOL));
 
 // ══════════════════════════════════════════
 // IndexedDB 래퍼 (localStorage 대체)
@@ -506,8 +551,8 @@ async function loadData(){
   try{oldHash=await idbGet('data_hash');}catch(e){try{oldHash=localStorage.getItem('data_hash');}catch(_){}}
   if(oldHash&&oldHash!==newHash){
     // data.json이 바뀜 → 커스텀 데이터 삭제, 새 데이터 적용
-    try{await idbDel('cfd');await idbDel('ccd');await idbDel('ctaxd');await idbSet('data_hash',newHash);}
-    catch(e){try{localStorage.removeItem('cfd');localStorage.removeItem('ccd');localStorage.removeItem('ctaxd');localStorage.setItem('data_hash',newHash);}catch(_){}}
+    try{await idbDel('cfd');await idbDel('ccd');await idbDel('ctaxd');await idbDel('cgibd');await idbDel('cjingd');await idbDel('cbeold');await idbSet('data_hash',newHash);}
+    catch(e){try{localStorage.removeItem('cfd');localStorage.removeItem('ccd');localStorage.removeItem('ctaxd');localStorage.removeItem('cgibd');localStorage.removeItem('cjingd');localStorage.removeItem('cbeold');localStorage.setItem('data_hash',newHash);}catch(_){}}
     console.log('🔄 data.json 변경 감지 → 새 데이터 적용');
     return;
   }
@@ -518,11 +563,17 @@ async function loadData(){
     const f=await idbGet('cfd');if(f&&f.length)FD=f;
     const c=await idbGet('ccd');if(c&&c.length)CD=c;
     const t=await idbGet('ctaxd');if(t&&t.length)TAXD=t;
+    const g=await idbGet('cgibd');if(g&&g.length)GIBD=g;
+    const j=await idbGet('cjingd');if(j&&j.length)JINGD=j;
+    const bl=await idbGet('cbeold');if(bl&&bl.length)BEOLD=bl;
   }catch(e){
     try{
       const f=localStorage.getItem('cfd');if(f){const p=JSON.parse(f);if(p.length)FD=p;}
       const c=localStorage.getItem('ccd');if(c){const p=JSON.parse(c);if(p.length)CD=p;}
       const t=localStorage.getItem('ctaxd');if(t){const p=JSON.parse(t);if(p.length)TAXD=p;}
+      const g=localStorage.getItem('cgibd');if(g){const p=JSON.parse(g);if(p.length)GIBD=p;}
+      const j=localStorage.getItem('cjingd');if(j){const p=JSON.parse(j);if(p.length)JINGD=p;}
+      const bl=localStorage.getItem('cbeold');if(bl){const p=JSON.parse(bl);if(p.length)BEOLD=p;}
     }catch(_){}
   }
 }
@@ -530,21 +581,24 @@ function simpleHash(str){
   let h=0;for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}return String(h);
 }
 async function saveSubjData(){
-  try{await idbSet('cfd',FD);await idbSet('ccd',CD);await idbSet('ctaxd',TAXD);}
-  catch(e){try{localStorage.setItem('cfd',JSON.stringify(FD));localStorage.setItem('ccd',JSON.stringify(CD));localStorage.setItem('ctaxd',JSON.stringify(TAXD));}catch(_){}}
+  try{await idbSet('cfd',FD);await idbSet('ccd',CD);await idbSet('ctaxd',TAXD);await idbSet('cgibd',GIBD);await idbSet('cjingd',JINGD);await idbSet('cbeold',BEOLD);}
+  catch(e){try{localStorage.setItem('cfd',JSON.stringify(FD));localStorage.setItem('ccd',JSON.stringify(CD));localStorage.setItem('ctaxd',JSON.stringify(TAXD));localStorage.setItem('cgibd',JSON.stringify(GIBD));localStorage.setItem('cjingd',JSON.stringify(JINGD));localStorage.setItem('cbeold',JSON.stringify(BEOLD));}catch(_){}}
 }
 
 // ══════════════════════════════════════════
 // 맵
 // ══════════════════════════════════════════
-let fdm={},cdm={},taxdm={},adm={},fmax=0,cmax=0,taxmax=0;
+let fdm={},cdm={},taxdm={},gibdm={},jingdm={},beoldm={},adm={},fmax=0,cmax=0,taxmax=0,gibmax=0,jingmax=0,beolmax=0;
 function buildMaps(){
-  fdm={};cdm={};taxdm={};adm={};fmax=0;cmax=0;taxmax=0;
+  fdm={};cdm={};taxdm={};gibdm={};jingdm={};beoldm={};adm={};fmax=0;cmax=0;taxmax=0;gibmax=0;jingmax=0;beolmax=0;
   FD.forEach((ch,ci)=>{[['t','theory'],['b','basic'],['a','adv']].forEach(([k,tp])=>{ch[k].forEach(p=>{const[num,day]=p;if(!fdm[day])fdm[day]=[];fdm[day].push({ci,ch:ch.ch,subj:'fin',type:tp,num});if(day>fmax)fmax=day;});});});
   CD.forEach((ch,ci)=>{ch.p.forEach(p=>{const[num,day]=p;if(!cdm[day])cdm[day]=[];cdm[day].push({ci,ch:ch.ch,subj:'cost',type:'single',num});if(day>cmax)cmax=day;});});
   TAXD.forEach((ch,ci)=>{[['th','theory'],['ca','calc']].forEach(([k,tp])=>{(ch[k]||[]).forEach(p=>{const[num,day]=p;if(!taxdm[day])taxdm[day]=[];taxdm[day].push({ci,ch:ch.ch,subj:'tax',type:tp,num});if(day>taxmax)taxmax=day;});});});
-  const max=Math.max(fmax,cmax,taxmax);
-  for(let d=1;d<=max;d++)adm[d]=[...(fdm[d]||[]),...(cdm[d]||[]),...(taxdm[d]||[])];
+  GIBD.forEach((ch,ci)=>{(ch.t||[]).forEach(p=>{const[num,day]=p;if(!gibdm[day])gibdm[day]=[];gibdm[day].push({ci,ch:ch.ch,subj:'gib',type:'theory',num});if(day>gibmax)gibmax=day;});});
+  JINGD.forEach((ch,ci)=>{(ch.t||[]).forEach(p=>{const[num,day]=p;if(!jingdm[day])jingdm[day]=[];jingdm[day].push({ci,ch:ch.ch,subj:'jing',type:'theory',num});if(day>jingmax)jingmax=day;});});
+  BEOLD.forEach((ch,ci)=>{(ch.t||[]).forEach(p=>{const[num,day]=p;if(!beoldm[day])beoldm[day]=[];beoldm[day].push({ci,ch:ch.ch,subj:'beol',type:'theory',num});if(day>beolmax)beolmax=day;});});
+  const max=Math.max(fmax,cmax,taxmax,gibmax,jingmax,beolmax);
+  for(let d=1;d<=max;d++)adm[d]=[...(fdm[d]||[]),...(cdm[d]||[]),...(taxdm[d]||[]),...(gibdm[d]||[]),...(jingdm[d]||[]),...(beoldm[d]||[])];
 }
 
 // ══════════════════════════════════════════
@@ -564,8 +618,8 @@ function escapeHtml(str){
 
 const CC={theory:'th',basic:'ba',adv:'av',single:'si',calc:'ca'};
 const TL={theory:'이론',basic:'기본',adv:'심화',calc:'계산'};
-const SUBJ_NAME={fin:'재무회계',cost:'원가회계',tax:'세법',all:'전체'};
-const SUBJ_COLOR={fin:'var(--fin)',cost:'var(--cost)',tax:'var(--tax)'};
+const SUBJ_NAME={fin:'재무회계',cost:'원가회계',tax:'세법',gib:'국기법',jing:'국징법',beol:'조처법',all:'전체'};
+const SUBJ_COLOR={fin:'var(--fin)',cost:'var(--cost)',tax:'var(--tax)',gib:'var(--gib)',jing:'var(--jing)',beol:'var(--beol)'};
 
 // ══════════════════════════════════════════
 // 칩
@@ -603,8 +657,8 @@ function goNav(n){
   }
 function goSubj(s){
   curSubj=s;
-  const cm={fin:'af',cost:'ac',tax:'at',all:'aa'};
-  ['fin','cost','tax','all'].forEach(id=>{const el=document.getElementById('st-'+id);if(!el)return;el.className='st';if(id===s)el.classList.add(cm[id]||'aa');});
+  const cm={fin:'af',cost:'ac',tax:'at',gib:'agi',jing:'aji',beol:'abe',all:'aa'};
+  ['fin','cost','tax','gib','jing','beol','all'].forEach(id=>{const el=document.getElementById('st-'+id);if(!el)return;el.className='st';if(id===s)el.classList.add(cm[id]||'aa');});
   curDay=null;const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
   buildDG();if(curView==='chap')renderChaps();
 }
@@ -620,8 +674,8 @@ function goView(v){
 // ══════════════════════════════════════════
 // 일차 그리드
 // ══════════════════════════════════════════
-function getDM(){return curSubj==='fin'?fdm:curSubj==='cost'?cdm:curSubj==='tax'?taxdm:adm;}
-function getMax(){return curSubj==='fin'?fmax:curSubj==='cost'?cmax:curSubj==='tax'?taxmax:Math.max(fmax,cmax,taxmax);}
+function getDM(){return curSubj==='fin'?fdm:curSubj==='cost'?cdm:curSubj==='tax'?taxdm:curSubj==='gib'?gibdm:curSubj==='jing'?jingdm:curSubj==='beol'?beoldm:adm;}
+function getMax(){return curSubj==='fin'?fmax:curSubj==='cost'?cmax:curSubj==='tax'?taxmax:curSubj==='gib'?gibmax:curSubj==='jing'?jingmax:curSubj==='beol'?beolmax:Math.max(fmax,cmax,taxmax,gibmax,jingmax,beolmax);}
 
 function buildDG(){
   const g=document.getElementById('dg');g.innerHTML='';
@@ -668,7 +722,7 @@ function renderDP(day){
   const tip=document.createElement('div');tip.className='dpanel-tip';tip.textContent='클릭: 완료 토글';dp.appendChild(tip);
   // 내용
   const body=document.createElement('div');body.style.padding='12px 16px';
-  const subjs=curSubj==='all'?['fin','cost','tax']:[curSubj];
+  const subjs=curSubj==='all'?['fin','cost','tax','gib','jing','beol']:[curSubj];
   subjs.forEach(subj=>{
     const sp=ps.filter(p=>p.subj===subj);if(!sp.length)return;
     if(curSubj==='all'){
@@ -708,7 +762,7 @@ function renderDPChunks(body,sp,subj){
       const nm=document.createElement('div');nm.className='ch-name';
       const nmT=document.createElement('span');nmT.className='ch-name-text';nmT.textContent=dispCh;nm.appendChild(nmT);inner.appendChild(nm);
       const groups=document.createElement('div');groups.className='ch-groups';
-      (subj==='cost'?['single']:subj==='tax'?['theory','calc']:['theory','basic','adv']).forEach(tp=>{
+      (subj==='cost'?['single']:subj==='tax'?['theory','calc']:(subj==='gib'||subj==='jing'||subj==='beol')?['theory']:['theory','basic','adv']).forEach(tp=>{
         const nums=info.g[tp];if(!nums||!nums.length)return;
         const grp=document.createElement('div');grp.className='ch-group';
         if(tp!=='single'){const lbl=document.createElement('div');lbl.className='type-label '+(CC[tp]||'');lbl.textContent=TL[tp];grp.appendChild(lbl);}
@@ -761,12 +815,19 @@ function renderChaps(){
     // prefix에 매칭되지 않는 장이 있으면 그냥 출력
     if(!hasGroup)TAXD.forEach((ch,ci)=>addChapRow(con,ch,ci,'tax'));
   }
+  // 국기법
+  if(curSubj==='gib'||curSubj==='all'){if(curSubj==='all'){const h=document.createElement('div');h.className='subj-hdr';const dot=document.createElement('div');dot.className='subj-dot';dot.style.background='var(--gib)';const nm=document.createElement('span');nm.textContent='국기법';h.appendChild(dot);h.appendChild(nm);con.appendChild(h);}GIBD.forEach((ch,ci)=>addChapRow(con,ch,ci,'gib'));}
+  // 국징법
+  if(curSubj==='jing'||curSubj==='all'){if(curSubj==='all'){const h=document.createElement('div');h.className='subj-hdr';const dot=document.createElement('div');dot.className='subj-dot';dot.style.background='var(--jing)';const nm=document.createElement('span');nm.textContent='국징법';h.appendChild(dot);h.appendChild(nm);con.appendChild(h);}JINGD.forEach((ch,ci)=>addChapRow(con,ch,ci,'jing'));}
+  // 조처법
+  if(curSubj==='beol'||curSubj==='all'){if(curSubj==='all'){const h=document.createElement('div');h.className='subj-hdr';const dot=document.createElement('div');dot.className='subj-dot';dot.style.background='var(--beol)';const nm=document.createElement('span');nm.textContent='조처법';h.appendChild(dot);h.appendChild(nm);con.appendChild(h);}BEOLD.forEach((ch,ci)=>addChapRow(con,ch,ci,'beol'));}
 }
 function taxDisplayName(ch){return ch.replace(/^(부|법|소)-/,'');}
 function addChapRow(con,ch,ci,subj){
-  const isTax=subj==='tax',isCost=subj==='cost';
+  const isTax=subj==='tax',isCost=subj==='cost',isTheoryOnly=subj==='gib'||subj==='jing'||subj==='beol';
   let dk,tot;
-  if(isTax){dk=(ch.th||[]).filter(p=>dn(subj,ci,'theory',p[0])).length+(ch.ca||[]).filter(p=>dn(subj,ci,'calc',p[0])).length;tot=(ch.th||[]).length+(ch.ca||[]).length;}
+  if(isTheoryOnly){dk=(ch.t||[]).filter(p=>dn(subj,ci,'theory',p[0])).length;tot=(ch.t||[]).length;}
+  else if(isTax){dk=(ch.th||[]).filter(p=>dn(subj,ci,'theory',p[0])).length+(ch.ca||[]).filter(p=>dn(subj,ci,'calc',p[0])).length;tot=(ch.th||[]).length+(ch.ca||[]).length;}
   else if(isCost){dk=ch.p.filter(p=>dn(subj,ci,'single',p[0])).length;tot=ch.p.length;}
   else{dk=ch.t.filter(p=>dn(subj,ci,'theory',p[0])).length+ch.b.filter(p=>dn(subj,ci,'basic',p[0])).length+ch.a.filter(p=>dn(subj,ci,'adv',p[0])).length;tot=ch.t.length+ch.b.length+ch.a.length;}
   const pct=tot>0?Math.round(dk/tot*100):0;
@@ -776,7 +837,7 @@ function addChapRow(con,ch,ci,subj){
   row.innerHTML=`<div class="ch-hdr"><div class="ch-nm">${escapeHtml(dispName)}</div><div class="ch-bw"><div class="ch-bl"><span>${dk}/${tot}</span><span>${pct}%</span></div><div class="ch-bt"><div class="ch-bf" id="fcb${subj}${ci}" style="width:${pct}%;background:${barColor}"></div></div></div><div class="ch-tog">▾</div></div>`;
   row.addEventListener('click',()=>row.classList.toggle('exp'));
   const pp=document.createElement('div');pp.className='pp';
-  const typeDefs=isTax?[['이론',ch.th||[],'theory'],['계산',ch.ca||[],'calc']]:isCost?[['문제',ch.p,'single']]:
+  const typeDefs=isTheoryOnly?[['이론',ch.t||[],'theory']]:isTax?[['이론',ch.th||[],'theory'],['계산',ch.ca||[],'calc']]:isCost?[['문제',ch.p,'single']]:
     [['이론',ch.t,'theory'],['기본',ch.b,'basic'],['심화',ch.a,'adv']];
   typeDefs.forEach(([lbl,probs,tp])=>{
     if(!probs.length)return;
@@ -802,9 +863,12 @@ function updateProgress(){
   const[fd,ft]=cntSubj(FD,'fin',[['t','theory'],['b','basic'],['a','adv']]);
   const[cd,ct]=cntSubj(CD,'cost',null);
   const[taxd,taxt]=cntSubj(TAXD,'tax',null);
-  const tot=ft+ct+taxt,dk=fd+cd+taxd;
+  const[gibd,gibt]=cntSubj(GIBD,'gib',[['t','theory']]);
+  const[jingd,jingt]=cntSubj(JINGD,'jing',[['t','theory']]);
+  const[beold,beolt]=cntSubj(BEOLD,'beol',[['t','theory']]);
+  const tot=ft+ct+taxt+gibt+jingt+beolt,dk=fd+cd+taxd+gibd+jingd+beold;
   const pct=(a,b)=>b>0?Math.round(a/b*100):0;
-  [['fin',fd,ft],['cost',cd,ct],['tax',taxd,taxt]].forEach(([id,d,t])=>{
+  [['fin',fd,ft],['cost',cd,ct],['tax',taxd,taxt],['gib',gibd,gibt],['jing',jingd,jingt],['beol',beold,beolt]].forEach(([id,d,t])=>{
     const b=document.getElementById('bar-'+id),l=document.getElementById('lbl-'+id),bb=document.getElementById('b-'+id);
     if(b)b.style.width=pct(d,t)+'%';if(l)l.textContent=pct(d,t)+'%';if(bb)bb.textContent=pct(d,t)+'%';
   });
@@ -821,9 +885,12 @@ const ED_COLS={
   fin:[{key:'ch',label:'장',type:'ch'},{key:'t',label:'이론\n문제번호(일차)',type:'prob',color:'tb-th'},{key:'b',label:'기본\n문제번호(일차)',type:'prob',color:'tb-ba'},{key:'a',label:'심화\n문제번호(일차)',type:'prob',color:'tb-av'}],
   cost:[{key:'ch',label:'장',type:'ch'},{key:'p',label:'문제번호(일차)',type:'prob',color:'tb-si'}],
   tax:[{key:'ch',label:'장',type:'ch'},{key:'th',label:'이론\n문제번호(일차)',type:'prob',color:'tb-th'},{key:'ca',label:'계산\n문제번호(일차)',type:'prob',color:'tb-ca'}],
+  gib:[{key:'ch',label:'장',type:'ch'},{key:'t',label:'이론\n문제번호(일차)',type:'prob',color:'tb-th'}],
+  jing:[{key:'ch',label:'장',type:'ch'},{key:'t',label:'이론\n문제번호(일차)',type:'prob',color:'tb-th'}],
+  beol:[{key:'ch',label:'장',type:'ch'},{key:'t',label:'이론\n문제번호(일차)',type:'prob',color:'tb-th'}],
 };
-function getCurData(){return curEdSubj==='fin'?FD:curEdSubj==='cost'?CD:TAXD;}
-function getDefData(){return curEdSubj==='fin'?DF:curEdSubj==='cost'?DC:DTAX;}
+function getCurData(){return curEdSubj==='fin'?FD:curEdSubj==='cost'?CD:curEdSubj==='tax'?TAXD:curEdSubj==='gib'?GIBD:curEdSubj==='jing'?JINGD:BEOLD;}
+function getDefData(){return curEdSubj==='fin'?DF:curEdSubj==='cost'?DC:curEdSubj==='tax'?DTAX:curEdSubj==='gib'?DGIB:curEdSubj==='jing'?DJING:DBEOL;}
 function probsToText(arr){return(arr||[]).map(p=>p[0]+'('+p[1]+')').join(', ');}
 function textToProbs(str){
   if(!str||!str.trim())return[];
@@ -993,7 +1060,7 @@ function applyPaste(){
 
 function goEdSubj(s){
   curEdSubj=s;
-  ['fin','cost','tax'].forEach(id=>document.getElementById('est-'+id).classList.toggle('on',id===s));
+  ['fin','cost','tax','gib','jing','beol'].forEach(id=>document.getElementById('est-'+id).classList.toggle('on',id===s));
   buildEdRows();if(curEdMode==='grid')renderEdGrid();else renderPastePanel();
   document.getElementById('paste-preview').innerHTML='';document.getElementById('ed-st').textContent='';
 }
@@ -1015,7 +1082,10 @@ async function saveEd(){
     const data=edRowsToData();
     if(curEdSubj==='fin')FD=data;
     else if(curEdSubj==='cost')CD=data;
-    else TAXD=data;
+    else if(curEdSubj==='tax')TAXD=data;
+    else if(curEdSubj==='gib')GIBD=data;
+    else if(curEdSubj==='jing')JINGD=data;
+    else BEOLD=data;
     await saveSubjData();
     buildMaps();buildDG();updateProgress();curDay=null;
     const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
@@ -1027,7 +1097,10 @@ async function resetEdDef(){
   if(!confirm('기본 데이터로 복원할까요?'))return;
   if(curEdSubj==='fin')FD=JSON.parse(JSON.stringify(DF));
   else if(curEdSubj==='cost')CD=JSON.parse(JSON.stringify(DC));
-  else TAXD=JSON.parse(JSON.stringify(DTAX));
+  else if(curEdSubj==='tax')TAXD=JSON.parse(JSON.stringify(DTAX));
+  else if(curEdSubj==='gib')GIBD=JSON.parse(JSON.stringify(DGIB));
+  else if(curEdSubj==='jing')JINGD=JSON.parse(JSON.stringify(DJING));
+  else BEOLD=JSON.parse(JSON.stringify(DBEOL));
   await saveSubjData();
   buildMaps();buildDG();updateProgress();buildEdRows();renderEdGrid();
   document.getElementById('ed-st').className='ed-st ok';
@@ -1038,7 +1111,7 @@ async function resetEdDef(){
 // 백업
 // ══════════════════════════════════════════
 function exportBackup(){
-  const data={version:2,date:new Date().toISOString(),progress:S,finData:FD,costData:CD,taxData:TAXD};
+  const data={version:3,date:new Date().toISOString(),progress:S,finData:FD,costData:CD,taxData:TAXD,gibData:GIBD,jingData:JINGD,beolData:BEOLD};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');
   const now=new Date();const stamp=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
@@ -1058,6 +1131,7 @@ async function importBackup(e){
       if(!confirm('백업을 불러오면 현재 데이터가 교체됩니다. 계속할까요?'))return;
       S=data.progress||{};
       if(data.finData)FD=data.finData;if(data.costData)CD=data.costData;if(data.taxData)TAXD=data.taxData;
+      if(data.gibData)GIBD=data.gibData;if(data.jingData)JINGD=data.jingData;if(data.beolData)BEOLD=data.beolData;
       await saveState();await saveSubjData();
       buildMaps();buildDG();updateProgress();curDay=null;
       const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
@@ -1084,7 +1158,7 @@ async function resetAll(){
   buildDG();if(curView==='chap')renderChaps();updateProgress();
 }
 async function resetSubj(subj){
-  const names={fin:'재무회계',cost:'원가회계',tax:'세법'};
+  const names={fin:'재무회계',cost:'원가회계',tax:'세법',gib:'국기법',jing:'국징법',beol:'조처법'};
   const name=names[subj];
   if(!confirm(name+' 진도를 초기화할까요?'))return;
   const prefix=subj+'|';
@@ -1105,6 +1179,9 @@ const RAND_COLS={
   fin:[{key:'ch',label:'장 이름',type:'ch'},{key:'t',label:'이론',type:'prob',color:'tb-th'},{key:'b',label:'기본',type:'prob',color:'tb-ba'},{key:'a',label:'심화',type:'prob',color:'tb-av'}],
   cost:[{key:'ch',label:'장 이름',type:'ch'},{key:'p',label:'문제번호',type:'prob',color:'tb-si'}],
   tax:[{key:'ch',label:'장 이름',type:'ch'},{key:'th',label:'이론',type:'prob',color:'tb-th'},{key:'ca',label:'계산',type:'prob',color:'tb-ca'}],
+  gib:[{key:'ch',label:'장 이름',type:'ch'},{key:'t',label:'이론',type:'prob',color:'tb-th'}],
+  jing:[{key:'ch',label:'장 이름',type:'ch'},{key:'t',label:'이론',type:'prob',color:'tb-th'}],
+  beol:[{key:'ch',label:'장 이름',type:'ch'},{key:'t',label:'이론',type:'prob',color:'tb-th'}],
 };
 
 function emptyRandRow(){const r={ch:''};RAND_COLS[curRandSubj].filter(c=>c.type==='prob').forEach(c=>{r[c.key]='';});return r;}
@@ -1112,7 +1189,7 @@ let randRows=[emptyRandRow(),emptyRandRow(),emptyRandRow()];
 
 function goRandSubj(s){
   curRandSubj=s;
-  ['fin','cost','tax'].forEach(id=>{document.getElementById('rst-'+id).classList.toggle('on',id===s);});
+  ['fin','cost','tax','gib','jing','beol'].forEach(id=>{document.getElementById('rst-'+id).classList.toggle('on',id===s);});
   randRows=[emptyRandRow(),emptyRandRow(),emptyRandRow()];
   document.getElementById('rand-result-area').style.display='none';
   renderRandGrid();
@@ -1359,6 +1436,24 @@ const DEMO_TAX=[
     th:[[1,7],[2,8]],
     ca:[[1,8],[2,8]]},
 ];
+const DEMO_GIB=[
+  {ch:'1장 총칙',t:[[1,1],[2,1],[3,2],[4,3]]},
+  {ch:'2장 국세부과의 원칙',t:[[1,2],[2,3],[3,4]]},
+  {ch:'3장 납세의무',t:[[1,3],[2,4],[3,5],[4,5]]},
+  {ch:'4장 조세채권 보전',t:[[1,4],[2,5],[3,6]]},
+  {ch:'5장 과세와 환급',t:[[1,6],[2,7],[3,7],[4,8]]},
+  {ch:'6장 심사와 심판',t:[[1,6],[2,7],[3,8]]},
+];
+const DEMO_JING=[
+  {ch:'1장 총칙',t:[[1,1],[2,2],[3,3]]},
+  {ch:'2장 임의적 징수유예',t:[[1,2],[2,3],[3,4]]},
+  {ch:'3장 체납처분',t:[[1,3],[2,4],[3,5],[4,6]]},
+  {ch:'4장 보칙',t:[[1,5],[2,6],[3,7]]},
+];
+const DEMO_BEOL=[
+  {ch:'1장 조세범 처벌',t:[[1,1],[2,2],[3,3],[4,4]]},
+  {ch:'2장 조세범 처벌절차',t:[[1,3],[2,5],[3,6]]},
+];
 
 // ══════════════════════════════════════════
 // 데이터 로드
@@ -1374,19 +1469,31 @@ async function fetchData(){
     DF=d.finData||[];
     DC=d.costData||[];
     DTAX=d.taxData||[];
+    DGIB=d.gibData||[];
+    DJING=d.jingData||[];
+    DBEOL=d.beolData||[];
     if(!DF.length&&!DC.length&&!DTAX.length)throw new Error('빈 데이터');
     FD=JSON.parse(JSON.stringify(DF));
     CD=JSON.parse(JSON.stringify(DC));
     TAXD=JSON.parse(JSON.stringify(DTAX));
+    GIBD=JSON.parse(JSON.stringify(DGIB));
+    JINGD=JSON.parse(JSON.stringify(DJING));
+    BEOLD=JSON.parse(JSON.stringify(DBEOL));
     console.log('✅ data.json 로드 완료 — 재무:', FD.length, '장 / 원가:', CD.length, '장 / 세법:', TAXD.length, '장');
   }catch(e){
     console.warn('⚠️ data.json 로드 실패, 더미 데이터로 대체:', e.message);
     DF=JSON.parse(JSON.stringify(DEMO_FIN));
     DC=JSON.parse(JSON.stringify(DEMO_COST));
     DTAX=JSON.parse(JSON.stringify(DEMO_TAX));
+    DGIB=JSON.parse(JSON.stringify(DEMO_GIB));
+    DJING=JSON.parse(JSON.stringify(DEMO_JING));
+    DBEOL=JSON.parse(JSON.stringify(DEMO_BEOL));
     FD=JSON.parse(JSON.stringify(DF));
     CD=JSON.parse(JSON.stringify(DC));
     TAXD=JSON.parse(JSON.stringify(DTAX));
+    GIBD=JSON.parse(JSON.stringify(DGIB));
+    JINGD=JSON.parse(JSON.stringify(DJING));
+    BEOLD=JSON.parse(JSON.stringify(DBEOL));
   }
 }
 async function init(){
@@ -1394,14 +1501,20 @@ async function init(){
   await loadData();
   await loadState();
   // 데이터가 여전히 비어 있으면 더미로 강제 세팅
-  const usedDemo=!FD.length&&!CD.length&&!TAXD.length;
+  const usedDemo=!FD.length&&!CD.length&&!TAXD.length&&!GIBD.length&&!JINGD.length&&!BEOLD.length;
   if(usedDemo){
     FD=JSON.parse(JSON.stringify(DEMO_FIN));
     CD=JSON.parse(JSON.stringify(DEMO_COST));
     TAXD=JSON.parse(JSON.stringify(DEMO_TAX));
+    GIBD=JSON.parse(JSON.stringify(DEMO_GIB));
+    JINGD=JSON.parse(JSON.stringify(DEMO_JING));
+    BEOLD=JSON.parse(JSON.stringify(DEMO_BEOL));
     DF=JSON.parse(JSON.stringify(FD));
     DC=JSON.parse(JSON.stringify(CD));
     DTAX=JSON.parse(JSON.stringify(TAXD));
+    DGIB=JSON.parse(JSON.stringify(GIBD));
+    DJING=JSON.parse(JSON.stringify(JINGD));
+    DBEOL=JSON.parse(JSON.stringify(BEOLD));
   }
   buildMaps();
   const now=new Date();document.getElementById('today-date').textContent=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}`;
