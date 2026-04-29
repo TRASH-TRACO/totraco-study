@@ -1379,18 +1379,64 @@ async function importBackup(e){
       const data=JSON.parse(ev.target.result);
       if(!data.version||typeof data.version!=='number')throw new Error('올바른 백업 파일이 아니에요');
       if(data.progress&&typeof data.progress!=='object')throw new Error('진도 데이터 형식 오류');
+      if(data.subjects&&!Array.isArray(data.subjects))throw new Error('과목 설정 형식 오류');
+      // legacy 키 검증 (호환성)
       if(data.finData&&!Array.isArray(data.finData))throw new Error('재무회계 데이터 형식 오류');
       if(data.costData&&!Array.isArray(data.costData))throw new Error('원가회계 데이터 형식 오류');
       if(data.taxData&&!Array.isArray(data.taxData))throw new Error('세법 데이터 형식 오류');
-      if(!confirm('백업을 불러오면 현재 데이터가 교체됩니다. 계속할까요?'))return;
+
+      const hasSubjects=data.subjects&&Array.isArray(data.subjects)&&data.subjects.length;
+      const msg=hasSubjects
+        ? `백업을 불러오면 현재 데이터(과목 설정 포함)가 교체됩니다.\n과목 ${data.subjects.length}개, 진도 ${Object.keys(data.progress||{}).length}개.\n계속할까요?`
+        : '백업을 불러오면 현재 데이터가 교체됩니다. 계속할까요?';
+      if(!confirm(msg))return;
+
+      // 1) 기존 IndexedDB 정리 — 백업에 없는 과목 데이터 삭제
+      if(hasSubjects){
+        const oldIds=SUBJECTS.map(s=>s.id);
+        const newIds=data.subjects.map(s=>s.id);
+        const removed=oldIds.filter(id=>!newIds.includes(id));
+        for(const rid of removed){
+          const old=SUBJECTS.find(s=>s.id===rid);
+          if(old){
+            try{await idbDel(old.idbKey);}catch(_){}
+            try{localStorage.removeItem(old.idbKey);}catch(_){}
+          }
+          delete DATA[rid];delete DEFAULTS[rid];
+        }
+        // 새 과목 설정 적용
+        SUBJECTS=JSON.parse(JSON.stringify(data.subjects));
+        await idbSet('subjects_config',SUBJECTS);
+        updateSubjectCSS();
+      }
+
+      // 2) 진도 복원
       S=data.progress||{};
-      if(data.subjects&&Array.isArray(data.subjects)){SUBJECTS=data.subjects;await idbSet('subjects_config',SUBJECTS);}
-      SUBJECTS.forEach(s=>{if(data[s.dataKey])DATA[s.id]=data[s.dataKey];});
+
+      // 3) 데이터 복원 — SUBJECTS 기준으로 dataKey 매핑
+      SUBJECTS.forEach(s=>{
+        if(Array.isArray(data[s.dataKey])){
+          DATA[s.id]=data[s.dataKey];
+          // DEFAULTS는 유지 (data.json 기준)
+        }
+      });
       syncLegacy();
-      await saveState();await saveSubjData();
-      buildMaps();buildDG();updateProgress();curDay=null;
+
+      // 4) 저장
+      await saveState();
+      await saveAllSubjData();
+
+      // 5) UI 전체 재구성
+      buildMaps();
+      renderStudyTabs();renderProgressCards();renderFooterBtns();
+      buildDG();updateProgress();
+      curDay=null;
       const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
-      if(curNav==='data')renderEd();showToast('복원 완료');
+      if(curView==='chap')renderChaps();
+      if(curNav==='data')renderEd();
+      if(curNav==='subj')renderSubjGrid(true);
+      document.getElementById('hdr-sub-names').textContent=SUBJECTS.map(s=>s.name).join(' · ');
+      showToast('✅ 복원 완료 ('+SUBJECTS.length+'개 과목)');
     }catch(err){alert('불러오기 실패: '+err.message);}
     e.target.value='';
   };
@@ -1509,11 +1555,17 @@ function addRandRow(){
   setTimeout(()=>{const rows=document.querySelectorAll('#rand-grid-wrap tbody tr');if(rows.length)rows[rows.length-1].scrollIntoView({behavior:'smooth'});},50);
 }
 
-// ── 알고리즘: 균등 + 같은 장 분산 (그리디 버킷) ──
+// ── 알고리즘: 균등 + 같은 장 분산 (인접 일차까지 고려) ──
+// 점수 기반 그리디: 각 문제를 배치할 때
+//  - 같은 일차에 같은 장 있음 → 큰 페널티
+//  - 인접 일차(±1)에 같은 장 있음 → 중간 페널티
+//  - ±2 일차에 같은 장 → 작은 페널티
+//  - 일차 채워진 정도 → 선호도(덜 찬 곳 우선)
 function parseNums(str){
   if(!str||!str.trim())return[];
   return str.split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean).map(s=>{const n=parseInt(s);return isNaN(n)?null:n;}).filter(n=>n!==null);
 }
+
 function runRandom(){
   const cols=getRandCols(curRandSubj);
   const probCols=cols.filter(c=>c.type==='prob');
@@ -1527,6 +1579,7 @@ function runRandom(){
   if(!totalCount){showToast('문제번호를 입력해주세요');return;}
   const days=parseInt(document.getElementById('rand-days').value)||8;
 
+  // 모든 문제 풀 + 셔플
   const pool=[];
   chapters.forEach(ch=>{ch.types.forEach(tp=>{
     const arr=tp.nums.map(num=>({ci:ch.ci,ch:ch.ch,num,typeKey:tp.key,typeLabel:tp.label}));
@@ -1534,22 +1587,61 @@ function runRandom(){
     arr.forEach(p=>pool.push(p));
   });});
 
+  // 일차 버킷
   const perDay=Math.floor(totalCount/days),extra=totalCount%days;
   const buckets=[];
-  for(let d=0;d<days;d++)buckets.push({day:d+1,cap:perDay+(d<extra?1:0),items:[],chSet:new Set()});
+  for(let d=0;d<days;d++)buckets.push({day:d+1,cap:perDay+(d<extra?1:0),items:[],chCounts:{}});
 
+  // 장별 큐 — 문제 수 많은 장 먼저 (분산 효과 ↑)
   const queues={};chapters.forEach(ch=>{queues[ch.ci]=pool.filter(p=>p.ci===ch.ci);});
-  const chOrder=[...chapters].sort((a,b)=>{const aL=a.types.reduce((s,t)=>s+t.nums.length,0);const bL=b.types.reduce((s,t)=>s+t.nums.length,0);return bL-aL;});
+  const chOrder=[...chapters].sort((a,b)=>{
+    const aL=a.types.reduce((s,t)=>s+t.nums.length,0);
+    const bL=b.types.reduce((s,t)=>s+t.nums.length,0);
+    return bL-aL;
+  });
 
-  chOrder.forEach(ch=>{queues[ch.ci].forEach(prob=>{
-    let cands=buckets.filter(b=>b.items.length<b.cap&&!b.chSet.has(ch.ci));
-    if(!cands.length)cands=buckets.filter(b=>b.items.length<b.cap);
-    if(!cands.length)return;
-    cands.sort((a,b)=>a.items.length-b.items.length);
-    const minLen=cands[0].items.length;const ties=cands.filter(b=>b.items.length===minLen);
-    const pick=ties[Math.floor(Math.random()*ties.length)];
-    pick.items.push(prob);pick.chSet.add(ch.ci);
-  });});
+  // 장별 평균 간격(spacing) 계산: days / chapter문제수
+  // (장 문제수가 적을수록 간격을 멀리 두는 게 좋음)
+
+  // 점수 계산 함수: 낮을수록 좋음
+  function scoreBucket(bucket, ci, idx){
+    if(bucket.items.length>=bucket.cap)return Infinity; // 가득
+    let score=0;
+    // 1) 같은 일차 같은 장: 매우 큰 페널티
+    if(bucket.chCounts[ci])score+=1000*bucket.chCounts[ci];
+    // 2) 인접 일차 페널티 (±1: 큰, ±2: 중간, ±3: 작은)
+    const offsets=[[1,300],[2,80],[3,20]];
+    offsets.forEach(([off,pen])=>{
+      const prev=buckets[idx-off];const next=buckets[idx+off];
+      if(prev&&prev.chCounts[ci])score+=pen*prev.chCounts[ci];
+      if(next&&next.chCounts[ci])score+=pen*next.chCounts[ci];
+    });
+    // 3) 균등: 덜 찬 일차 선호 (매우 작은 가중치)
+    score+=bucket.items.length*2;
+    return score;
+  }
+
+  // 각 장별로 문제 하나씩 라운드로빈으로 배치 (동시에 여러 장 진행 → 자연스러운 분산)
+  const remaining = chOrder.map(ch => ({ ci: ch.ci, queue: [...queues[ch.ci]] }));
+  while(remaining.some(r=>r.queue.length>0)){
+    for(const r of remaining){
+      if(!r.queue.length)continue;
+      const prob=r.queue.shift();
+      // 모든 버킷의 점수를 계산하고 최저 점수 버킷 선택
+      let bestScore=Infinity;let candidates=[];
+      buckets.forEach((b,idx)=>{
+        const sc=scoreBucket(b,r.ci,idx);
+        if(sc<bestScore){bestScore=sc;candidates=[idx];}
+        else if(sc===bestScore){candidates.push(idx);}
+      });
+      if(!candidates.length)continue;
+      // 동점 시 랜덤
+      const pickIdx=candidates[Math.floor(Math.random()*candidates.length)];
+      const pick=buckets[pickIdx];
+      pick.items.push(prob);
+      pick.chCounts[r.ci]=(pick.chCounts[r.ci]||0)+1;
+    }
+  }
 
   const dayAssign=[];
   buckets.forEach(b=>{b.items.forEach(p=>{dayAssign.push({...p,day:b.day});});});
