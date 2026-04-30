@@ -754,9 +754,9 @@ const SUBJ_COLOR={fin:'var(--fin)',cost:'var(--cost)',tax:'var(--tax)',gib:'var(
 // ══════════════════════════════════════════
 // 칩
 // ══════════════════════════════════════════
-function makeChip(subj,ci,type,num,day){
+function makeChip(subj,ci,type,num,day,cls){
   const el=document.createElement('div');
-  el.className='chip '+(CC[type]||'si');
+  el.className='chip '+(cls||CC[type]||'si');
   if(dn(subj,ci,type,num))el.classList.add('done');
   el.dataset.subj=subj;el.dataset.ci=ci;el.dataset.type=type;el.dataset.num=num;
   el.innerHTML=num+'번'+(day?'<sup class="chip-day">'+day+'일</sup>':'');
@@ -908,15 +908,15 @@ function renderDPChunks(body,sp,subj){
       const nm=document.createElement('div');nm.className='ch-name';
       const nmT=document.createElement('span');nmT.className='ch-name-text';nmT.textContent=dispCh;nm.appendChild(nmT);inner.appendChild(nm);
       const groups=document.createElement('div');groups.className='ch-groups';
-      // 동적: 해당 과목의 col 정의에서 type 목록 추출
+      // 동적: 해당 과목의 col 정의에서 type+label 페어 추출
       const subjDef=SUBJECTS.find(x=>x.id===subj);
-      const typeList=subjDef?subjDef.cols.map(c=>colKeyToType(subj,c.key)):['theory'];
-      typeList.forEach(tp=>{
+      const typeDefs=subjDef?subjDef.cols.map(c=>({type:colKeyToType(subj,c.key),label:c.label||c.key,cls:c.cls})):[{type:'theory',label:'이론',cls:'th'}];
+      typeDefs.forEach(({type:tp,label:lblText,cls})=>{
         const nums=info.g[tp];if(!nums||!nums.length)return;
         const grp=document.createElement('div');grp.className='ch-group';
-        if(tp!=='single'){const lbl=document.createElement('div');lbl.className='type-label '+(CC[tp]||'');lbl.textContent=TL[tp]||tp;grp.appendChild(lbl);}
+        if(tp!=='single'){const lbl=document.createElement('div');lbl.className='type-label '+(cls||CC[tp]||'');lbl.textContent=lblText;grp.appendChild(lbl);}
         const row=document.createElement('div');row.className='chip-row';
-        nums.forEach(num=>row.appendChild(makeChip(subj,ci,tp,num)));
+        nums.forEach(num=>row.appendChild(makeChip(subj,ci,tp,num,null,cls)));
         grp.appendChild(row);groups.appendChild(grp);
       });
       inner.appendChild(groups);block.appendChild(inner);body.appendChild(block);
@@ -999,9 +999,9 @@ function addChapRow(con,ch,ci,subj){
     const probs=ch[col.key]||[];
     if(!probs.length)return;
     const tp=colKeyToType(subj,col.key);
-    const tl=document.createElement('div');tl.className='ps-t';tl.textContent=col.label;pp.appendChild(tl);
+    const tl=document.createElement('div');tl.className='ps-t';tl.textContent=col.label||col.key;pp.appendChild(tl);
     const pc=document.createElement('div');pc.className='pchips';
-    probs.forEach(p=>{const c=makeChip(subj,ci,tp,p[0],p[1]);c.addEventListener('click',()=>setTimeout(()=>updateProgress(),0));pc.appendChild(c);});
+    probs.forEach(p=>{const c=makeChip(subj,ci,tp,p[0],p[1],col.cls);c.addEventListener('click',()=>setTimeout(()=>updateProgress(),0));pc.appendChild(c);});
     pp.appendChild(pc);
   });
   con.appendChild(row);con.appendChild(pp);
@@ -1792,27 +1792,21 @@ function renderTypeChips(ri){
     const chip = document.createElement('div');
     chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border:1px solid var(--border);border-radius:var(--r2);background:var(--bg);';
 
-    // 라벨 입력
+    // 라벨 입력 (사용자가 보는 이름)
     const lblInp = document.createElement('input');
     lblInp.value = col.label;
-    lblInp.placeholder = '라벨';
-    lblInp.style.cssText = 'width:48px;font-size:11px;padding:2px 4px;border:none;background:transparent;outline:none;font-family:inherit;';
+    lblInp.placeholder = '유형명';
+    lblInp.style.cssText = 'width:72px;font-size:11px;padding:3px 6px;border:none;background:transparent;outline:none;font-family:inherit;';
     lblInp.addEventListener('input', () => {
       subjEditRows[ri].cols[ci].label = lblInp.value;
     });
-    chip.appendChild(lblInp);
-
-    // 키 입력 (작게)
-    const keyInp = document.createElement('input');
-    keyInp.value = col.key;
-    keyInp.placeholder = 'key';
-    keyInp.title = '데이터 키 (영문, 백업/data.json에서 사용)';
-    keyInp.style.cssText = 'width:32px;font-size:10px;padding:2px 3px;border:1px solid var(--border);border-radius:3px;background:var(--bg2);outline:none;font-family:"JetBrains Mono",monospace;color:var(--text3);';
-    keyInp.addEventListener('input', () => {
-      subjEditRows[ri].cols[ci].key = keyInp.value.replace(/[^a-z0-9_]/g, '');
-      keyInp.value = subjEditRows[ri].cols[ci].key;
+    lblInp.addEventListener('change', () => {
+      subjEditRows[ri].cols[ci].label = lblInp.value;
     });
-    chip.appendChild(keyInp);
+    lblInp.addEventListener('blur', () => {
+      subjEditRows[ri].cols[ci].label = lblInp.value;
+    });
+    chip.appendChild(lblInp);
 
     // 색상 셀렉트 (작게)
     const clsSel = document.createElement('select');
@@ -1850,11 +1844,11 @@ function renderTypeChips(ri){
   addBtn.title = '유형 추가';
   addBtn.style.cssText = 'padding:3px 8px;font-size:11px;border:1px dashed var(--border2);border-radius:var(--r2);background:transparent;color:var(--text3);cursor:pointer;font-family:inherit;';
   addBtn.onclick = () => {
-    // 유니크한 키 생성
+    // 자동 키 생성 (col1, col2, col3...)
     const usedKeys = subjEditRows[ri].cols.map(c => c.key);
-    let newKey = 'x';
-    for (let i = 1; i < 50; i++) {
-      const k = 't' + i;
+    let newKey = 'col1';
+    for (let i = 1; i < 999; i++) {
+      const k = 'col' + i;
       if (!usedKeys.includes(k)) { newKey = k; break; }
     }
     subjEditRows[ri].cols.push({ key: newKey, label: '새 유형', cls: 'si' });
@@ -1902,6 +1896,26 @@ function addSubjRow(){
 
 async function saveSubjects(){
   const st = document.getElementById('subj-st');
+  // 저장 직전: DOM의 모든 input/select 값을 subjEditRows에 강제 동기화 (이벤트 미발생 케이스 대비)
+  document.querySelectorAll('#subj-grid-wrap tbody tr').forEach((tr,ri)=>{
+    if(!subjEditRows[ri])return;
+    // 과목 ID
+    const inps=tr.querySelectorAll('input');
+    if(inps[0])subjEditRows[ri].id=inps[0].value;
+    if(inps[1])subjEditRows[ri].name=inps[1].value;
+    // 색상
+    const sels=tr.querySelectorAll('select');
+    if(sels[0])subjEditRows[ri].color=sels[0].value;
+    // 유형 칩들 — 유형명 input과 색상 select
+    const chips=tr.querySelectorAll('td:nth-child(5) > div > div'); // tdT 안의 chip div
+    chips.forEach((chip,ci)=>{
+      if(!subjEditRows[ri].cols[ci])return;
+      const lblIn=chip.querySelector('input');
+      if(lblIn)subjEditRows[ri].cols[ci].label=lblIn.value;
+      const clsSel=chip.querySelector('select');
+      if(clsSel)subjEditRows[ri].cols[ci].cls=clsSel.value;
+    });
+  });
   // 검증
   const ids = subjEditRows.map(r=>r.id);
   if(ids.some(id=>!id)){st.className='ed-st err';st.textContent='❌ ID가 비어있는 과목이 있어요';return;}
