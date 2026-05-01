@@ -555,59 +555,43 @@ async function loadState(){
   }
 }
 async function loadData(){
-  // data.json이 변경됐으면 IndexedDB 커스텀 데이터를 무시하고 새 데이터 적용
-  // 해시는 SUBJECTS 기준 DEFAULTS로 계산
-  const defaultsArr=SUBJECTS.map(s=>DEFAULTS[s.id]||[]);
-  const newHash=simpleHash(JSON.stringify(defaultsArr));
-  let oldHash=null;
-  try{oldHash=await idbGet('data_hash');}catch(e){try{oldHash=localStorage.getItem('data_hash');}catch(_){}}
-  if(oldHash&&oldHash!==newHash){
-    // data.json이 바뀜 → SUBJECTS의 모든 idbKey 삭제, 새 데이터 적용
-    try{
-      for(const s of SUBJECTS){await idbDel(s.idbKey);}
-      await idbSet('data_hash',newHash);
-    }catch(e){
-      try{
-        for(const s of SUBJECTS){localStorage.removeItem(s.idbKey);}
-        localStorage.setItem('data_hash',newHash);
-      }catch(_){}
-    }
-    console.log('🔄 data.json 변경 감지 → 새 데이터 적용');
-    return;
-  }
-  // 해시 저장 (첫 실행 또는 동일)
-  try{await idbSet('data_hash',newHash);}catch(e){try{localStorage.setItem('data_hash',newHash);}catch(_){}}
-  // IndexedDB에 커스텀 데이터가 있으면 덮어씀 — SUBJECTS 기준
+  // 사용자 수정 데이터(IndexedDB)는 항상 우선 적용
+  let loaded=0;
   try{
     for(const s of SUBJECTS){
       const v=await idbGet(s.idbKey);
-      if(v&&Array.isArray(v)&&v.length)DATA[s.id]=v;
+      if(v&&Array.isArray(v)&&v.length){DATA[s.id]=v;loaded++;}
     }
   }catch(e){
     try{
       for(const s of SUBJECTS){
         const raw=localStorage.getItem(s.idbKey);
-        if(raw){const p=JSON.parse(raw);if(Array.isArray(p)&&p.length)DATA[s.id]=p;}
+        if(raw){const p=JSON.parse(raw);if(Array.isArray(p)&&p.length){DATA[s.id]=p;loaded++;}}
       }
     }catch(_){}
   }
+  if(loaded>0)console.log('💾 저장된 데이터 로드:', loaded+'개 과목');
   syncLegacy();
 }
 function simpleHash(str){
   let h=0;for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}return String(h);
 }
 async function saveAllSubjData(){
+  let saved=0;
   try{
     for(const s of SUBJECTS){
       await idbSet(s.idbKey, DATA[s.id]||[]);
+      saved++;
     }
   }catch(e){
     try{
       for(const s of SUBJECTS){
         localStorage.setItem(s.idbKey, JSON.stringify(DATA[s.id]||[]));
+        saved++;
       }
     }catch(_){}
   }
+  console.log('💾 저장 완료:', saved+'개 과목');
 }
 
 async function loadSubjectsConfig(){
