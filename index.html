@@ -255,6 +255,18 @@ label.fbtn{cursor:pointer;}
 
 /* ── 토스트 ── */
 #toast{position:fixed;bottom:56px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--text);color:#fff;padding:8px 16px;border-radius:100px;font-size:12px;font-weight:500;opacity:0;transition:all .25s;z-index:9999;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow2);}
+
+/* 모달 */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .15s;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal-box{background:var(--bg);border-radius:var(--r);box-shadow:var(--shadow2);max-width:560px;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:slideUp .2s;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
+.modal-title{font-size:14px;font-weight:600;color:var(--text);}
+.modal-close{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 4px;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:16px 18px;overflow-y:auto;flex:1;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── 기타 ── */
@@ -297,6 +309,7 @@ label.fbtn{cursor:pointer;}
         <div class="vtab on" id="btn-day" onclick="goView('day')">일차별</div>
         <div class="vtab" id="btn-chap" onclick="goView('chap')">장별</div>
       </div>
+      <button class="rbtn sec" onclick="openRescheduleModal()" style="font-size:11px;padding:5px 12px;">📅 남은 문제 조정하기</button>
     </div>
     <!-- 일차별 뷰 -->
     <div id="view-day">
@@ -423,6 +436,31 @@ label.fbtn{cursor:pointer;}
 </div>
 
 <div id="toast"></div>
+
+<!-- 남은 문제 조정 모달 -->
+<div id="reschedule-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-title">📅 남은 문제 조정하기</div>
+      <button class="modal-close" onclick="closeRescheduleModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="reschedule-info" style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6;"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:500;color:var(--text2);">하루에 풀 문제 수:</label>
+        <input id="reschedule-per-day" type="number" min="1" max="100" value="3"
+          style="width:80px;font-family:'JetBrains Mono',monospace;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r2);background:var(--bg);color:var(--text);outline:none;text-align:center;"
+          oninput="updateReschedulePreview()">
+        <span style="font-size:12px;color:var(--text3);">문제</span>
+      </div>
+      <div id="reschedule-preview" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px;max-height:400px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="rbtn sec" onclick="closeRescheduleModal()">취소</button>
+      <button class="rbtn pri" onclick="applyReschedule()">변경하기</button>
+    </div>
+  </div>
+</div>
 
 <script>
 
@@ -973,7 +1011,7 @@ function addChapRow(con,ch,ci,subj){
   });
   const pct=tot>0?Math.round(dk/tot*100):0;
   const barColor=subj==='fin'?'linear-gradient(90deg,var(--theory),var(--basic))':(SUBJ_COLOR[subj]||'var(--'+subj+')');
-  const row=document.createElement('div');row.className='cr';
+  const row=document.createElement('div');row.className='cr exp';
   const dispName=isTax?taxDisplayName(ch.ch):ch.ch;
   row.innerHTML=`<div class="ch-hdr"><div class="ch-nm">${escapeHtml(dispName)}</div><div class="ch-bw"><div class="ch-bl"><span>${dk}/${tot}</span><span>${pct}%</span></div><div class="ch-bt"><div class="ch-bf" id="fcb${subj}${ci}" style="width:${pct}%;background:${barColor}"></div></div></div><div class="ch-tog">▾</div></div>`;
   row.addEventListener('click',()=>row.classList.toggle('exp'));
@@ -1675,11 +1713,18 @@ function renderRandResult(days,dayAssign){
   let html='<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">일차별 분포</div>';
   html+='<div style="display:flex;flex-wrap:wrap;gap:6px;">';
   for(let d=1;d<=days;d++){
-    const items=dist[d]||[];const chCounts={};items.forEach(p=>{chCounts[p.ch]=(chCounts[p.ch]||0)+1;});
+    const items=dist[d]||[];
+    // ci(입력 순서)로 그룹 정렬
+    const chCountsArr=[];const chSeen={};
+    items.forEach(p=>{
+      if(chSeen[p.ci]===undefined){chSeen[p.ci]=chCountsArr.length;chCountsArr.push({ci:p.ci,ch:p.ch,cnt:1});}
+      else chCountsArr[chSeen[p.ci]].cnt++;
+    });
+    chCountsArr.sort((a,b)=>a.ci-b.ci);
     html+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;min-width:70px;">';
     html+='<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:3px;">'+d+'일차 <span style="color:var(--text3);font-weight:400;">'+items.length+'문제</span></div>';
     html+='<div style="font-size:10px;color:var(--text2);font-family:\'JetBrains Mono\',monospace;line-height:1.5;">';
-    Object.entries(chCounts).forEach(([ch,cnt])=>{html+=escapeHtml(ch)+' ×'+cnt+'<br>';});
+    chCountsArr.forEach(({ch,cnt})=>{html+=escapeHtml(ch)+' ×'+cnt+'<br>';});
     html+='</div></div>';
   }
   html+='</div>';
@@ -1983,6 +2028,188 @@ function copyFallback(text,label){
   catch(e){showToast('⚠️ 복사 실패 — 직접 선택해서 복사해주세요');}
   document.body.removeChild(ta);
 }
+// ══════════════════════════════════════════
+// 남은 문제 조정 (Reschedule)
+// ══════════════════════════════════════════
+let rescheduleData = null;
+
+function openRescheduleModal(){
+  if(curSubj==='all'){showToast('과목을 먼저 선택해주세요');return;}
+  const subjDef=SUBJECTS.find(s=>s.id===curSubj);
+  if(!subjDef){showToast('과목을 찾을 수 없어요');return;}
+
+  // 1. 모든 문제 수집 (각 문제: ci, key, num, day, done)
+  const allProbs = [];
+  const data = DATA[curSubj] || [];
+  data.forEach((ch, ci) => {
+    subjDef.cols.forEach(col => {
+      (ch[col.key] || []).forEach(p => {
+        const tp = colKeyToType(curSubj, col.key);
+        const isDone = dn(curSubj, ci, tp, p[0]);
+        allProbs.push({ci, ch:ch.ch, colKey:col.key, num:p[0], day:p[1], done:isDone, type:tp});
+      });
+    });
+  });
+
+  if(!allProbs.length){showToast('문제가 없어요');return;}
+
+  // 2. 일차별 그룹화 → 모두 완료된 일차 찾기 (잠금 대상)
+  const dayMap = {};
+  allProbs.forEach(p => {
+    if(!dayMap[p.day]) dayMap[p.day] = [];
+    dayMap[p.day].push(p);
+  });
+  const lockedDays = new Set();
+  Object.keys(dayMap).forEach(d => {
+    const probs = dayMap[d];
+    if(probs.length > 0 && probs.every(p => p.done)) lockedDays.add(parseInt(d));
+  });
+
+  // 3. 잠금 일차의 문제와 미완료/조정 가능한 문제 분리
+  const lockedProbs = allProbs.filter(p => lockedDays.has(p.day));
+  const movableProbs = allProbs.filter(p => !lockedDays.has(p.day));
+
+  rescheduleData = {
+    subjId: curSubj,
+    subjName: subjDef.name,
+    lockedDays: [...lockedDays].sort((a,b)=>a-b),
+    lockedProbs,
+    movableProbs,
+    allDayMap: dayMap
+  };
+
+  // 정보 표시
+  const totalDays = Math.max(0, ...allProbs.map(p=>p.day));
+  const lockedCount = lockedProbs.length;
+  const movableCount = movableProbs.length;
+  document.getElementById('reschedule-info').innerHTML =
+    `<b>${subjDef.name}</b> · 총 ${allProbs.length}문제 (${totalDays}일 계획)<br>` +
+    `🔒 완료된 일차: ${rescheduleData.lockedDays.length}개 (${lockedCount}문제 — 변경 안 함)<br>` +
+    `🔄 조정 가능: ${movableCount}문제`;
+
+  // 기본값 설정
+  const defaultPerDay = Math.max(1, Math.ceil(movableCount / Math.max(1, totalDays - rescheduleData.lockedDays.length)));
+  document.getElementById('reschedule-per-day').value = defaultPerDay;
+
+  document.getElementById('reschedule-modal').style.display='flex';
+  updateReschedulePreview();
+}
+
+function closeRescheduleModal(){
+  document.getElementById('reschedule-modal').style.display='none';
+  rescheduleData = null;
+}
+
+// 새 일차 배정 계산
+function computeReschedule(perDay){
+  if(!rescheduleData)return null;
+  const {lockedDays, lockedProbs, movableProbs} = rescheduleData;
+
+  // 시작 일차: 잠긴 일차 중 가장 큰 값 + 1 (또는 1)
+  // 잠긴 일차들이 연속되지 않을 수 있으므로, 가장 큰 잠금 일차 다음부터 새로 배정
+  const startDay = lockedDays.length > 0 ? Math.max(...lockedDays) + 1 : 1;
+
+  // 이동 가능한 문제들을 기존 일차 순서 → 같은 일차 내 ci/num 순서로 정렬
+  const sorted = [...movableProbs].sort((a,b) => {
+    if(a.day !== b.day) return a.day - b.day;
+    if(a.ci !== b.ci) return a.ci - b.ci;
+    return a.num - b.num;
+  });
+
+  // perDay만큼씩 새 일차에 배정
+  const newAssign = []; // {ci, colKey, num, oldDay, newDay}
+  sorted.forEach((p, i) => {
+    const newDay = startDay + Math.floor(i / perDay);
+    newAssign.push({...p, oldDay: p.day, newDay});
+  });
+
+  // 잠긴 문제는 그대로 유지
+  const lockedAssign = lockedProbs.map(p => ({...p, oldDay: p.day, newDay: p.day}));
+
+  return {
+    startDay,
+    newAssign,
+    lockedAssign,
+    totalDays: newAssign.length > 0 ? Math.max(...newAssign.map(a=>a.newDay)) : (lockedDays.length>0?Math.max(...lockedDays):0)
+  };
+}
+
+function updateReschedulePreview(){
+  const perDay = parseInt(document.getElementById('reschedule-per-day').value) || 1;
+  const result = computeReschedule(perDay);
+  if(!result){document.getElementById('reschedule-preview').innerHTML = '';return;}
+
+  // 일차별로 그룹화 (잠금 + 새 배정)
+  const dayMap = {};
+  [...result.lockedAssign, ...result.newAssign].forEach(p => {
+    if(!dayMap[p.newDay]) dayMap[p.newDay] = [];
+    dayMap[p.newDay].push(p);
+  });
+
+  const days = Object.keys(dayMap).map(d=>parseInt(d)).sort((a,b)=>a-b);
+  const lockedSet = new Set(rescheduleData.lockedDays);
+
+  let html = `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 총 ${result.totalDays}일</div>`;
+  html += '<div style="display:flex;flex-direction:column;gap:4px;">';
+  days.forEach(d => {
+    const probs = dayMap[d];
+    const isLocked = lockedSet.has(d);
+    const bg = isLocked ? 'var(--bg3)' : 'var(--bg)';
+    const border = isLocked ? 'var(--border2)' : 'var(--accent)';
+    html += `<div style="background:${bg};border:1px solid ${border};border-radius:${4}px;padding:6px 10px;display:flex;gap:10px;align-items:flex-start;">`;
+    html += `<div style="font-size:11px;font-weight:600;color:var(--text);min-width:42px;">${isLocked?'🔒':''} ${d}일</div>`;
+    html += `<div style="flex:1;font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.6;">`;
+    html += probs.map(p => `${escapeHtml(p.ch)}-${p.num}`).join(', ');
+    html += `</div>`;
+    html += `<div style="font-size:10px;color:var(--text3);">${probs.length}문제</div>`;
+    html += `</div>`;
+  });
+  html += '</div>';
+  document.getElementById('reschedule-preview').innerHTML = html;
+}
+
+async function applyReschedule(){
+  const perDay = parseInt(document.getElementById('reschedule-per-day').value) || 1;
+  const result = computeReschedule(perDay);
+  if(!result){showToast('계산 실패');return;}
+
+  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}의 미완료 ${result.newAssign.length}문제가 ${perDay}문제/일로 재배치됩니다.\n(완료된 일차는 그대로 유지)`))return;
+
+  // DATA[subjId]의 각 문제 일차 업데이트
+  const subjId = rescheduleData.subjId;
+  const data = DATA[subjId];
+  if(!data){showToast('데이터를 찾을 수 없어요');return;}
+
+  // 키: "ci|colKey|num" → newDay
+  const map = {};
+  result.newAssign.forEach(p => {
+    map[`${p.ci}|${p.colKey}|${p.num}`] = p.newDay;
+  });
+
+  data.forEach((ch, ci) => {
+    Object.keys(ch).forEach(key => {
+      if(key === 'ch')return;
+      if(!Array.isArray(ch[key]))return;
+      ch[key] = ch[key].map(pair => {
+        const newDay = map[`${ci}|${key}|${pair[0]}`];
+        return newDay !== undefined ? [pair[0], newDay] : pair;
+      });
+    });
+  });
+
+  syncLegacy();
+  await saveAllSubjData();
+  buildMaps();
+  buildDG();
+  if(curView==='chap')renderChaps();
+  updateProgress();
+  curDay=null;
+  const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
+
+  closeRescheduleModal();
+  showToast(`✅ ${result.newAssign.length}문제 재배치 완료 (총 ${result.totalDays}일)`);
+}
+
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);}
 
 // ══════════════════════════════════════════
