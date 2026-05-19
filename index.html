@@ -2038,7 +2038,7 @@ function openRescheduleModal(){
   const subjDef=SUBJECTS.find(s=>s.id===curSubj);
   if(!subjDef){showToast('과목을 찾을 수 없어요');return;}
 
-  // 1. 모든 문제 수집 (각 문제: ci, key, num, day, done)
+  // 1. 모든 문제 수집
   const allProbs = [];
   const data = DATA[curSubj] || [];
   data.forEach((ch, ci) => {
@@ -2053,42 +2053,49 @@ function openRescheduleModal(){
 
   if(!allProbs.length){showToast('문제가 없어요');return;}
 
-  // 2. 일차별 그룹화 → 모두 완료된 일차 찾기 (잠금 대상)
+  // 2. 일차별 그룹화
   const dayMap = {};
   allProbs.forEach(p => {
     if(!dayMap[p.day]) dayMap[p.day] = [];
     dayMap[p.day].push(p);
   });
+
+  // 3. 모두 완료된 일차 = 잠금
   const lockedDays = new Set();
   Object.keys(dayMap).forEach(d => {
     const probs = dayMap[d];
     if(probs.length > 0 && probs.every(p => p.done)) lockedDays.add(parseInt(d));
   });
 
-  // 3. 잠금 일차의 문제와 미완료/조정 가능한 문제 분리
-  const lockedProbs = allProbs.filter(p => lockedDays.has(p.day));
-  const movableProbs = allProbs.filter(p => !lockedDays.has(p.day));
+  // 4. 분리:
+  // - lockedDayProbs: 모두 완료된 일차의 문제 (그대로 유지)
+  // - completedInPartial: 미완료 일차에 있지만 완료된 문제 (그대로 유지 — 자기 일차에서 빠질 뿐, 위치 보존)
+  // - undoneProbs: 미완료 문제 (재배치 대상)
+  const lockedDayProbs = allProbs.filter(p => lockedDays.has(p.day));
+  const completedInPartial = allProbs.filter(p => !lockedDays.has(p.day) && p.done);
+  const undoneProbs = allProbs.filter(p => !lockedDays.has(p.day) && !p.done);
 
   rescheduleData = {
     subjId: curSubj,
     subjName: subjDef.name,
     lockedDays: [...lockedDays].sort((a,b)=>a-b),
-    lockedProbs,
-    movableProbs,
+    lockedDayProbs,        // 잠금 일차 문제들 (전부 완료)
+    completedInPartial,    // 미완료 일차 내 완료 문제 (자리 유지)
+    undoneProbs,           // 미완료 문제 (재배치 대상)
     allDayMap: dayMap
   };
 
   // 정보 표시
   const totalDays = Math.max(0, ...allProbs.map(p=>p.day));
-  const lockedCount = lockedProbs.length;
-  const movableCount = movableProbs.length;
   document.getElementById('reschedule-info').innerHTML =
     `<b>${subjDef.name}</b> · 총 ${allProbs.length}문제 (${totalDays}일 계획)<br>` +
-    `🔒 완료된 일차: ${rescheduleData.lockedDays.length}개 (${lockedCount}문제 — 변경 안 함)<br>` +
-    `🔄 조정 가능: ${movableCount}문제`;
+    `🔒 완료된 일차: ${rescheduleData.lockedDays.length}개 (${lockedDayProbs.length}문제 — 변경 안 함)<br>` +
+    `✓ 미완료 일차의 완료 문제: ${completedInPartial.length}문제 (위치 유지)<br>` +
+    `🔄 재배치 대상 (미완료 문제): ${undoneProbs.length}문제`;
 
-  // 기본값 설정
-  const defaultPerDay = Math.max(1, Math.ceil(movableCount / Math.max(1, totalDays - rescheduleData.lockedDays.length)));
+  // 기본값
+  const remainingDays = Math.max(1, totalDays - rescheduleData.lockedDays.length);
+  const defaultPerDay = Math.max(1, Math.ceil(undoneProbs.length / remainingDays));
   document.getElementById('reschedule-per-day').value = defaultPerDay;
 
   document.getElementById('reschedule-modal').style.display='flex';
@@ -2103,34 +2110,72 @@ function closeRescheduleModal(){
 // 새 일차 배정 계산
 function computeReschedule(perDay){
   if(!rescheduleData)return null;
-  const {lockedDays, lockedProbs, movableProbs} = rescheduleData;
+  const {lockedDays: lockedDaysArr, lockedDayProbs, completedInPartial, undoneProbs} = rescheduleData;
+  const lockedDays = new Set(lockedDaysArr);  // 배열을 Set으로 변환
 
-  // 시작 일차: 잠긴 일차 중 가장 큰 값 + 1 (또는 1)
-  // 잠긴 일차들이 연속되지 않을 수 있으므로, 가장 큰 잠금 일차 다음부터 새로 배정
-  const startDay = lockedDays.length > 0 ? Math.max(...lockedDays) + 1 : 1;
+  // 시작 일차 결정 로직:
+  // - 미완료 문제들의 최소 day부터 시작 (사용자가 현재 진행 중인 일차)
+  // - 단, 해당 day가 잠금이면 다음 사용 가능한 일차로
+  let startDay = undoneProbs.length > 0
+    ? Math.min(...undoneProbs.map(p => p.day))
+    : 1;
+  while(lockedDays.has(startDay)) startDay++;
 
-  // 이동 가능한 문제들을 기존 일차 순서 → 같은 일차 내 ci/num 순서로 정렬
-  const sorted = [...movableProbs].sort((a,b) => {
+  // 완료 문제가 차지하는 일차 (보존 일차)
+  const preservedDays = {};
+  completedInPartial.forEach(p => {
+    if(!preservedDays[p.day]) preservedDays[p.day] = 0;
+    preservedDays[p.day]++;
+  });
+
+  // 미완료 문제 정렬: 기존 일차 → ci → num
+  const sorted = [...undoneProbs].sort((a,b) => {
     if(a.day !== b.day) return a.day - b.day;
     if(a.ci !== b.ci) return a.ci - b.ci;
     return a.num - b.num;
   });
 
-  // perDay만큼씩 새 일차에 배정
-  const newAssign = []; // {ci, colKey, num, oldDay, newDay}
-  sorted.forEach((p, i) => {
-    const newDay = startDay + Math.floor(i / perDay);
-    newAssign.push({...p, oldDay: p.day, newDay});
+  // perDay만큼씩 새 일차에 배정 — 잠금 일차는 건너뛰기
+  // 보존된 완료 문제가 있는 일차는 그 수만큼 차감해서 채움
+  const newAssign = [];
+  let curDayCursor = startDay;
+  let countInDay = preservedDays[curDayCursor] || 0;
+  sorted.forEach(p => {
+    // 잠금 일차는 건너뛰기
+    while(lockedDays.has(curDayCursor)){
+      curDayCursor++;
+      countInDay = preservedDays[curDayCursor] || 0;
+    }
+    if(countInDay >= perDay){
+      curDayCursor++;
+      countInDay = preservedDays[curDayCursor] || 0;
+      while(lockedDays.has(curDayCursor)){
+        curDayCursor++;
+        countInDay = preservedDays[curDayCursor] || 0;
+      }
+    }
+    newAssign.push({...p, oldDay: p.day, newDay: curDayCursor});
+    countInDay++;
   });
 
-  // 잠긴 문제는 그대로 유지
-  const lockedAssign = lockedProbs.map(p => ({...p, oldDay: p.day, newDay: p.day}));
+  // 잠금 일차 문제 + 미완료 일차의 완료 문제는 자기 자리 유지
+  // 단, 미완료 일차 완료 문제의 day가 새 배치와 충돌할 수 있음 → 가능하면 그대로 두되, 잠금 일차로 표시
+  // 사용자 의도: "이미 완료한 문제는 옮기지 않는다"
+  const lockedAssign = lockedDayProbs.map(p => ({...p, oldDay: p.day, newDay: p.day}));
+  const preservedAssign = completedInPartial.map(p => ({...p, oldDay: p.day, newDay: p.day}));
+
+  const allDays = [
+    ...newAssign.map(a=>a.newDay),
+    ...lockedAssign.map(a=>a.newDay),
+    ...preservedAssign.map(a=>a.newDay)
+  ];
 
   return {
     startDay,
     newAssign,
     lockedAssign,
-    totalDays: newAssign.length > 0 ? Math.max(...newAssign.map(a=>a.newDay)) : (lockedDays.length>0?Math.max(...lockedDays):0)
+    preservedAssign,
+    totalDays: allDays.length>0 ? Math.max(...allDays) : 0
   };
 }
 
@@ -2139,33 +2184,63 @@ function updateReschedulePreview(){
   const result = computeReschedule(perDay);
   if(!result){document.getElementById('reschedule-preview').innerHTML = '';return;}
 
-  // 일차별로 그룹화 (잠금 + 새 배정)
+  // 일차별로 그룹화
   const dayMap = {};
-  [...result.lockedAssign, ...result.newAssign].forEach(p => {
+  const addToDay = (p, status) => {
     if(!dayMap[p.newDay]) dayMap[p.newDay] = [];
-    dayMap[p.newDay].push(p);
-  });
+    dayMap[p.newDay].push({...p, status});
+  };
+  result.lockedAssign.forEach(p => addToDay(p, 'locked'));
+  result.preservedAssign.forEach(p => addToDay(p, 'preserved'));
+  result.newAssign.forEach(p => addToDay(p, 'new'));
 
-  const days = Object.keys(dayMap).map(d=>parseInt(d)).sort((a,b)=>a-b);
+  const usedDays = Object.keys(dayMap).map(d=>parseInt(d));
+  const minDay = usedDays.length ? Math.min(...usedDays) : 1;
+  const maxDay = usedDays.length ? Math.max(...usedDays) : 1;
+  // minDay ~ maxDay 의 모든 일차 표시 (빈 일차도 포함)
+  const days = [];
+  for(let d=minDay; d<=maxDay; d++) days.push(d);
   const lockedSet = new Set(rescheduleData.lockedDays);
 
-  let html = `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 총 ${result.totalDays}일</div>`;
+  // 빈 일차 카운트
+  const emptyDays = days.filter(d => !dayMap[d]).length;
+
+  let html = `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 총 ${result.totalDays}일${emptyDays>0?` <span style="color:var(--text3);font-weight:400;">(빈 일차 ${emptyDays}개)</span>`:''}</div>`;
   html += '<div style="display:flex;flex-direction:column;gap:4px;">';
   days.forEach(d => {
-    const probs = dayMap[d];
+    const probs = dayMap[d] || [];
     const isLocked = lockedSet.has(d);
-    const bg = isLocked ? 'var(--bg3)' : 'var(--bg)';
-    const border = isLocked ? 'var(--border2)' : 'var(--accent)';
-    html += `<div style="background:${bg};border:1px solid ${border};border-radius:${4}px;padding:6px 10px;display:flex;gap:10px;align-items:flex-start;">`;
-    html += `<div style="font-size:11px;font-weight:600;color:var(--text);min-width:42px;">${isLocked?'🔒':''} ${d}일</div>`;
+    const isEmpty = probs.length === 0;
+    let bg, border;
+    if(isLocked){bg='var(--bg3)'; border='var(--border2)';}
+    else if(isEmpty){bg='var(--bg2)'; border='var(--border)';}
+    else {bg='var(--bg)'; border='var(--accent)';}
+    html += `<div style="background:${bg};border:1px solid ${border};border-radius:4px;padding:6px 10px;display:flex;gap:10px;align-items:flex-start;${isEmpty?'opacity:.6;':''}">`;
+    html += `<div style="font-size:11px;font-weight:600;color:var(--text);min-width:42px;">${isLocked?'🔒':isEmpty?'⊘':''} ${d}일</div>`;
     html += `<div style="flex:1;font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.6;">`;
-    html += probs.map(p => `${escapeHtml(p.ch)}-${p.num}`).join(', ');
+    if(isEmpty){
+      html += `<span style="color:var(--text3);font-style:italic;">(비어있음)</span>`;
+    } else {
+      probs.sort((a,b)=>{if(a.ci!==b.ci)return a.ci-b.ci;return a.num-b.num;});
+      html += probs.map(p => {
+        const txt = `${escapeHtml(p.ch)}-${p.num}`;
+        if(p.status==='locked')return `<span style="opacity:.5;">${txt}</span>`;
+        if(p.status==='preserved')return `<span style="color:var(--cost);text-decoration:line-through;opacity:.7;" title="이미 완료">${txt}</span>`;
+        return txt;
+      }).join(', ');
+    }
     html += `</div>`;
     html += `<div style="font-size:10px;color:var(--text3);">${probs.length}문제</div>`;
     html += `</div>`;
   });
   html += '</div>';
-  document.getElementById('reschedule-preview').innerHTML = html;
+  // 범례
+  html += '<div style="margin-top:8px;font-size:10px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap;">';
+  html += '<span>🔒 완료된 일차 (변경 X)</span>';
+  html += '<span style="color:var(--cost);text-decoration:line-through;">완료 문제 (위치 유지)</span>';
+  html += '<span>⊘ 빈 일차</span>';
+  html += '</div>';
+  document.getElementById('reschedule-preview').innerHTML=html;
 }
 
 async function applyReschedule(){
@@ -2173,14 +2248,16 @@ async function applyReschedule(){
   const result = computeReschedule(perDay);
   if(!result){showToast('계산 실패');return;}
 
-  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}의 미완료 ${result.newAssign.length}문제가 ${perDay}문제/일로 재배치됩니다.\n(완료된 일차는 그대로 유지)`))return;
+  if(!result.newAssign.length){showToast('재배치할 미완료 문제가 없어요');return;}
 
-  // DATA[subjId]의 각 문제 일차 업데이트
+  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}의 미완료 ${result.newAssign.length}문제가 ${perDay}문제/일로 재배치됩니다.\n• 🔒 완료된 일차: 그대로\n• ✓ 완료 문제: 자기 자리 유지`))return;
+
+  // DATA[subjId]의 미완료 문제만 일차 업데이트
   const subjId = rescheduleData.subjId;
   const data = DATA[subjId];
   if(!data){showToast('데이터를 찾을 수 없어요');return;}
 
-  // 키: "ci|colKey|num" → newDay
+  // 키: "ci|colKey|num" → newDay (미완료 문제만)
   const map = {};
   result.newAssign.forEach(p => {
     map[`${p.ci}|${p.colKey}|${p.num}`] = p.newDay;
