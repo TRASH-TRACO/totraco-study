@@ -358,6 +358,7 @@ label.fbtn{cursor:pointer;}
         <button class="rbtn sec" onclick="resetEdDef()">기본값 복원</button>
         <button class="rbtn sec" onclick="copyEdAll()">📋 전체 TSV 복사</button>
         <button class="rbtn sec" onclick="copyEdUndone()">📋 미완료만 TSV 복사</button>
+        <button class="rbtn sec" onclick="copyEdDone()">📋 완료만 TSV 복사</button>
         <span class="ed-st" id="ed-st"></span>
       </div>
     </div>
@@ -1380,6 +1381,28 @@ function copyEdUndone(){
   });
   if(!lines.length){showToast('🎉 모두 완료! 미완료 문제가 없어요');return;}
   copyText(lines.join('\n'),'미완료 TSV 복사 완료 ('+lines.length+'개 장)');
+}
+
+// 데이터 편집 — 완료 문제만 TSV 복사
+function copyEdDone(){
+  const data=getCurData();
+  if(!data||!data.length){showToast('데이터가 없어요');return;}
+  const subjDef=SUBJECTS.find(s=>s.id===curEdSubj);
+  if(!subjDef)return;
+  const lines=[];
+  data.forEach((ch,ci)=>{
+    const cells=[ch.ch||''];
+    let hasDone=false;
+    subjDef.cols.forEach(col=>{
+      const tp=colKeyToType(curEdSubj,col.key);
+      const done=(ch[col.key]||[]).filter(p=>dn(curEdSubj,ci,tp,p[0]));
+      if(done.length)hasDone=true;
+      cells.push(done.map(p=>p[0]+'('+p[1]+')').join(', '));
+    });
+    if(hasDone)lines.push(cells.join('\t'));
+  });
+  if(!lines.length){showToast('완료된 문제가 없어요');return;}
+  copyText(lines.join('\n'),'완료 TSV 복사 완료 ('+lines.length+'개 장)');
 }
 
 // ══════════════════════════════════════════
