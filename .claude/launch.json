@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "study",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "SRC=/Users/kimminseok/Documents/study; DST=/private/tmp/study-preview; mkdir -p \"$DST\"; cp -f \"$SRC/index.html\" \"$SRC/data.json\" \"$DST/\" 2>/dev/null || true; cd \"$DST\" && exec python3 -c \"import functools,http.server,socketserver; H=functools.partial(http.server.SimpleHTTPRequestHandler, directory='/private/tmp/study-preview'); socketserver.TCPServer(('',8799),H).serve_forever()\""
+      ],
+      "port": 8799
+    }
+  ]
+}
