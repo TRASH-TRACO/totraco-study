@@ -314,3 +314,43 @@ label.fbtn{cursor:pointer;}
 /* ── 기타 ── */
 .noprob{font-size:13px;color:var(--text3);padding:24px 0;text-align:center;}
 @media(max-width:600px){.prog-cards{grid-template-columns:1fr 1fr;}.app{padding:16px 12px 60px;}.hdr-title{font-size:22px;}}
+
+/* ── 진입 게이트 ── */
+.gate{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+  background:var(--bg2);padding:24px;}
+:root.entered .gate{display:none;}
+.gate-box{width:100%;max-width:360px;text-align:center;background:var(--bg);
+  border:1px solid var(--border);border-radius:var(--radius-lg);padding:36px 28px;box-shadow:var(--shadow2);}
+.gate-title{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px;}
+.gate-desc{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+.gate-btn{display:block;width:100%;padding:11px 16px;margin-bottom:8px;font-size:14px;font-weight:500;
+  font-family:inherit;cursor:pointer;border-radius:var(--r);border:1px solid var(--border2);
+  background:var(--bg);color:var(--text);transition:all .15s;}
+.gate-btn:hover{background:var(--bg3);}
+.gate-btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;}
+.gate-btn.pri:hover{filter:brightness(1.06);}
+.gate-note{font-size:11px;color:var(--text3);margin-top:14px;line-height:1.6;}
+
+/* ── 온보딩 배너 ── */
+.onboard{background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--r);
+  padding:16px 18px;margin-bottom:20px;}
+.ob-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;}
+.ob-steps{list-style:none;counter-reset:ob;display:flex;flex-direction:column;gap:6px;}
+.ob-steps li{counter-increment:ob;font-size:13px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+.ob-steps li::before{content:counter(ob);flex:none;width:18px;height:18px;border-radius:50%;
+  background:var(--bg4);color:var(--text2);font-size:11px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;}
+.ob-steps li.ok{color:var(--text3);text-decoration:line-through;}
+.ob-steps li.ok::before{background:var(--accent);color:#fff;content:'✓';}
+
+/* ── 빈 상태 ── */
+.empty-state{text-align:center;padding:56px 20px;border:1px dashed var(--border2);
+  border-radius:var(--radius-lg);background:var(--bg);}
+.empty-title{font-size:15px;font-weight:600;margin-bottom:6px;}
+.empty-desc{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;}
+
+/* ── 과목 설정 섹션 구분 ── */
+.setup-sec{margin-bottom:28px;}
+.setup-sep{height:1px;background:var(--border);margin:28px 0 20px;}
+.setup-step-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:12px;}

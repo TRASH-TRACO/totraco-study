@@ -4,12 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학습 일지</title>
-<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);
+if(localStorage.getItem('entryMode'))document.documentElement.classList.add('entered');}catch(e){}</script>
 <link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
+<!-- 진입 게이트 — entryMode 선택 이력이 없을 때만 보인다 -->
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <div class="gate-title">학습 일지</div>
+    <p class="gate-desc">회독 진도를 과목별로 기록하고 관리하세요.</p>
+    <button class="gate-btn pri" onclick="chooseEntry('cloud')">로그인하고 시작하기</button>
+    <button class="gate-btn" onclick="chooseEntry('local')">로그인 없이 사용하기</button>
+    <p class="gate-note">로그인하면 기기 간에 진도가 동기화됩니다. 나중에 로그인해도 됩니다.</p>
+  </div>
+</div>
 
 <div class="app">
   <!-- 헤더 -->
@@ -33,13 +44,19 @@
   <!-- 네비 -->
   <div class="nav">
     <div class="nt on" id="nt-study" onclick="goNav('study')">학습</div>
-    <div class="nt" id="nt-data" onclick="goNav('data')">데이터 편집</div>
-    <div class="nt" id="nt-rand" onclick="goNav('rand')">랜덤 배정</div>
-    <div class="nt" id="nt-subj" onclick="goNav('subj')">과목 관리</div>
+    <div class="nt" id="nt-setup" onclick="goNav('setup')">과목 설정</div>
   </div>
 
   <!-- 학습 탭 -->
   <div id="nav-study">
+    <!-- 등록된 문제가 없을 때 -->
+    <div class="empty-state" id="study-empty" style="display:none">
+      <div class="empty-title">아직 등록된 문제가 없어요</div>
+      <p class="empty-desc">과목을 만들고 문제를 등록하면 여기에 회독 진도가 표시됩니다.</p>
+      <button class="rbtn pri" onclick="goNav('setup')">과목 설정으로 가기</button>
+    </div>
+
+    <div id="study-body">
     <div class="stabs" id="study-subj-tabs"></div>
     <!-- 진도 카드 (선택된 과목만 표시) -->
     <div class="prog-cards" id="prog-cards-con"></div>
@@ -67,10 +84,34 @@
       </div>
       <div id="chap-con"></div>
     </div>
+    </div><!-- /study-body -->
   </div>
 
+  <!-- 과목 설정 탭 — 과목 등록 → 문제 등록 → 회독 시작 순서 -->
+  <div id="nav-setup" style="display:none">
+    <div class="onboard" id="onboard" style="display:none"></div>
+
+  <!-- 과목 관리 탭 -->
+  <div id="nav-subj" class="setup-sec">
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">과목 관리</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6;">
+        과목을 추가·삭제·수정할 수 있습니다. 변경 후 <b>저장</b>을 눌러야 적용됩니다.<br>
+        <span style="color:var(--red);">⚠️ 과목 삭제 시 해당 과목의 데이터와 진도가 모두 삭제됩니다.</span>
+      </div>
+      <div class="ss-wrap" id="subj-grid-wrap"></div>
+      <button class="add-row-btn" onclick="addSubjRow()" style="margin-bottom:12px;">＋ 새 과목 추가</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="rbtn pri" onclick="saveSubjects()">저장 및 적용</button>
+        <span class="ed-st" id="subj-st"></span>
+      </div>
+    </div>
+  </div>
+
+    <div class="setup-sep"></div>
+    <div class="setup-step-label">선택한 과목의 문제</div>
   <!-- 데이터 편집 탭 -->
-  <div id="nav-data" style="display:none">
+  <div id="nav-data" class="setup-sec">
     <div class="ed-wrap">
       <div class="ed-toolbar">
         <div class="ed-subj-tabs" id="ed-subj-tabs-con"></div>
@@ -105,7 +146,7 @@
   </div>
 
   <!-- 랜덤 배정 탭 -->
-  <div id="nav-rand" style="display:none">
+  <div id="nav-rand" class="setup-sec">
     <div>
       <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">일차 랜덤 배정</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6;">
@@ -147,22 +188,6 @@
       </div>
     </div>
   </div>
-
-  <!-- 과목 관리 탭 -->
-  <div id="nav-subj" style="display:none">
-    <div>
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">과목 관리</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6;">
-        과목을 추가·삭제·수정할 수 있습니다. 변경 후 <b>저장</b>을 눌러야 적용됩니다.<br>
-        <span style="color:var(--red);">⚠️ 과목 삭제 시 해당 과목의 데이터와 진도가 모두 삭제됩니다.</span>
-      </div>
-      <div class="ss-wrap" id="subj-grid-wrap"></div>
-      <button class="add-row-btn" onclick="addSubjRow()" style="margin-bottom:12px;">＋ 새 과목 추가</button>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="rbtn pri" onclick="saveSubjects()">저장 및 적용</button>
-        <span class="ed-st" id="subj-st"></span>
-      </div>
-    </div>
   </div>
 
 <!-- 푸터 -->

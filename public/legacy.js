@@ -8,20 +8,11 @@
 // dataKey: data.json 및 백업에서 사용하는 키
 // idbKey: IndexedDB 저장 키
 
-const DEFAULT_SUBJECTS = [
-  {id:'fin',name:'재무회계',color:'fin',dataKey:'finData',idbKey:'cfd',
-   cols:[{key:'t',label:'이론',cls:'th'},{key:'b',label:'기본',cls:'ba'},{key:'a',label:'심화',cls:'av'}]},
-  {id:'cost',name:'원가회계',color:'cost',dataKey:'costData',idbKey:'ccd',
-   cols:[{key:'p',label:'문제',cls:'si'}]},
-  {id:'tax',name:'세법',color:'tax',dataKey:'taxData',idbKey:'ctaxd',
-   cols:[{key:'th',label:'이론',cls:'th'},{key:'ca',label:'계산',cls:'ca'}]},
-  {id:'gib',name:'국기법',color:'gib',dataKey:'gibData',idbKey:'cgibd',
-   cols:[{key:'t',label:'이론',cls:'th'}]},
-  {id:'jing',name:'국징법',color:'jing',dataKey:'jingData',idbKey:'cjingd',
-   cols:[{key:'t',label:'이론',cls:'th'}]},
-  {id:'beol',name:'조처법',color:'beol',dataKey:'beolData',idbKey:'cbeold',
-   cols:[{key:'t',label:'이론',cls:'th'}]},
-];
+// 공개 서비스이므로 기본 과목을 주지 않는다. 사용자가 직접 등록한다.
+const DEFAULT_SUBJECTS = [];
+
+// 새 과목의 기본 문제 유형 (과목 추가 시 최소 1개는 있어야 그리드가 성립)
+const DEFAULT_COLS = [{key:'p',label:'문제',cls:'si'}];
 
 let SUBJECTS = JSON.parse(JSON.stringify(DEFAULT_SUBJECTS));
 
@@ -73,6 +64,83 @@ function toggleTheme(){
 }
 window.toggleTheme=toggleTheme;
 matchMedia('(prefers-color-scheme:dark)').addEventListener?.('change',applyThemeIcon);
+
+// ══════════════════════════════════════════
+// 진입 게이트 · 온보딩
+// ══════════════════════════════════════════
+
+/** 등록된 과목이 있으면 현재 선택 과목들을 첫 과목으로 맞춘다. */
+function ensureCurSubjects(){
+  const first=SUBJECTS[0]?SUBJECTS[0].id:null;
+  const ids=SUBJECTS.map(s=>s.id);
+  if(!ids.includes(curEdSubj))   curEdSubj=first;
+  if(!ids.includes(curRandSubj)) curRandSubj=first;
+  if(curSubj!=='all'&&!ids.includes(curSubj)) curSubj=first;
+}
+
+/** 어느 과목이든 등록된 문제가 하나라도 있는가 */
+function hasAnyProblems(){
+  return SUBJECTS.some(s=>(DATA[s.id]||[]).length>0);
+}
+/**
+ * 일차가 배정된 문제가 하나라도 있는가 (= 회독 시작됨).
+ * 문제는 [문제번호, 일차] 쌍으로 저장되므로 일차가 1 이상인 항목을 찾는다.
+ */
+function hasAnyAssigned(){
+  return SUBJECTS.some(s=>
+    (DATA[s.id]||[]).some(ch=>
+      s.cols.some(c=>(ch[c.key]||[]).some(p=>Array.isArray(p)&&p[1]>=1))));
+}
+
+/** 진입 모드 게이트: 선택 이력이 없으면 로그인/비로그인 선택 화면을 띄운다. */
+function applyEntryGate(){
+  const g=document.getElementById('gate');
+  if(!g) return;
+  let mode=null;
+  try{ mode=localStorage.getItem('entryMode'); }catch(_){}
+  g.style.display = mode ? 'none' : 'flex';
+}
+function chooseEntry(mode){
+  try{ localStorage.setItem('entryMode',mode); }catch(_){}
+  const g=document.getElementById('gate');
+  if(g) g.style.display='none';
+  if(mode==='cloud' && typeof window.onSyncChipClick==='function') window.onSyncChipClick();
+}
+window.chooseEntry=chooseEntry;
+
+/** 온보딩 배너 — 실제 데이터 상태로 단계 완료를 판정한다. */
+function refreshOnboarding(){
+  const box=document.getElementById('onboard');
+  if(!box) return;
+  let done=false;
+  try{ done=localStorage.getItem('onboarded')==='1'; }catch(_){}
+
+  const steps=[
+    {label:'과목을 등록하세요',        ok:SUBJECTS.length>0},
+    {label:'과목에 문제를 등록하세요', ok:hasAnyProblems()},
+    {label:'회독을 시작하세요',        ok:hasAnyAssigned()},
+  ];
+  const allOk=steps.every(s=>s.ok);
+  if(allOk&&!done){ try{ localStorage.setItem('onboarded','1'); }catch(_){} done=true; }
+
+  if(done||allOk){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML='<div class="ob-title">시작해볼까요?</div>'+
+    '<ol class="ob-steps">'+steps.map(s=>
+      `<li class="${s.ok?'ok':''}">${s.ok?'✓':''} ${escapeHtml(s.label)}</li>`).join('')+'</ol>';
+}
+window.refreshOnboarding=refreshOnboarding;
+
+/** 학습 화면이 비어 있을 때 안내를 띄운다. */
+function updateEmptyStates(){
+  const el=document.getElementById('study-empty');
+  if(!el) return;
+  const empty=!hasAnyProblems();
+  el.style.display=empty?'block':'none';
+  const body=document.getElementById('study-body');
+  if(body) body.style.display=empty?'none':'';
+}
+window.updateEmptyStates=updateEmptyStates;
 
 // 사용 가능한 색상 팔레트
 const COLOR_PALETTE = [
@@ -344,8 +412,9 @@ function buildMaps(){
 // 상태
 // ══════════════════════════════════════════
 let S={};
-let curDay=null,curView='day',curSubj='fin',curNav='study';
-let curEdSubj='fin',curEdMode='grid',edRows=[];
+// 과목은 사용자가 등록하므로 초기값이 없다. ensureCurSubjects()가 첫 과목으로 채운다.
+let curDay=null,curView='day',curSubj=null,curNav='study';
+let curEdSubj=null,curEdMode='grid',edRows=[];
 
 function gk(s,ci,t,n){return s+'|'+ci+'|'+t+'|'+n;}
 function dn(s,ci,t,n){return!!S[gk(s,ci,t,n)];}
@@ -387,14 +456,19 @@ function refreshChip(el,subj,ci,type,num){
 // ══════════════════════════════════════════
 function goNav(n){
   curNav=n;
-  ['study','data','rand','subj'].forEach(id=>{
+  ['study','setup'].forEach(id=>{
     document.getElementById('nt-'+id).classList.toggle('on',id===n);
     document.getElementById('nav-'+id).style.display=id===n?'block':'none';
   });
-  if(n==='data')renderEd();
-  if(n==='rand'){renderRandSubjTabs();renderRandGrid();}
-  if(n==='subj')renderSubjGrid(true);
+  if(n==='setup'){
+    ensureCurSubjects();
+    renderSubjGrid(true);   // 과목 목록
+    renderEd();             // 선택 과목의 문제 등록
+    renderRandSubjTabs();renderRandGrid();  // 회독 시작
+    refreshOnboarding();
   }
+  updateEmptyStates();
+}
 function goSubj(s){
   curSubj=s;
   // 모든 탭 초기화
@@ -863,11 +937,14 @@ function applyPaste(){
 
 function goEdSubj(s){
   curEdSubj=s;
+  // 과목 설정 화면에서는 문제 등록과 회독 시작이 같은 과목을 가리켜야 한다
+  curRandSubj=s;
   document.querySelectorAll('.ed-subj-tabs .ed-stab').forEach(el=>{
     el.classList.toggle('on',el.dataset.subj===s);
   });
   buildEdRows();if(curEdMode==='grid')renderEdGrid();else renderPastePanel();
   document.getElementById('paste-preview').innerHTML='';document.getElementById('ed-st').textContent='';
+  if(typeof renderRandSubjTabs==='function'){renderRandSubjTabs();renderRandGrid();}
 }
 function goEdMode(m){
   curEdMode=m;
@@ -917,6 +994,7 @@ async function saveEd(){
     buildMaps();buildDG();updateProgress();curDay=null;
     const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
     st.className='ed-st ok';st.textContent='✓ 저장 완료 ('+data.length+'개 장)';
+    refreshOnboarding();updateEmptyStates();
     showToast('저장됐어요');
   }catch(e){st.className='ed-st err';st.textContent='❌ '+e.message;}
 }
@@ -1208,7 +1286,7 @@ async function resetSubj(subj){
 // ══════════════════════════════════════════
 // 랜덤 배정
 // ══════════════════════════════════════════
-let curRandSubj='fin';
+let curRandSubj=null;
 let randResult=[];
 
 // RAND_COLS는 getRandCols() 동적 함수로 대체됨
@@ -1388,6 +1466,7 @@ function runRandom(){
   });
   renderRandResult(days,dayAssign);
   document.getElementById('rand-result-area').style.display='block';
+  refreshOnboarding();updateEmptyStates();
   showToast('✅ '+totalCount+'문제 → '+days+'일에 배정 완료');
 }
 
@@ -1706,8 +1785,13 @@ async function saveSubjects(){
   await saveAllSubjData();
 
   // UI 재구성
+  ensureCurSubjects();
   rebuildUI();
   renderSubjGrid(true);
+  renderEd();
+  renderRandSubjTabs();renderRandGrid();
+  refreshOnboarding();
+  updateEmptyStates();
 
   st.className='ed-st ok';st.textContent='✓ 저장 완료 ('+SUBJECTS.length+'개 과목)';
   showToast('✅ 과목 설정 저장 완료');
@@ -1929,117 +2013,15 @@ async function applyReschedule(){
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);}
 
-// ══════════════════════════════════════════
-// 더미 데이터 (data.json 로드 실패 시 폴백)
-// [문제번호, 일차] 형식
-// ══════════════════════════════════════════
-const DEMO_FIN=[
-  {ch:'4장 재고자산',
-    t:[[1,1],[2,1],[3,2],[4,3]],
-    b:[[1,1],[2,1],[3,2],[4,2],[5,3],[6,3]],
-    a:[[1,2],[2,3],[3,4]]},
-  {ch:'6장 유형자산',
-    t:[[1,2],[2,3],[3,4]],
-    b:[[1,2],[2,3],[3,4],[4,5]],
-    a:[[1,3],[2,5]]},
-  {ch:'8장 무형자산',
-    t:[[1,4],[2,5]],
-    b:[[1,4],[2,5],[3,6]],
-    a:[[1,5],[2,6]]},
-  {ch:'10장 금융부채',
-    t:[[1,5],[2,6],[3,7]],
-    b:[[1,6],[2,6],[3,7],[4,7]],
-    a:[[1,7],[2,8]]},
-  {ch:'12장 충당부채',
-    t:[[1,7],[2,8]],
-    b:[[1,7],[2,8],[3,8]],
-    a:[[1,8]]},
-];
-const DEMO_COST=[
-  {ch:'2장 원가배분',p:[[1,1],[2,1],[3,2],[4,2],[5,3]]},
-  {ch:'4장 종합원가',p:[[1,2],[2,3],[3,3],[4,4],[5,4]]},
-  {ch:'6장 표준원가',p:[[1,4],[2,5],[3,5],[4,6],[5,6]]},
-  {ch:'8장 변동원가',p:[[1,6],[2,7],[3,7],[4,8]]},
-];
-const DEMO_TAX=[
-  {ch:'부-1장 과세거래',
-    th:[[1,1],[2,1],[3,2]],
-    ca:[[1,1],[2,2],[3,3]]},
-  {ch:'부-2장 영세율·면세',
-    th:[[1,2],[2,3]],
-    ca:[[1,3],[2,4]]},
-  {ch:'부-3장 납부세액',
-    th:[[1,3],[2,4]],
-    ca:[[1,4],[2,5]]},
-  {ch:'법-1장 세무조정',
-    th:[[1,4],[2,5],[3,5]],
-    ca:[[1,5],[2,6]]},
-  {ch:'법-2장 소득처분',
-    th:[[1,5],[2,6]],
-    ca:[[1,6],[2,7]]},
-  {ch:'소-1장 종합소득',
-    th:[[1,6],[2,7],[3,7]],
-    ca:[[1,7],[2,8]]},
-  {ch:'소-2장 퇴직소득',
-    th:[[1,7],[2,8]],
-    ca:[[1,8],[2,8]]},
-];
-const DEMO_GIB=[
-  {ch:'1장 총칙',t:[[1,1],[2,1],[3,2],[4,3]]},
-  {ch:'2장 국세부과의 원칙',t:[[1,2],[2,3],[3,4]]},
-  {ch:'3장 납세의무',t:[[1,3],[2,4],[3,5],[4,5]]},
-  {ch:'4장 조세채권 보전',t:[[1,4],[2,5],[3,6]]},
-  {ch:'5장 과세와 환급',t:[[1,6],[2,7],[3,7],[4,8]]},
-  {ch:'6장 심사와 심판',t:[[1,6],[2,7],[3,8]]},
-];
-const DEMO_JING=[
-  {ch:'1장 총칙',t:[[1,1],[2,2],[3,3]]},
-  {ch:'2장 임의적 징수유예',t:[[1,2],[2,3],[3,4]]},
-  {ch:'3장 체납처분',t:[[1,3],[2,4],[3,5],[4,6]]},
-  {ch:'4장 보칙',t:[[1,5],[2,6],[3,7]]},
-];
-const DEMO_BEOL=[
-  {ch:'1장 조세범 처벌',t:[[1,1],[2,2],[3,3],[4,4]]},
-  {ch:'2장 조세범 처벌절차',t:[[1,3],[2,5],[3,6]]},
-];
 
 // ══════════════════════════════════════════
 // 데이터 로드
 // ══════════════════════════════════════════
+// 공개 서비스에서는 예시 데이터를 주입하지 않는다.
+// 사용자가 직접 등록한 과목·문제만 다루며, 저장된 값은 loadData()가 읽는다.
 async function fetchData(){
-  try{
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),3000);
-    const res=await fetch('./data.json',{signal:controller.signal});
-    clearTimeout(timeout);
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const d=await res.json();
-    // SUBJECTS 기준으로만 데이터 로드 (삭제된 과목은 무시)
-    SUBJECTS.forEach(s=>{
-      DEFAULTS[s.id]=d[s.dataKey]||[];
-      DATA[s.id]=JSON.parse(JSON.stringify(DEFAULTS[s.id]));
-    });
-    syncLegacy();
-    const totalChs=SUBJECTS.reduce((acc,s)=>acc+(DATA[s.id]||[]).length,0);
-    if(totalChs===0)throw new Error('빈 데이터');
-    console.log('✅ data.json 로드 완료 —', SUBJECTS.map(s=>s.name+' '+(DATA[s.id]||[]).length+'장').join(', '));
-  }catch(e){
-    console.warn('⚠️ data.json 로드 실패, 더미 데이터로 대체:', e.message);
-    DF=JSON.parse(JSON.stringify(DEMO_FIN));
-    DC=JSON.parse(JSON.stringify(DEMO_COST));
-    DTAX=JSON.parse(JSON.stringify(DEMO_TAX));
-    DGIB=JSON.parse(JSON.stringify(DEMO_GIB));
-    DJING=JSON.parse(JSON.stringify(DEMO_JING));
-    DBEOL=JSON.parse(JSON.stringify(DEMO_BEOL));
-    // SUBJECTS 기준으로 동적 데이터 채우기 (데모 데이터 매핑)
-    const demoMap={fin:DEMO_FIN,cost:DEMO_COST,tax:DEMO_TAX,gib:DEMO_GIB,jing:DEMO_JING,beol:DEMO_BEOL};
-    SUBJECTS.forEach(s=>{
-      const demo=demoMap[s.id]||[];
-      DEFAULTS[s.id]=JSON.parse(JSON.stringify(demo));
-      DATA[s.id]=JSON.parse(JSON.stringify(demo));
-    });
-    syncLegacy();
-  }
+  SUBJECTS.forEach(s=>{ if(!DEFAULTS[s.id]) DEFAULTS[s.id]=[]; });
+  syncLegacy();
 }
 async function init(){
   applyThemeIcon();
@@ -2049,25 +2031,15 @@ async function init(){
   await fetchData();
   await loadData();
   await loadState();
-  // 데이터가 여전히 비어 있으면 더미로 강제 세팅
-  const totalChs = SUBJECTS.reduce((acc,s)=>acc+(DATA[s.id]||[]).length,0);
-  const usedDemo = totalChs===0;
-  if(usedDemo){
-    const demoMap={fin:DEMO_FIN,cost:DEMO_COST,tax:DEMO_TAX,gib:DEMO_GIB,jing:DEMO_JING,beol:DEMO_BEOL};
-    SUBJECTS.forEach(s=>{
-      const demo=demoMap[s.id]||[];
-      DATA[s.id]=JSON.parse(JSON.stringify(demo));
-      DEFAULTS[s.id]=JSON.parse(JSON.stringify(demo));
-    });
-    syncLegacy();
-  }
   buildMaps();
   const now=new Date();document.getElementById('today-date').textContent=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}`;
   buildDG();updateProgress();
   renderStudyTabs();renderProgressCards();renderFooterBtns();updateProgress();
   document.getElementById('hdr-sub-names').textContent=SUBJECTS.map(s=>s.name).join(' · ');
-  // 더미 데이터 사용 시 안내 (UI 렌더 후 표시)
-  if(usedDemo||DF===DEMO_FIN)setTimeout(()=>showToast('📦 더미 데이터로 실행 중 — data.json을 확인해주세요'),500);
+  applyEntryGate();
+  refreshOnboarding();
+  // 아직 아무것도 없으면 준비 화면부터 보여준다
+  if(!hasAnyProblems()) goNav('setup');
 }
 // 클라우드 동기화 모듈이 최초 로드 완료를 기다릴 수 있도록 promise를 노출
 window.__appReady = init();
