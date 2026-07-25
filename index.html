@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학습 일지</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -22,6 +23,7 @@
       </div>
       <div class="sync-wrap">
         <div class="hdr-date" id="today-date"></div>
+        <button class="sync-chip" id="theme-toggle" onclick="toggleTheme()" title="라이트/다크 전환">🌙</button>
         <button class="sync-chip" id="sync-chip" onclick="onSyncChipClick()" title="기기 간 동기화">☁️ 로그인</button>
         <div class="sync-user" id="sync-user"></div>
       </div>

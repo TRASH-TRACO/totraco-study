@@ -55,6 +55,25 @@ async function commitAppTitle(){
 window.editAppTitle=editAppTitle;
 window.commitAppTitle=commitAppTitle;
 
+// 다크/라이트 테마. data-theme 미설정이면 시스템 설정을 따른다.
+function currentTheme(){
+  const attr=document.documentElement.getAttribute('data-theme');
+  if(attr) return attr;
+  return matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+}
+function applyThemeIcon(){
+  const b=document.getElementById('theme-toggle');
+  if(b) b.textContent=currentTheme()==='dark'?'☀️':'🌙';
+}
+function toggleTheme(){
+  const next=currentTheme()==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('theme',next);}catch(_){}
+  applyThemeIcon();
+}
+window.toggleTheme=toggleTheme;
+matchMedia('(prefers-color-scheme:dark)').addEventListener?.('change',applyThemeIcon);
+
 // 사용 가능한 색상 팔레트
 const COLOR_PALETTE = [
   {id:'fin',label:'빨강',c:'#d44c47',bg:'#fdf3f2',bd:'#f5c8c6'},
@@ -2023,6 +2042,7 @@ async function fetchData(){
   }
 }
 async function init(){
+  applyThemeIcon();
   try{ const t=await idbGet('app_title'); if(typeof t==='string'&&t.trim()) appTitle=t.trim(); }catch(_){}
   renderAppTitle();
   await loadSubjectsConfig();
