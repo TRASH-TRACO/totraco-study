@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>세무사 학습 일지</title>
+<title>학습 일지</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 </head>
@@ -15,8 +15,9 @@
   <div class="hdr">
     <div class="hdr-row">
       <div>
-        <div class="hdr-eyebrow">Study Journal · 세무사 시험</div>
-        <div class="hdr-title">2차 학습 일지</div>
+        <div class="hdr-title" id="hdr-title" title="클릭해서 이름 변경"
+             onclick="editAppTitle()" onblur="commitAppTitle()"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">학습 일지</div>
         <div class="hdr-sub" id="hdr-sub-names"></div>
       </div>
       <div class="sync-wrap">

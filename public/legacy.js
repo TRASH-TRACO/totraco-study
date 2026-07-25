@@ -25,6 +25,36 @@ const DEFAULT_SUBJECTS = [
 
 let SUBJECTS = JSON.parse(JSON.stringify(DEFAULT_SUBJECTS));
 
+// 앱 제목(사용자가 무슨 공부를 하는지). 설정값이며 동기화 blob에 포함된다.
+let appTitle = '학습 일지';
+function renderAppTitle(){
+  const el=document.getElementById('hdr-title');
+  if(el) el.textContent=appTitle;
+  document.title=appTitle;
+}
+function editAppTitle(){
+  const el=document.getElementById('hdr-title');
+  if(!el) return;
+  el.contentEditable='true';
+  el.focus();
+  const r=document.createRange();r.selectNodeContents(el);
+  const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
+}
+async function commitAppTitle(){
+  const el=document.getElementById('hdr-title');
+  if(!el) return;
+  el.contentEditable='false';
+  const v=(el.textContent||'').trim()||'학습 일지';
+  const changed=v!==appTitle;
+  appTitle=v;el.textContent=v;document.title=v;
+  if(changed){
+    try{await idbSet('app_title',appTitle);}catch(_){}
+    if(window.CloudSync&&typeof window.CloudSync.schedulePush==='function') window.CloudSync.schedulePush();
+  }
+}
+window.editAppTitle=editAppTitle;
+window.commitAppTitle=commitAppTitle;
+
 // 사용 가능한 색상 팔레트
 const COLOR_PALETTE = [
   {id:'fin',label:'빨강',c:'#d44c47',bg:'#fdf3f2',bd:'#f5c8c6'},
@@ -947,7 +977,7 @@ function copyEdDone(){
 // ══════════════════════════════════════════
 // 현재 상태 전체를 덩어리 하나로 (버전 스냅샷 · 클라우드 업로드 공용)
 function buildBlob(){
-  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS};
+  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle};
   SUBJECTS.forEach(s=>{data[s.dataKey]=DATA[s.id]||[];});
   return data;
 }
@@ -1073,6 +1103,13 @@ function validateBlob(data){
 // 호출 전에 validateBlob()으로 검증되어 있어야 합니다.
 async function applyBlob(data){
   const hasSubjects=data.subjects&&Array.isArray(data.subjects)&&data.subjects.length;
+
+  // 0) 앱 제목 복원
+  if(typeof data.title==='string'&&data.title.trim()){
+    appTitle=data.title.trim();
+    try{await idbSet('app_title',appTitle);}catch(_){}
+    renderAppTitle();
+  }
 
   // 1) 기존 IndexedDB 정리 — 백업에 없는 과목 데이터 삭제
   if(hasSubjects){
@@ -1986,6 +2023,8 @@ async function fetchData(){
   }
 }
 async function init(){
+  try{ const t=await idbGet('app_title'); if(typeof t==='string'&&t.trim()) appTitle=t.trim(); }catch(_){}
+  renderAppTitle();
   await loadSubjectsConfig();
   await fetchData();
   await loadData();
