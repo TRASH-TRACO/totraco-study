@@ -468,6 +468,7 @@ function goNav(n){
     renderSubjGrid(true);   // 과목 목록
     renderEd();             // 선택 과목의 문제 등록
     renderAssignInfo();  // 회독 배정
+    applyEdSection();
     refreshOnboarding();
   }
   updateEmptyStates();
@@ -956,12 +957,14 @@ function goEdSubj(s){
   curEdSubj=s;
   // 과목 설정 화면에서는 문제 등록과 회독 시작이 같은 과목을 가리켜야 한다
   curRandSubj=s;
+  edManualCollapse=null;   // 과목이 바뀌면 접힘 상태를 다시 자동 판단
   document.querySelectorAll('.ed-subj-tabs .ed-stab').forEach(el=>{
     el.classList.toggle('on',el.dataset.subj===s);
   });
   buildEdRows();if(curEdMode==='grid')renderEdGrid();else renderPastePanel();
   document.getElementById('paste-preview').innerHTML='';document.getElementById('ed-st').textContent='';
   renderAssignInfo();
+  applyEdSection();
 }
 function goEdMode(m){
   curEdMode=m;
@@ -993,10 +996,10 @@ function renderEdSubjTabs(){
   SUBJECTS.forEach(s=>{
     const btn=document.createElement('button');
     btn.className='ed-stab';btn.dataset.subj=s.id;
-    // 과목 구분은 색 점이 담당한다 (선택 상태 스타일과 겹치지 않게)
+    // 선택 시 그 과목의 색을 그대로 쓴다 — 고정 액센트와 부딪히지 않게
+    btn.style.setProperty('--stab-c','var(--'+s.id+', var(--text2))');
     const dot=document.createElement('span');
     dot.className='stab-dot';
-    dot.style.background='var(--'+s.id+', var(--text3))';
     btn.appendChild(dot);
     btn.appendChild(document.createTextNode(s.name));
     // 배정 현황(배정/전체)을 함께 보여 과목별 진행 상태를 한눈에
@@ -1022,7 +1025,7 @@ async function saveEd(){
     buildMaps();buildDG();updateProgress();curDay=null;
     const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
     st.className='ed-st ok';st.textContent='✓ 저장 완료 ('+data.length+'개 장)';
-    refreshOnboarding();updateEmptyStates();
+    refreshOnboarding();updateEmptyStates();applyEdSection();
     showToast('저장됐어요');
   }catch(e){st.className='ed-st err';st.textContent='❌ '+e.message;}
 }
@@ -1418,7 +1421,7 @@ async function runAssign(mode){
   buildMaps();buildDG();updateProgress();
   renderStudyTabs();renderProgressCards();
   buildEdRows();if(curNav==='setup'&&curEdMode==='grid')renderEdGrid();
-  refreshOnboarding();updateEmptyStates();renderAssignInfo();
+  refreshOnboarding();updateEmptyStates();renderAssignInfo();applyEdSection();
   if(window.CloudSync&&window.CloudSync.schedulePush)window.CloudSync.schedulePush();
   showToast(`${total}문제를 ${days}일에 배정했어요`);
 }
@@ -1476,6 +1479,41 @@ function renderAssignInfo(){
     }).join('');
 }
 window.renderAssignInfo=renderAssignInfo;
+
+/**
+ * 문제 등록 섹션 접기.
+ * 이미 등록된 문제가 있으면 기본으로 접어 회독 배정이 눈에 들어오게 하고,
+ * 비어 있으면 펼쳐 바로 입력하게 한다. 사용자가 직접 여닫으면 그 선택을 따른다.
+ */
+let edManualCollapse=null;   // null=자동, true/false=사용자 지정
+function edIsCollapsed(){
+  const subj=SUBJECTS.find(s=>s.id===curEdSubj);
+  const has=subj?(DATA[subj.id]||[]).length>0:false;
+  return edManualCollapse===null?has:edManualCollapse;
+}
+function applyEdSection(){
+  const head=document.getElementById('ed-head');
+  const body=document.getElementById('ed-body');
+  const sum=document.getElementById('ed-summary');
+  if(!head||!body)return;
+  const collapsed=edIsCollapsed();
+  body.style.display=collapsed?'none':'';
+  head.classList.toggle('collapsed',collapsed);
+  head.setAttribute('aria-expanded',String(!collapsed));
+
+  if(!sum)return;
+  const subj=SUBJECTS.find(s=>s.id===curEdSubj);
+  if(!subj){sum.textContent='';return;}
+  const data=DATA[subj.id]||[];
+  let n=0;data.forEach(ch=>subj.cols.forEach(c=>{n+=(ch[c.key]||[]).length;}));
+  sum.textContent=data.length?`${data.length}개 장 · ${n}문제`:'등록된 문제 없음';
+}
+function toggleEdSection(){
+  edManualCollapse=!edIsCollapsed();
+  applyEdSection();
+}
+window.toggleEdSection=toggleEdSection;
+window.applyEdSection=applyEdSection;
 
 
 
@@ -1741,6 +1779,7 @@ async function saveSubjects(){
   renderSubjGrid(true);
   renderEd();
   renderAssignInfo();
+  applyEdSection();
   refreshOnboarding();
   updateEmptyStates();
 

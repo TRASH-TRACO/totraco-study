@@ -118,10 +118,15 @@ if(localStorage.getItem('entryMode'))document.documentElement.classList.add('ent
       <div class="ed-subj-tabs" id="ed-subj-tabs-con"></div>
     </div>
 
-  <!-- 데이터 편집 탭 -->
+  <!-- 문제 등록 — 등록이 끝나면 접어두고 회독 배정에 집중하게 한다 -->
   <div id="nav-data" class="setup-sec">
-    <div class="setup-step-label">문제 등록</div>
-    <div class="ed-wrap">
+    <button class="sec-head" id="ed-head" onclick="toggleEdSection()"
+            aria-expanded="true" aria-controls="ed-body" aria-label="문제 등록 펼치기/접기">
+      <span class="sec-chev" aria-hidden="true"></span>
+      <span class="setup-step-label">문제 등록</span>
+      <span class="sec-sum" id="ed-summary"></span>
+    </button>
+    <div class="ed-wrap" id="ed-body">
       <div class="ed-toolbar">
         <div class="ed-mode-tabs">
           <button class="ed-mtab on" id="emt-grid" onclick="goEdMode('grid')">그리드</button>
