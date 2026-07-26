@@ -973,17 +973,39 @@ function goEdMode(m){
   document.getElementById('paste-preview').innerHTML='';
   if(m==='paste')renderPastePanel();else renderEdGrid();
 }
+/** 과목의 문제 수와 일차가 배정된 수 */
+function subjCounts(s){
+  let total=0,assigned=0;
+  (DATA[s.id]||[]).forEach(ch=>s.cols.forEach(c=>(ch[c.key]||[]).forEach(p=>{
+    total++; if(Array.isArray(p)&&p[1]>=1) assigned++;
+  })));
+  return {total,assigned};
+}
+
+/**
+ * 과목 탭. 문제 등록과 회독 배정이 같은 과목을 가리키므로 두 곳에 같이 그린다.
+ * 회독 배정 쪽에는 배정 현황(배정/전체)을 뱃지로 붙여 과목별로 한눈에 보이게 한다.
+ */
 function renderEdSubjTabs(){
-  const con=document.getElementById('ed-subj-tabs-con');
-  if(!con)return;
-  con.innerHTML='';
-  SUBJECTS.forEach(s=>{
-    const btn=document.createElement('button');
-    btn.className='ed-stab';btn.dataset.subj=s.id;
-    btn.textContent=s.name;
-    if(s.id===curEdSubj)btn.classList.add('on');
-    btn.onclick=()=>goEdSubj(s.id);
-    con.appendChild(btn);
+  [['ed-subj-tabs-con',false],['assign-subj-tabs',true]].forEach(([id,withCount])=>{
+    const con=document.getElementById(id);
+    if(!con)return;
+    con.innerHTML='';
+    SUBJECTS.forEach(s=>{
+      const btn=document.createElement('button');
+      btn.className='ed-stab';btn.dataset.subj=s.id;
+      btn.textContent=s.name;
+      if(withCount){
+        const {total,assigned}=subjCounts(s);
+        const b=document.createElement('span');
+        b.className='stab-count'+(total&&assigned===total?' done':'');
+        b.textContent=total?`${assigned}/${total}`:'0';
+        btn.appendChild(b);
+      }
+      if(s.id===curEdSubj)btn.classList.add('on');
+      btn.onclick=()=>goEdSubj(s.id);
+      con.appendChild(btn);
+    });
   });
 }
 function renderEd(){renderEdSubjTabs();buildEdRows();if(curEdMode==='grid')renderEdGrid();else renderPastePanel();document.getElementById('ed-st').textContent='';}
@@ -1402,6 +1424,7 @@ window.runAssign=runAssign;
 
 /** 배정 섹션 상단 요약 + 일차별 분포 미리보기 */
 function renderAssignInfo(){
+  renderEdSubjTabs();   // 배정 뱃지(배정/전체)를 최신 상태로
   const sum=document.getElementById('assign-summary');
   if(!sum) return;
   const subj=SUBJECTS.find(s=>s.id===curEdSubj);

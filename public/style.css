@@ -394,3 +394,10 @@ label.fbtn{cursor:pointer;}
 .ap-chip{font-size:11px;font-family:var(--font-mono);color:var(--text2);
   background:var(--bg3);border-radius:100px;padding:3px 9px;}
 .ap-chip b{color:var(--text);font-weight:600;}
+
+/* 회독 배정 — 과목 탭의 배정 현황 뱃지 */
+#assign-subj-tabs{margin-bottom:12px;}
+.stab-count{margin-left:6px;font-size:10px;font-family:var(--font-mono);
+  padding:1px 5px;border-radius:100px;background:var(--bg3);color:var(--text3);}
+.ed-stab.on .stab-count{background:var(--bg4);color:var(--text2);}
+.stab-count.done{background:var(--accent-bg);color:var(--accent);}
