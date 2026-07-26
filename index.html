@@ -111,13 +111,18 @@ if(localStorage.getItem('entryMode'))document.documentElement.classList.add('ent
   </div>
 
     <div class="setup-sep"></div>
-    <div class="setup-step-label">선택한 과목의 문제</div>
+
+    <!-- 과목 선택 — 아래 문제 등록과 회독 배정이 이 과목을 함께 따른다 -->
+    <div class="subj-picker">
+      <div class="setup-step-label">과목 선택</div>
+      <div class="ed-subj-tabs" id="ed-subj-tabs-con"></div>
+    </div>
+
   <!-- 데이터 편집 탭 -->
   <div id="nav-data" class="setup-sec">
+    <div class="setup-step-label">문제 등록</div>
     <div class="ed-wrap">
       <div class="ed-toolbar">
-        <div class="ed-subj-tabs" id="ed-subj-tabs-con"></div>
-        <div class="ed-sep"></div>
         <div class="ed-mode-tabs">
           <button class="ed-mtab on" id="emt-grid" onclick="goEdMode('grid')">그리드</button>
           <button class="ed-mtab" id="emt-paste" onclick="goEdMode('paste')">붙여넣기</button>
@@ -151,7 +156,6 @@ if(localStorage.getItem('entryMode'))document.documentElement.classList.add('ent
   <div id="nav-rand" class="setup-sec">
     <div class="setup-step-label">회독 배정</div>
     <div class="assign-box">
-      <div class="ed-subj-tabs" id="assign-subj-tabs"></div>
       <p class="assign-desc" id="assign-summary"></p>
 
       <div class="assign-row">

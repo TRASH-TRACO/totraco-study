@@ -987,25 +987,22 @@ function subjCounts(s){
  * 회독 배정 쪽에는 배정 현황(배정/전체)을 뱃지로 붙여 과목별로 한눈에 보이게 한다.
  */
 function renderEdSubjTabs(){
-  [['ed-subj-tabs-con',false],['assign-subj-tabs',true]].forEach(([id,withCount])=>{
-    const con=document.getElementById(id);
-    if(!con)return;
-    con.innerHTML='';
-    SUBJECTS.forEach(s=>{
-      const btn=document.createElement('button');
-      btn.className='ed-stab';btn.dataset.subj=s.id;
-      btn.textContent=s.name;
-      if(withCount){
-        const {total,assigned}=subjCounts(s);
-        const b=document.createElement('span');
-        b.className='stab-count'+(total&&assigned===total?' done':'');
-        b.textContent=total?`${assigned}/${total}`:'0';
-        btn.appendChild(b);
-      }
-      if(s.id===curEdSubj)btn.classList.add('on');
-      btn.onclick=()=>goEdSubj(s.id);
-      con.appendChild(btn);
-    });
+  const con=document.getElementById('ed-subj-tabs-con');
+  if(!con)return;
+  con.innerHTML='';
+  SUBJECTS.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.className='ed-stab';btn.dataset.subj=s.id;
+    btn.textContent=s.name;
+    // 배정 현황(배정/전체)을 함께 보여 과목별 진행 상태를 한눈에
+    const {total,assigned}=subjCounts(s);
+    const b=document.createElement('span');
+    b.className='stab-count'+(total&&assigned===total?' done':'');
+    b.textContent=total?`${assigned}/${total}`:'0';
+    btn.appendChild(b);
+    if(s.id===curEdSubj)btn.classList.add('on');
+    btn.onclick=()=>goEdSubj(s.id);
+    con.appendChild(btn);
   });
 }
 function renderEd(){renderEdSubjTabs();buildEdRows();if(curEdMode==='grid')renderEdGrid();else renderPastePanel();document.getElementById('ed-st').textContent='';}
@@ -1440,12 +1437,38 @@ function renderAssignInfo(){
     : assigned===0 ? `${subj.name} · 문제 ${total}개 — 아직 일차가 배정되지 않았습니다.`
     : `${subj.name} · 문제 ${total}개 중 ${assigned}개가 ${Object.keys(perDay).length}일에 배정돼 있습니다.`;
 
+  // 일차별로 어떤 장의 몇 번 문제가 들어갔는지 미리 보여준다
   const box=document.getElementById('assign-preview');
   if(!box) return;
-  const days=Object.keys(perDay).map(Number).sort((a,b)=>a-b);
-  if(!days.length){box.style.display='none';return;}
-  box.style.display='flex';
-  box.innerHTML=days.map(d=>`<span class="ap-chip">${d}일 <b>${perDay[d]}</b></span>`).join('');
+  const byDay={};   // day → [{ch, label, nums[]}]
+  data.forEach(ch=>(subj?subj.cols:[]).forEach(c=>{
+    (ch[c.key]||[]).forEach(p=>{
+      if(!Array.isArray(p)||p[1]<1)return;
+      const d=p[1];
+      const list=(byDay[d]=byDay[d]||[]);
+      let g=list.find(x=>x.ch===ch.ch&&x.key===c.key);
+      if(!g){g={ch:ch.ch,key:c.key,label:c.label,cls:c.cls,nums:[]};list.push(g);}
+      g.nums.push(p[0]);
+    });
+  }));
+  const days=Object.keys(byDay).map(Number).sort((a,b)=>a-b);
+  if(!days.length){box.style.display='none';box.innerHTML='';return;}
+
+  const multiType=(subj?subj.cols.length:0)>1;
+  box.style.display='block';
+  box.innerHTML=
+    `<div class="ap-head">일차별 배정 내용</div>` +
+    days.map(d=>{
+      const groups=byDay[d];
+      const cnt=groups.reduce((a,g)=>a+g.nums.length,0);
+      const body=groups.map(g=>
+        `<span class="ap-grp"><span class="ap-ch">${escapeHtml(g.ch)}</span>` +
+        (multiType?`<span class="type-badge tb-${g.cls}">${escapeHtml(g.label)}</span>`:'') +
+        `<span class="ap-nums">${g.nums.sort((a,b)=>a-b).join(', ')}</span></span>`
+      ).join('');
+      return `<div class="ap-day"><span class="ap-dnum">${d}일<em>${cnt}</em></span>`+
+             `<span class="ap-body">${body}</span></div>`;
+    }).join('');
 }
 window.renderAssignInfo=renderAssignInfo;
 

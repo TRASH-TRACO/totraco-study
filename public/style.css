@@ -389,14 +389,24 @@ label.fbtn{cursor:pointer;}
   border-radius:var(--r2);background:var(--bg);color:var(--text);outline:none;}
 .assign-field input:focus{border-color:var(--accent);}
 .assign-note{font-size:11px;color:var(--text3);line-height:1.7;margin-top:12px;}
-.assign-preview{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;
-  padding-top:14px;border-top:1px solid var(--border);}
-.ap-chip{font-size:11px;font-family:var(--font-mono);color:var(--text2);
-  background:var(--bg3);border-radius:100px;padding:3px 9px;}
-.ap-chip b{color:var(--text);font-weight:600;}
+/* 일차별 배정 내용 미리보기 */
+.assign-preview{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.ap-head{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--text3);
+  text-transform:uppercase;margin-bottom:8px;}
+.ap-day{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);
+  align-items:baseline;}
+.ap-day:last-child{border-bottom:none;}
+.ap-dnum{flex:none;width:64px;font-size:12px;font-weight:600;color:var(--text);
+  font-family:var(--font-mono);}
+.ap-dnum em{font-style:normal;font-weight:500;color:var(--text3);margin-left:5px;}
+.ap-body{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;}
+.ap-grp{display:inline-flex;align-items:center;gap:5px;}
+.ap-ch{color:var(--text2);}
+.ap-nums{font-family:var(--font-mono);color:var(--text);}
 
 /* 회독 배정 — 과목 탭의 배정 현황 뱃지 */
-#assign-subj-tabs{margin-bottom:12px;}
+.subj-picker{margin-bottom:20px;}
+.subj-picker .ed-subj-tabs{margin:0;}
 .stab-count{margin-left:6px;font-size:10px;font-family:var(--font-mono);
   padding:1px 5px;border-radius:100px;background:var(--bg3);color:var(--text3);}
 .ed-stab.on .stab-count{background:var(--bg4);color:var(--text2);}
