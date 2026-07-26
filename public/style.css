@@ -296,13 +296,36 @@ label.fbtn{cursor:pointer;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── 클라우드 동기화 ── */
-.sync-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-.sync-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:100px;border:1px solid var(--border);background:var(--bg2);color:var(--text3);cursor:pointer;transition:all .15s;white-space:nowrap;}
-.sync-chip:hover{border-color:var(--text3);color:var(--text2);}
-.sync-chip.ok{border-color:#b8d9c4;background:#f1f8f4;color:#448361;}
-.sync-chip.busy{border-color:#e8cfa0;background:#fdf6ee;color:#d08c3a;}
-.sync-chip.err{border-color:#f5c8c6;background:#fdf3f2;color:#d44c47;}
-.sync-user{font-size:10px;color:var(--text3);font-family:var(--font-mono);}
+/* ── 헤더 우측 액션 ── */
+.hdr-actions{display:flex;align-items:center;gap:8px;}
+.sync-user{font-size:12px;color:var(--text3);max-width:150px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+
+/* 아이콘 버튼 (테마 토글) */
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;
+  width:32px;height:32px;padding:0;border-radius:var(--r2);
+  border:1px solid transparent;background:transparent;color:var(--text2);
+  cursor:pointer;transition:all .15s;}
+.icon-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border);}
+.icon-btn svg{width:16px;height:16px;display:block;}
+
+/* 텍스트 버튼 (로그인/동기화 상태) */
+.hdr-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;
+  font-size:13px;font-weight:500;font-family:inherit;white-space:nowrap;
+  border-radius:var(--r2);border:1px solid var(--border2);
+  background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s;}
+.hdr-btn:hover{background:var(--bg3);border-color:var(--text3);}
+/* 동기화 상태 — 점으로만 표시해 버튼 형태를 유지한다 */
+.hdr-btn::before{content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--text3);flex:none;display:none;}
+.hdr-btn.ok::before,.hdr-btn.busy::before,.hdr-btn.err::before{display:block;}
+.hdr-btn.ok::before{background:var(--emerald-500);}
+.hdr-btn.busy::before{background:var(--amber-500);}
+.hdr-btn.err::before{background:var(--red-500);}
+
+@media(max-width:600px){
+  .hdr-date,.sync-user{display:none;}
+}
 /* 충돌 모달 — 양쪽 상태 비교 카드 */
 .cf-opts{display:flex;flex-direction:column;gap:8px;}
 .cf-opt{display:block;width:100%;text-align:left;border:1px solid var(--border);background:var(--bg);border-radius:var(--r2);padding:12px 14px;cursor:pointer;transition:all .15s;}

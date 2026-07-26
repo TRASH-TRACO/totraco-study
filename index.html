@@ -32,11 +32,13 @@ if(localStorage.getItem('entryMode'))document.documentElement.classList.add('ent
              onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">학습 일지</div>
         <div class="hdr-sub" id="hdr-sub-names"></div>
       </div>
-      <div class="sync-wrap">
-        <div class="hdr-date" id="today-date"></div>
-        <button class="sync-chip" id="theme-toggle" onclick="toggleTheme()" title="라이트/다크 전환">🌙</button>
-        <button class="sync-chip" id="sync-chip" onclick="onSyncChipClick()" title="기기 간 동기화">로그인</button>
-        <div class="sync-user" id="sync-user"></div>
+      <div class="hdr-actions">
+        <span class="hdr-date" id="today-date"></span>
+        <span class="sync-user" id="sync-user"></span>
+        <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()"
+                title="라이트/다크 전환" aria-label="라이트/다크 전환"></button>
+        <button class="hdr-btn" id="sync-chip" onclick="onSyncChipClick()"
+                title="기기 간 동기화">로그인</button>
       </div>
     </div>
   </div>

@@ -94,7 +94,7 @@ function setChip(text, cls){
   const el = document.getElementById('sync-chip');
   if(!el) return;
   el.textContent = text;
-  el.className = 'sync-chip' + (cls ? ' ' + cls : '');
+  el.className = 'hdr-btn' + (cls ? ' ' + cls : '');
 }
 function setUserLabel(t){
   const el = document.getElementById('sync-user');
@@ -124,10 +124,10 @@ async function push(){
   const hash = hashOf(blob);
   const meta = await getMeta();
   if(meta && meta.uid === uid && meta.syncedHash === hash){ // 바뀐 게 없음
-    setChip('✅ 동기화됨', 'ok');
+    setChip('동기화됨', 'ok');
     return;
   }
-  setChip('⏳ 저장 중…', 'busy');
+  setChip('저장 중', 'busy');
   const rev = newRev();
   try{
     await setDoc(ref(), {
@@ -140,11 +140,11 @@ async function push(){
     });
     lastRev = rev;
     await setMeta({ uid, syncedHash: hash, syncedRev: rev, localTouchedAt: Date.now() });
-    setChip('✅ 동기화됨', 'ok');
+    setChip('동기화됨', 'ok');
   }catch(e){
     // 오프라인이면 Firestore가 큐에 쌓아두었다가 복구 시 보냅니다
     console.warn('[sync] 업로드 실패:', e.code || e.message);
-    setChip('⚠️ 오프라인', 'err');
+    setChip('오프라인', 'err');
     warnFirestoreSetup(e);
   }
 }
@@ -157,7 +157,7 @@ async function pull(remote){
     lastRev = remote.rev;
     await setMeta({ uid, syncedHash: hashOf(buildBlob()), syncedRev: remote.rev, localTouchedAt: Date.now() });
   } finally { suppress--; }
-  setChip('✅ 동기화됨', 'ok');
+  setChip('동기화됨', 'ok');
 }
 
 // ── 진도 합집합 병합 ────────────────────────
@@ -185,7 +185,7 @@ function showConflict(local, remote, localTouchedAt){
     '체크 ' + countChecked(remote.blob) + '개<br>' +
     '<span style="color:var(--text3);">' + fmtTime(remote.at) + '</span>';
   document.getElementById('conflict-modal').style.display = 'flex';
-  setChip('🔀 확인 필요', 'busy');
+  setChip('확인 필요', 'busy');
 }
 
 window.resolveConflict = async function(choice){
@@ -215,7 +215,7 @@ window.resolveConflict = async function(choice){
 
 // ── 최초 조정 ───────────────────────────────
 async function reconcile(){
-  setChip('⏳ 동기화 중…', 'busy');
+  setChip('동기화 중', 'busy');
   const local = buildBlob();
   const localHash = hashOf(local);
   const meta = await getMeta();
@@ -225,7 +225,7 @@ async function reconcile(){
   try{ snap = await getDoc(ref()); }
   catch(e){
     console.warn('[sync] 원격 조회 실패:', e.code || e.message);
-    setChip('⚠️ 오프라인', 'err');
+    setChip('오프라인', 'err');
     warnFirestoreSetup(e);
     reconciled = true; subscribe(); return;
   }
@@ -271,7 +271,7 @@ async function reconcile(){
     await push();
   }else{
     lastRev = remote.rev;
-    setChip('✅ 동기화됨', 'ok');
+    setChip('동기화됨', 'ok');
   }
   subscribe();
 }
@@ -286,17 +286,17 @@ function subscribe(){
     if(!remote || remote.rev === lastRev) return; // 이미 반영됨
     pull(remote)
       .then(() => showToast('☁️ 다른 기기의 변경을 받았어요'))
-      .catch(e => { console.warn('[sync] 적용 실패:', e.message); setChip('⚠️ 동기화 오류', 'err'); });
+      .catch(e => { console.warn('[sync] 적용 실패:', e.message); setChip('동기화 오류', 'err'); });
   }, err => {
     console.warn('[sync] 구독 오류:', err.code || err.message);
-    setChip('⚠️ 오프라인', 'err');
+    setChip('오프라인', 'err');
     warnFirestoreSetup(err);
   });
 }
 
 // ── 로그인 / 로그아웃 ───────────────────────
 async function login(){
-  setChip('⏳ 로그인 중…', 'busy');
+  setChip('로그인 중', 'busy');
   const provider = new GoogleAuthProvider();
   try{
     await signInWithPopup(auth, provider);
@@ -307,7 +307,7 @@ async function login(){
       try{ await signInWithRedirect(auth, provider); return; }catch(_){}
     }
     console.warn('[sync] 로그인 실패:', e.code || e.message);
-    setChip('☁️ 로그인', '');
+    setChip('로그인', '');
     // 콘솔 설정 누락은 원인이 화면에 안 드러나면 찾기 어려우므로 해결 방법까지 안내합니다
     const guide = {
       'auth/operation-not-allowed':
@@ -354,7 +354,7 @@ onAuthStateChanged(auth, async user => {
 
   if(!user){
     uid = null;
-    setChip('☁️ 로그인', '');
+    setChip('로그인', '');
     setUserLabel('');
     return;
   }
@@ -364,6 +364,6 @@ onAuthStateChanged(auth, async user => {
     await reconcile();
   }catch(e){
     console.warn('[sync] 조정 실패:', e.message);
-    setChip('⚠️ 동기화 오류', 'err');
+    setChip('동기화 오류', 'err');
   }
 });

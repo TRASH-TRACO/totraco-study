@@ -52,9 +52,12 @@ function currentTheme(){
   if(attr) return attr;
   return matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
 }
+// 테마 아이콘 — 이모지 대신 SVG로 그려 헤더 톤을 맞춘다
+const ICON_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
 function applyThemeIcon(){
   const b=document.getElementById('theme-toggle');
-  if(b) b.textContent=currentTheme()==='dark'?'☀️':'🌙';
+  if(b) b.innerHTML=currentTheme()==='dark'?ICON_SUN:ICON_MOON;
 }
 function toggleTheme(){
   const next=currentTheme()==='dark'?'light':'dark';
