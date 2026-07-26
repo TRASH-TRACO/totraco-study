@@ -957,7 +957,6 @@ function goEdSubj(s){
   curEdSubj=s;
   // 과목 설정 화면에서는 문제 등록과 회독 시작이 같은 과목을 가리켜야 한다
   curRandSubj=s;
-  edManualCollapse=null;   // 과목이 바뀌면 접힘 상태를 다시 자동 판단
   document.querySelectorAll('.ed-subj-tabs .ed-stab').forEach(el=>{
     el.classList.toggle('on',el.dataset.subj===s);
   });
@@ -1482,14 +1481,18 @@ window.renderAssignInfo=renderAssignInfo;
 
 /**
  * 문제 등록 섹션 접기.
- * 이미 등록된 문제가 있으면 기본으로 접어 회독 배정이 눈에 들어오게 하고,
- * 비어 있으면 펼쳐 바로 입력하게 한다. 사용자가 직접 여닫으면 그 선택을 따른다.
+ * 상태는 과목별이 아니라 화면 전체에 하나만 둔다 — 과목을 바꿀 때마다
+ * 접혔다 펴지면 산만하기 때문이다. 선택은 localStorage에 남겨 다음에도 유지한다.
+ * 최초 1회만 데이터 유무로 정한다(문제가 있으면 접어 회독 배정을 먼저 보여줌).
  */
-let edManualCollapse=null;   // null=자동, true/false=사용자 지정
+let edCollapsed=null;   // null이면 아직 결정 전
 function edIsCollapsed(){
-  const subj=SUBJECTS.find(s=>s.id===curEdSubj);
-  const has=subj?(DATA[subj.id]||[]).length>0:false;
-  return edManualCollapse===null?has:edManualCollapse;
+  if(edCollapsed===null){
+    let saved=null;
+    try{ saved=localStorage.getItem('edCollapsed'); }catch(_){}
+    edCollapsed = saved===null ? hasAnyProblems() : saved==='1';
+  }
+  return edCollapsed;
 }
 function applyEdSection(){
   const head=document.getElementById('ed-head');
@@ -1509,7 +1512,8 @@ function applyEdSection(){
   sum.textContent=data.length?`${data.length}개 장 · ${n}문제`:'등록된 문제 없음';
 }
 function toggleEdSection(){
-  edManualCollapse=!edIsCollapsed();
+  edCollapsed=!edIsCollapsed();
+  try{ localStorage.setItem('edCollapsed', edCollapsed?'1':'0'); }catch(_){}
   applyEdSection();
 }
 window.toggleEdSection=toggleEdSection;
