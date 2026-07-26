@@ -214,12 +214,13 @@ label.fbtn{cursor:pointer;}
 .ed-subj-tabs{display:flex;gap:4px;}
 .ed-stab{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:all .12s;font-family:inherit;}
 .ed-stab:hover{background:var(--bg4);}
-.ed-stab.fin.on{background:var(--fin-bg);border-color:var(--fin-border);color:var(--fin);}
-.ed-stab.cost.on{background:var(--cost-bg);border-color:var(--cost-border);color:var(--cost);}
-.ed-stab.tax.on{background:var(--tax-bg);border-color:var(--tax-border);color:var(--tax);}
-.ed-stab.gib.on{background:var(--gib-bg);border-color:var(--gib-border);color:var(--gib);}
-.ed-stab.jing.on{background:var(--jing-bg);border-color:var(--jing-border);color:var(--jing);}
-.ed-stab.beol.on{background:var(--beol-bg);border-color:var(--beol-border);color:var(--beol);}
+/* 선택 상태는 과목 색과 무관하게 한 가지로 — 과목 구분은 앞의 점이 담당한다 */
+.ed-stab{display:inline-flex;align-items:center;gap:7px;}
+.ed-stab.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;
+  box-shadow:var(--shadow);}
+.ed-stab.on:hover{background:var(--accent);filter:brightness(1.05);}
+.stab-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--text3);}
+.ed-stab.on .stab-dot{box-shadow:0 0 0 2px rgba(255,255,255,.55);}
 .ed-sep{width:1px;height:20px;background:var(--border);}
 .ed-mode-tabs{display:flex;gap:0;background:var(--bg3);border-radius:var(--r2);padding:2px;}
 .ed-mtab{padding:4px 10px;border-radius:3px;font-size:11px;font-weight:500;cursor:pointer;color:var(--text3);transition:all .12s;font-family:inherit;border:none;background:none;}
@@ -409,5 +410,7 @@ label.fbtn{cursor:pointer;}
 .subj-picker .ed-subj-tabs{margin:0;}
 .stab-count{margin-left:6px;font-size:10px;font-family:var(--font-mono);
   padding:1px 5px;border-radius:100px;background:var(--bg3);color:var(--text3);}
-.ed-stab.on .stab-count{background:var(--bg4);color:var(--text2);}
 .stab-count.done{background:var(--accent-bg);color:var(--accent);}
+/* 선택된 탭 안에서는 뱃지도 반전 — 배정 완료 색이 선택처럼 보이지 않게 */
+.ed-stab.on .stab-count,
+.ed-stab.on .stab-count.done{background:rgba(255,255,255,.22);color:#fff;}

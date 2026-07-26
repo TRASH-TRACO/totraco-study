@@ -993,7 +993,12 @@ function renderEdSubjTabs(){
   SUBJECTS.forEach(s=>{
     const btn=document.createElement('button');
     btn.className='ed-stab';btn.dataset.subj=s.id;
-    btn.textContent=s.name;
+    // 과목 구분은 색 점이 담당한다 (선택 상태 스타일과 겹치지 않게)
+    const dot=document.createElement('span');
+    dot.className='stab-dot';
+    dot.style.background='var(--'+s.id+', var(--text3))';
+    btn.appendChild(dot);
+    btn.appendChild(document.createTextNode(s.name));
     // 배정 현황(배정/전체)을 함께 보여 과목별 진행 상태를 한눈에
     const {total,assigned}=subjCounts(s);
     const b=document.createElement('span');
