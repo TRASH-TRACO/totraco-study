@@ -147,47 +147,28 @@ if(localStorage.getItem('entryMode'))document.documentElement.classList.add('ent
     </div>
   </div>
 
-  <!-- 랜덤 배정 탭 -->
+  <!-- 회독 배정 — 저장된 문제를 일차에 나눈다 -->
   <div id="nav-rand" class="setup-sec">
-    <div>
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">일차 랜덤 배정</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6;">
-        과목을 선택하고, 장별로 괄호 없는 문제번호를 입력하면 랜덤 일차를 배정합니다.<br>
-        <b>균등 + 같은 장 분산</b> 알고리즘으로 일차별 문제 수가 고르고, 같은 장 문제가 한 일차에 몰리지 않습니다.
+    <div class="setup-step-label">회독 배정</div>
+    <div class="assign-box">
+      <p class="assign-desc" id="assign-summary"></p>
+
+      <div class="assign-row">
+        <label class="assign-field">
+          <span>며칠에 나눠서</span>
+          <input id="rand-days" type="number" min="1" max="365" value="8">
+        </label>
+        <button class="rbtn pri" onclick="runAssign('random')">랜덤 배정</button>
+        <button class="rbtn sec" onclick="runAssign('order')">순서대로 배정</button>
       </div>
 
-      <!-- 과목 + 설정 -->
-      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;">
-        <div>
-          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;">과목</div>
-          <div class="ed-subj-tabs" id="rand-subj-tabs"></div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;">총 일수</div>
-          <input id="rand-days" type="number" min="1" max="100" value="8"
-            style="width:72px;font-family:var(--font-mono);font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r2);background:var(--bg);color:var(--text);outline:none;text-align:center;">
-        </div>
-        <button class="rbtn pri" onclick="runRandom()">랜덤 배정</button>
-        <button class="rbtn sec" onclick="addRandRow()">＋ 행 추가</button>
-      </div>
+      <p class="assign-note">
+        <b>랜덤</b>은 같은 장 문제가 한 일차에 몰리지 않게 흩어 배정하고,
+        <b>순서대로</b>는 장·번호 순으로 앞에서부터 채웁니다.
+        다시 배정하면 기존 일차는 덮어쓰지만 <b>완료 체크는 유지</b>됩니다.
+      </p>
 
-      <!-- 입력 그리드 -->
-      <div class="ss-wrap" id="rand-grid-wrap"></div>
-      <button class="add-row-btn" onclick="addRandRow()" style="margin-bottom:16px;">＋ 새 행 추가</button>
-
-      <!-- 결과 -->
-      <div id="rand-result-area" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);">결과 — 문제번호(일차)</div>
-          <div style="display:flex;gap:6px;">
-            <button class="rbtn sec" onclick="copyRandAll()" style="font-size:11px;padding:3px 10px;">전체 복사</button>
-          </div>
-        </div>
-        <!-- 결과 그리드 -->
-        <div class="ss-wrap" id="rand-result-grid" style="margin-bottom:12px;"></div>
-        <!-- 일차별 분포 -->
-        <div id="rand-preview" style="margin-bottom:12px;"></div>
-      </div>
+      <div id="assign-preview" class="assign-preview" style="display:none"></div>
     </div>
   </div>
   </div>

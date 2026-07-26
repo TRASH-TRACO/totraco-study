@@ -467,7 +467,7 @@ function goNav(n){
     ensureCurSubjects();
     renderSubjGrid(true);   // 과목 목록
     renderEd();             // 선택 과목의 문제 등록
-    renderRandSubjTabs();renderRandGrid();  // 회독 시작
+    renderAssignInfo();  // 회독 배정
     refreshOnboarding();
   }
   updateEmptyStates();
@@ -759,7 +759,7 @@ function getEdCols(subjId){
   const s=SUBJECTS.find(x=>x.id===subjId);
   if(!s)return[{key:'ch',label:'장',type:'ch'}];
   const cols=[{key:'ch',label:'장',type:'ch'}];
-  s.cols.forEach(c=>{cols.push({key:c.key,label:c.label+'\n문제번호(일차)',type:'prob',color:'tb-'+c.cls});});
+  s.cols.forEach(c=>{cols.push({key:c.key,label:c.label+'\n문제번호',type:'prob',color:'tb-'+c.cls});});
   return cols;
 }
 function getRandCols(subjId){
@@ -771,13 +771,17 @@ function getRandCols(subjId){
 }
 function getCurData(){return DATA[curEdSubj]||[];}
 function getDefData(){return DEFAULTS[curEdSubj]||[];}
-function probsToText(arr){return(arr||[]).map(p=>p[0]+'('+p[1]+')').join(', ');}
+/**
+ * 문제 등록은 번호만 다룬다. 일차는 아래 "회독 배정"이 정하므로 화면에 드러내지 않는다.
+ * 저장 시 기존 일차를 잃지 않도록 edRowsToData()가 번호를 기준으로 되살린다.
+ */
+function probsToText(arr){return(arr||[]).map(p=>Array.isArray(p)?p[0]:p).join(', ');}
 function textToProbs(str){
   if(!str||!str.trim())return[];
-  return str.split(/[,，\n]+/).map(s=>s.trim()).filter(Boolean).map(s=>{
-    const m=s.match(/^(\d+)\s*[\(（](\d+)[\)）]$/);
-    if(!m)throw new Error('"'+s+'" — 형식: 번호(일차)');
-    return[parseInt(m[1]),parseInt(m[2])];
+  return str.split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean).map(s=>{
+    const m=s.match(/^(\d+)(?:\s*[\(（](\d+)[\)）])?$/);  // 예전 "번호(일차)" 형식도 받아준다
+    if(!m)throw new Error('"'+s+'" — 숫자만 입력하세요');
+    return[parseInt(m[1]), m[2]?parseInt(m[2]):0];
   });
 }
 function buildEdRows(){
@@ -786,7 +790,17 @@ function buildEdRows(){
 }
 function edRowsToData(){
   const cols=getEdCols(curEdSubj);
-  return edRows.map(r=>{const obj={};cols.forEach(c=>{obj[c.key]=c.type==='ch'?r[c.key]:textToProbs(r[c.key]);});return obj;});
+  const old=getCurData();
+  return edRows.map((r,ri)=>{
+    const obj={};
+    cols.forEach(c=>{
+      if(c.type==='ch'){obj[c.key]=r[c.key];return;}
+      // 화면에는 번호만 있으므로, 같은 장·같은 번호의 기존 일차를 되살린다
+      const prev=new Map(((old[ri]||{})[c.key]||[]).map(p=>[p[0],p[1]]));
+      obj[c.key]=textToProbs(r[c.key]).map(([num,day])=>[num, day||prev.get(num)||0]);
+    });
+    return obj;
+  });
 }
 
 // 그리드 붙여넣기
@@ -888,7 +902,7 @@ function renderPastePanel(){
     lbl.style.cssText=c.type==='ch'?'background:var(--bg3);color:var(--text2)':'';
     lbl.textContent=c.label.split('\n')[0];
     const ta=document.createElement('textarea');ta.className='paste-ta';ta.id='paste-col-'+c.key;ta.rows=10;
-    ta.placeholder=c.type==='ch'?'장 이름 열 복사 후 붙여넣기\n예:\n4장\n6장\n...':'문제번호(일차) 열 복사 후 붙여넣기\n예:\n1(3), 5(1)\n2(4), 7(2)\n...';
+    ta.placeholder=c.type==='ch'?'장 이름 열 복사 후 붙여넣기\n예:\n4장\n6장\n...':'문제번호 열 복사 후 붙여넣기\n예:\n1, 2, 3\n4, 5\n...';
     ta.value=edRows.map(r=>r[c.key]||'').join('\n');
     ta.addEventListener('paste',e=>{
       e.preventDefault();
@@ -947,7 +961,7 @@ function goEdSubj(s){
   });
   buildEdRows();if(curEdMode==='grid')renderEdGrid();else renderPastePanel();
   document.getElementById('paste-preview').innerHTML='';document.getElementById('ed-st').textContent='';
-  if(typeof renderRandSubjTabs==='function'){renderRandSubjTabs();renderRandGrid();}
+  renderAssignInfo();
 }
 function goEdMode(m){
   curEdMode=m;
@@ -969,19 +983,6 @@ function renderEdSubjTabs(){
     btn.textContent=s.name;
     if(s.id===curEdSubj)btn.classList.add('on');
     btn.onclick=()=>goEdSubj(s.id);
-    con.appendChild(btn);
-  });
-}
-function renderRandSubjTabs(){
-  const con=document.getElementById('rand-subj-tabs');
-  if(!con)return;
-  con.innerHTML='';
-  SUBJECTS.forEach(s=>{
-    const btn=document.createElement('button');
-    btn.className='ed-stab';btn.dataset.subj=s.id;
-    btn.textContent=s.name;
-    if(s.id===curRandSubj)btn.classList.add('on');
-    btn.onclick=()=>goRandSubj(s.id);
     con.appendChild(btn);
   });
 }
@@ -1290,85 +1291,11 @@ async function resetSubj(subj){
 // 랜덤 배정
 // ══════════════════════════════════════════
 let curRandSubj=null;
-let randResult=[];
 
 // RAND_COLS는 getRandCols() 동적 함수로 대체됨
 
-function emptyRandRow(){const r={ch:''};getRandCols(curRandSubj).filter(c=>c.type==='prob').forEach(c=>{r[c.key]='';});return r;}
-let randRows=[emptyRandRow(),emptyRandRow(),emptyRandRow()];
 
-function goRandSubj(s){
-  curRandSubj=s;
-  document.querySelectorAll('#rand-subj-tabs .ed-stab').forEach(el=>{
-    el.classList.toggle('on',el.dataset.subj===s);
-  });
-  randRows=[emptyRandRow(),emptyRandRow(),emptyRandRow()];
-  document.getElementById('rand-result-area').style.display='none';
-  renderRandGrid();
-}
 
-function renderRandGrid(){
-  const wrap=document.getElementById('rand-grid-wrap');wrap.innerHTML='';
-  const cols=getRandCols(curRandSubj);
-  const tbl=document.createElement('table');tbl.className='ss-table';
-  const thead=document.createElement('thead');const htr=document.createElement('tr');
-  const thN=document.createElement('th');thN.style.minWidth='36px';thN.textContent='#';htr.appendChild(thN);
-  cols.forEach(c=>{
-    const th=document.createElement('th');
-    if(c.type==='ch'){th.className='ch-col';th.textContent=c.label;}
-    else{th.className='prob-col';if(c.color){const sp=document.createElement('span');sp.className='type-badge '+c.color;sp.textContent=c.label;th.innerHTML='';th.appendChild(sp);}else th.textContent=c.label;}
-    htr.appendChild(th);
-  });
-  const thD=document.createElement('th');thD.textContent='삭제';thD.style.minWidth='44px';htr.appendChild(thD);
-  thead.appendChild(htr);tbl.appendChild(thead);
-  const tbody=document.createElement('tbody');
-  randRows.forEach((row,ri)=>{
-    const tr=document.createElement('tr');
-    const tdN=document.createElement('td');tdN.className='row-num';tdN.textContent=ri+1;tr.appendChild(tdN);
-    cols.forEach((c,colIdx)=>{
-      const td=document.createElement('td');
-      if(c.type==='ch'){
-        td.className='cell-ch';
-        const inp=document.createElement('input');inp.value=row.ch||'';inp.placeholder='예) 4장 재고자산';
-        inp.addEventListener('input',()=>{randRows[ri].ch=inp.value;});
-        inp.addEventListener('paste',e=>{const raw=e.clipboardData.getData('text');if(/[\t\n]/.test(raw)){e.preventDefault();handleRandPaste(raw,ri,colIdx);}});
-        td.appendChild(inp);
-      }else{
-        td.className='cell-prob';
-        const ta=document.createElement('textarea');ta.value=row[c.key]||'';ta.rows=2;
-        ta.placeholder='예) 1, 2, 3, 4, 5';
-        ta.addEventListener('input',()=>{randRows[ri][c.key]=ta.value;ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});
-        ta.addEventListener('paste',e=>{
-          const raw=e.clipboardData.getData('text');
-          if(/\t/.test(raw)){e.preventDefault();handleRandPaste(raw,ri,colIdx);}
-          else if(/\n/.test(raw)){e.preventDefault();
-            const cleaned=raw.replace(/\r\n/g,'\n').split('\n').map(s=>s.trim()).filter(Boolean).join(', ');
-            const s2=ta.selectionStart,en=ta.selectionEnd,cur=ta.value;
-            ta.value=cur.slice(0,s2)+cleaned+cur.slice(en);randRows[ri][c.key]=ta.value;}
-        });
-        td.appendChild(ta);
-      }
-      tr.appendChild(td);
-    });
-    const tdD=document.createElement('td');const delB=document.createElement('button');delB.className='row-del';delB.textContent='✕';
-    delB.onclick=()=>{if(randRows.length<=1){showToast('최소 1행 필요');return;}randRows.splice(ri,1);renderRandGrid();};
-    tdD.appendChild(delB);tr.appendChild(tdD);
-    tbody.appendChild(tr);
-  });
-  tbl.appendChild(tbody);wrap.appendChild(tbl);
-  setTimeout(()=>{wrap.querySelectorAll('textarea').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});},0);
-}
-function handleRandPaste(raw,startRi,startCol){
-  const cols=getRandCols(curRandSubj);
-  const rows=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trimEnd().split('\n').map(line=>line.split('\t').map(c=>c.trim()));
-  while(randRows.length<startRi+rows.length)randRows.push(emptyRandRow());
-  rows.forEach((cells,dr)=>{const ri=startRi+dr;cells.forEach((val,dc)=>{const ci=startCol+dc;if(ci>=cols.length)return;const col=cols[ci];if(col.type==='ch')randRows[ri].ch=val;else randRows[ri][col.key]=val;});});
-  renderRandGrid();showToast('✅ '+rows.length+'행 붙여넣기 완료');
-}
-function addRandRow(){
-  randRows.push(emptyRandRow());renderRandGrid();
-  setTimeout(()=>{const rows=document.querySelectorAll('#rand-grid-wrap tbody tr');if(rows.length)rows[rows.length-1].scrollIntoView({behavior:'smooth'});},50);
-}
 
 // ── 알고리즘: 균등 + 같은 장 분산 (인접 일차까지 고려) ──
 // 점수 기반 그리디: 각 문제를 배치할 때
@@ -1381,156 +1308,126 @@ function parseNums(str){
   return str.split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean).map(s=>{const n=parseInt(s);return isNaN(n)?null:n;}).filter(n=>n!==null);
 }
 
-function runRandom(){
-  const cols=getRandCols(curRandSubj);
-  const probCols=cols.filter(c=>c.type==='prob');
-  const chapters=[];let totalCount=0;
-  for(let ri=0;ri<randRows.length;ri++){
-    const row=randRows[ri];const types=[];
-    probCols.forEach(c=>{const nums=parseNums(row[c.key]);if(nums.length){types.push({key:c.key,label:c.label,nums});totalCount+=nums.length;}});
-    if(!types.length)continue;
-    chapters.push({ch:row.ch||('장 '+(ri+1)),ci:ri,types});
-  }
-  if(!totalCount){showToast('문제번호를 입력해주세요');return;}
-  const days=parseInt(document.getElementById('rand-days').value)||8;
+/**
+ * 회독 배정 — 저장된 문제에 일차를 매긴다.
+ * mode: 'random'  같은 장이 한 일차에 몰리지 않게 흩어 배정
+ *       'order'   장·번호 순서대로 앞에서부터 균등하게
+ * 진도(S)는 건드리지 않으므로 완료 체크는 그대로 유지된다.
+ */
+async function runAssign(mode){
+  const subj=SUBJECTS.find(s=>s.id===curEdSubj);
+  if(!subj){showToast('과목을 먼저 등록해주세요');return;}
+  const data=DATA[subj.id]||[];
 
-  // 모든 문제 풀 + 셔플
+  // 저장된 문제 수집
   const pool=[];
-  chapters.forEach(ch=>{ch.types.forEach(tp=>{
-    const arr=tp.nums.map(num=>({ci:ch.ci,ch:ch.ch,num,typeKey:tp.key,typeLabel:tp.label}));
-    for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
-    arr.forEach(p=>pool.push(p));
-  });});
+  data.forEach((ch,ci)=>subj.cols.forEach(c=>{
+    (ch[c.key]||[]).forEach(p=>{
+      const num=Array.isArray(p)?p[0]:p;
+      pool.push({ci,key:c.key,num});
+    });
+  }));
+  if(!pool.length){showToast('먼저 문제를 등록해주세요');return;}
 
-  // 일차 버킷
-  const perDay=Math.floor(totalCount/days),extra=totalCount%days;
+  const days=Math.max(1,Math.min(365,parseInt(document.getElementById('rand-days').value)||1));
+  const total=pool.length;
+  const perDay=Math.floor(total/days),extra=total%days;
   const buckets=[];
   for(let d=0;d<days;d++)buckets.push({day:d+1,cap:perDay+(d<extra?1:0),items:[],chCounts:{}});
 
-  // 장별 큐 — 문제 수 많은 장 먼저 (분산 효과 ↑)
-  const queues={};chapters.forEach(ch=>{queues[ch.ci]=pool.filter(p=>p.ci===ch.ci);});
-  const chOrder=[...chapters].sort((a,b)=>{
-    const aL=a.types.reduce((s,t)=>s+t.nums.length,0);
-    const bL=b.types.reduce((s,t)=>s+t.nums.length,0);
-    return bL-aL;
-  });
-
-  // 장별 평균 간격(spacing) 계산: days / chapter문제수
-  // (장 문제수가 적을수록 간격을 멀리 두는 게 좋음)
-
-  // 점수 계산 함수: 낮을수록 좋음
-  function scoreBucket(bucket, ci, idx){
-    if(bucket.items.length>=bucket.cap)return Infinity; // 가득
-    let score=0;
-    // 1) 같은 일차 같은 장: 매우 큰 페널티
-    if(bucket.chCounts[ci])score+=1000*bucket.chCounts[ci];
-    // 2) 인접 일차 페널티 (±1: 큰, ±2: 중간, ±3: 작은)
-    const offsets=[[1,300],[2,80],[3,20]];
-    offsets.forEach(([off,pen])=>{
-      const prev=buckets[idx-off];const next=buckets[idx+off];
-      if(prev&&prev.chCounts[ci])score+=pen*prev.chCounts[ci];
-      if(next&&next.chCounts[ci])score+=pen*next.chCounts[ci];
+  if(mode==='order'){
+    // 장 순서 → 번호 순서. 용량만큼 차례로 채운다.
+    const ordered=[...pool].sort((a,b)=>a.ci-b.ci||a.num-b.num);
+    let bi=0;
+    ordered.forEach(p=>{
+      while(buckets[bi].items.length>=buckets[bi].cap&&bi<buckets.length-1)bi++;
+      buckets[bi].items.push(p);
     });
-    // 3) 균등: 덜 찬 일차 선호 (매우 작은 가중치)
-    score+=bucket.items.length*2;
-    return score;
-  }
-
-  // 각 장별로 문제 하나씩 라운드로빈으로 배치 (동시에 여러 장 진행 → 자연스러운 분산)
-  const remaining = chOrder.map(ch => ({ ci: ch.ci, queue: [...queues[ch.ci]] }));
-  while(remaining.some(r=>r.queue.length>0)){
-    for(const r of remaining){
-      if(!r.queue.length)continue;
-      const prob=r.queue.shift();
-      // 모든 버킷의 점수를 계산하고 최저 점수 버킷 선택
-      let bestScore=Infinity;let candidates=[];
-      buckets.forEach((b,idx)=>{
-        const sc=scoreBucket(b,r.ci,idx);
-        if(sc<bestScore){bestScore=sc;candidates=[idx];}
-        else if(sc===bestScore){candidates.push(idx);}
+  }else{
+    // 같은 장 몰림 방지: 장별 큐를 라운드로빈으로 돌며 점수가 낮은 일차에 넣는다
+    const byCh={};pool.forEach(p=>{(byCh[p.ci]=byCh[p.ci]||[]).push(p);});
+    Object.values(byCh).forEach(arr=>{
+      for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+    });
+    const score=(b,ci,idx)=>{
+      if(b.items.length>=b.cap)return Infinity;
+      let s=(b.chCounts[ci]||0)*1000;
+      [[1,300],[2,80],[3,20]].forEach(([off,pen])=>{
+        const pv=buckets[idx-off],nx=buckets[idx+off];
+        if(pv&&pv.chCounts[ci])s+=pen*pv.chCounts[ci];
+        if(nx&&nx.chCounts[ci])s+=pen*nx.chCounts[ci];
       });
-      if(!candidates.length)continue;
-      // 동점 시 랜덤
-      const pickIdx=candidates[Math.floor(Math.random()*candidates.length)];
-      const pick=buckets[pickIdx];
-      pick.items.push(prob);
-      pick.chCounts[r.ci]=(pick.chCounts[r.ci]||0)+1;
+      return s+b.items.length*2;
+    };
+    const queues=Object.entries(byCh)
+      .sort((a,b)=>b[1].length-a[1].length)          // 많은 장부터 (분산 효과 ↑)
+      .map(([ci,arr])=>({ci:+ci,queue:arr}));
+    while(queues.some(q=>q.queue.length)){
+      for(const q of queues){
+        if(!q.queue.length)continue;
+        const prob=q.queue.shift();
+        let best=Infinity,cands=[];
+        buckets.forEach((b,idx)=>{
+          const sc=score(b,q.ci,idx);
+          if(sc<best){best=sc;cands=[idx];}else if(sc===best)cands.push(idx);
+        });
+        if(!cands.length)continue;
+        const pick=buckets[cands[Math.floor(Math.random()*cands.length)]];
+        pick.items.push(prob);
+        pick.chCounts[q.ci]=(pick.chCounts[q.ci]||0)+1;
+      }
     }
   }
 
-  const dayAssign=[];
-  buckets.forEach(b=>{b.items.forEach(p=>{dayAssign.push({...p,day:b.day});});});
-
-  randResult=[];
-  chapters.forEach(ch=>{
-    const typeResults=[];
-    ch.types.forEach(tp=>{const items=dayAssign.filter(p=>p.ci===ch.ci&&p.typeKey===tp.key).sort((a,b)=>a.num-b.num);typeResults.push({key:tp.key,label:tp.label,items});});
-    randResult.push({ch:ch.ch,ci:ch.ci,typeResults});
-  });
-  renderRandResult(days,dayAssign);
-  document.getElementById('rand-result-area').style.display='block';
-  refreshOnboarding();updateEmptyStates();
-  showToast('✅ '+totalCount+'문제 → '+days+'일에 배정 완료');
-}
-
-function renderRandResult(days,dayAssign){
-  const probCols=getRandCols(curRandSubj).filter(c=>c.type==='prob');
-  const wrap=document.getElementById('rand-result-grid');wrap.innerHTML='';
-  const tbl=document.createElement('table');tbl.className='ss-table';
-  const thead=document.createElement('thead');const htr=document.createElement('tr');
-  const thN=document.createElement('th');thN.style.minWidth='36px';thN.textContent='#';htr.appendChild(thN);
-  const thCh=document.createElement('th');thCh.textContent='장 이름';htr.appendChild(thCh);
-  probCols.forEach(c=>{const th=document.createElement('th');th.style.minWidth='160px';if(c.color){const sp=document.createElement('span');sp.className='type-badge '+c.color;sp.textContent=c.label+' 결과';th.appendChild(sp);}else th.textContent=c.label+' 결과';htr.appendChild(th);});
-  const thC=document.createElement('th');thC.textContent='복사';thC.style.minWidth='52px';htr.appendChild(thC);
-  thead.appendChild(htr);tbl.appendChild(thead);
-  const tbody=document.createElement('tbody');
-  randResult.forEach((r,ri)=>{
-    const tr=document.createElement('tr');
-    const tdN=document.createElement('td');tdN.className='row-num';tdN.textContent=ri+1;tr.appendChild(tdN);
-    const tdCh=document.createElement('td');tdCh.style.cssText='padding:8px 10px;font-size:12px;font-weight:500;';tdCh.textContent=r.ch;tr.appendChild(tdCh);
-    probCols.forEach(c=>{
-      const tdR=document.createElement('td');tdR.style.cssText='padding:8px 10px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--text);line-height:1.7;';
-      const tr2=r.typeResults.find(t=>t.key===c.key);
-      tdR.textContent=tr2?tr2.items.map(p=>p.num+'('+p.day+')').join(', '):'';
-      tr.appendChild(tdR);
+  // 일차를 DATA에 기록
+  const dayOf=new Map();
+  buckets.forEach(b=>b.items.forEach(p=>dayOf.set(p.ci+'|'+p.key+'|'+p.num,b.day)));
+  data.forEach((ch,ci)=>subj.cols.forEach(c=>{
+    ch[c.key]=(ch[c.key]||[]).map(p=>{
+      const num=Array.isArray(p)?p[0]:p;
+      return [num, dayOf.get(ci+'|'+c.key+'|'+num)||0];
     });
-    const tdC=document.createElement('td');tdC.style.textAlign='center';
-    const cpBtn=document.createElement('button');cpBtn.className='row-del';cpBtn.textContent='📋';cpBtn.title='이 행 복사';cpBtn.style.cssText='color:var(--accent);font-size:14px;';
-    const rowText=r.ch+'\t'+probCols.map(c=>{const tr2=r.typeResults.find(t=>t.key===c.key);return tr2?tr2.items.map(p=>p.num+'('+p.day+')').join(', '):'';}).join('\t');
-    cpBtn.onclick=()=>{copyText(rowText,r.ch+' 복사됨');};
-    tdC.appendChild(cpBtn);tr.appendChild(tdC);
-    tbody.appendChild(tr);
-  });
-  tbl.appendChild(tbody);wrap.appendChild(tbl);
+  }));
 
-  const dist={};dayAssign.forEach(p=>{if(!dist[p.day])dist[p.day]=[];dist[p.day].push(p);});
-  let html='<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">일차별 분포</div>';
-  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-  for(let d=1;d<=days;d++){
-    const items=dist[d]||[];
-    // ci(입력 순서)로 그룹 정렬
-    const chCountsArr=[];const chSeen={};
-    items.forEach(p=>{
-      if(chSeen[p.ci]===undefined){chSeen[p.ci]=chCountsArr.length;chCountsArr.push({ci:p.ci,ch:p.ch,cnt:1});}
-      else chCountsArr[chSeen[p.ci]].cnt++;
-    });
-    chCountsArr.sort((a,b)=>a.ci-b.ci);
-    html+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;min-width:70px;">';
-    html+='<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:3px;">'+d+'일차 <span style="color:var(--text3);font-weight:400;">'+items.length+'문제</span></div>';
-    html+='<div style="font-size:10px;color:var(--text2);font-family:\'JetBrains Mono\',monospace;line-height:1.5;">';
-    chCountsArr.forEach(({ch,cnt})=>{html+=escapeHtml(ch)+' ×'+cnt+'<br>';});
-    html+='</div></div>';
-  }
-  html+='</div>';
-  document.getElementById('rand-preview').innerHTML=html;
+  syncLegacy();
+  await saveAllSubjData();
+  buildMaps();buildDG();updateProgress();
+  renderStudyTabs();renderProgressCards();
+  buildEdRows();if(curNav==='setup'&&curEdMode==='grid')renderEdGrid();
+  refreshOnboarding();updateEmptyStates();renderAssignInfo();
+  if(window.CloudSync&&window.CloudSync.schedulePush)window.CloudSync.schedulePush();
+  showToast(`${total}문제를 ${days}일에 배정했어요`);
 }
+window.runAssign=runAssign;
 
-function copyRandAll(){
-  if(!randResult.length){showToast('먼저 랜덤 배정을 실행해주세요');return;}
-  const probCols=getRandCols(curRandSubj).filter(c=>c.type==='prob');
-  const rows=randResult.map(r=>r.ch+'\t'+probCols.map(c=>{const tr=r.typeResults.find(t=>t.key===c.key);return tr?tr.items.map(p=>p.num+'('+p.day+')').join(', '):'';}).join('\t'));
-  copyText(rows.join('\n'),'복사 완료');
+/** 배정 섹션 상단 요약 + 일차별 분포 미리보기 */
+function renderAssignInfo(){
+  const sum=document.getElementById('assign-summary');
+  if(!sum) return;
+  const subj=SUBJECTS.find(s=>s.id===curEdSubj);
+  const data=subj?(DATA[subj.id]||[]):[];
+  let total=0;const perDay={};
+  data.forEach(ch=>(subj?subj.cols:[]).forEach(c=>(ch[c.key]||[]).forEach(p=>{
+    total++;const d=Array.isArray(p)?p[1]:0;if(d>=1)perDay[d]=(perDay[d]||0)+1;
+  })));
+  const assigned=Object.values(perDay).reduce((a,b)=>a+b,0);
+
+  sum.textContent = !subj ? '과목을 먼저 등록해주세요.'
+    : total===0 ? '이 과목에 등록된 문제가 없습니다. 위에서 문제를 먼저 저장하세요.'
+    : assigned===0 ? `${subj.name} · 문제 ${total}개 — 아직 일차가 배정되지 않았습니다.`
+    : `${subj.name} · 문제 ${total}개 중 ${assigned}개가 ${Object.keys(perDay).length}일에 배정돼 있습니다.`;
+
+  const box=document.getElementById('assign-preview');
+  if(!box) return;
+  const days=Object.keys(perDay).map(Number).sort((a,b)=>a-b);
+  if(!days.length){box.style.display='none';return;}
+  box.style.display='flex';
+  box.innerHTML=days.map(d=>`<span class="ap-chip">${d}일 <b>${perDay[d]}</b></span>`).join('');
 }
+window.renderAssignInfo=renderAssignInfo;
+
+
+
 
 
 
@@ -1792,7 +1689,7 @@ async function saveSubjects(){
   rebuildUI();
   renderSubjGrid(true);
   renderEd();
-  renderRandSubjTabs();renderRandGrid();
+  renderAssignInfo();
   refreshOnboarding();
   updateEmptyStates();
 
