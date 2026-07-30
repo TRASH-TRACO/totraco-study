@@ -96,10 +96,21 @@ function setChip(text, cls){
   el.textContent = text;
   el.className = 'hdr-btn' + (cls ? ' ' + cls : '');
 }
+let currentEmail = '';
 function setUserLabel(t){
   const el = document.getElementById('sync-user');
   if(el) el.textContent = t || '';
 }
+// 이름이 있으면 이름을, 없으면 이메일을 헤더에 보여줍니다(이름은 로그인 후 수집·동기화됨).
+function refreshUserLabel(){
+  const name = (typeof window.getUserName === 'function') ? window.getUserName() : '';
+  const el = document.getElementById('sync-user');
+  if(el){
+    el.textContent = name || currentEmail || '';
+    el.title = currentEmail || '';
+  }
+}
+window.__refreshUserLabel = refreshUserLabel;
 
 // Firestore 설정 누락도 원인이 화면에 안 드러나므로 한 번만 안내합니다
 let warnedSetup = false;
@@ -354,16 +365,22 @@ onAuthStateChanged(auth, async user => {
 
   if(!user){
     uid = null;
+    currentEmail = '';
     setChip('로그인', '');
     setUserLabel('');
     return;
   }
   uid = user.uid;
-  setUserLabel(user.email || '');
+  currentEmail = user.email || '';
+  refreshUserLabel();
   try{
     await reconcile();
   }catch(e){
     console.warn('[sync] 조정 실패:', e.message);
     setChip('동기화 오류', 'err');
   }
+  // 조정으로 원격 이름을 받았을 수 있으니 라벨을 한 번 더 맞추고,
+  // 그래도 이름이 없으면 구글 표시이름을 기본값으로 입력을 받습니다.
+  refreshUserLabel();
+  if(typeof window.ensureUserName === 'function') window.ensureUserName(user.displayName || '');
 });

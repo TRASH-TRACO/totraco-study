@@ -354,7 +354,36 @@ label.fbtn{cursor:pointer;}
 .gate-btn:hover{background:var(--bg3);}
 .gate-btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;}
 .gate-btn.pri:hover{filter:brightness(1.06);}
+/* Google 로그인 — 브랜드 가이드에 맞춰 밝은 배경 유지(다크에서도 흰 버튼) */
+.gate-btn.google{display:flex;align-items:center;justify-content:center;gap:10px;
+  background:#fff;color:#3c4043;border:1px solid #dadce0;font-weight:600;}
+.gate-btn.google:hover{background:#f8f9fa;box-shadow:0 1px 3px rgba(60,64,67,.24);}
+.gate-btn.google .g-logo{width:18px;height:18px;flex:none;}
 .gate-note{font-size:11px;color:var(--text3);margin-top:14px;line-height:1.6;}
+
+/* ── 과목 추가 / 문제집 불러오기 버튼 행 ── */
+.setup-add-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.setup-add-row .add-row-btn{flex:1;min-width:150px;border:1px dashed var(--border2);
+  border-radius:var(--r);margin-bottom:0;}
+
+/* ── 문제집 불러오기 모달 ── */
+.book-search{width:100%;font-size:13px;padding:9px 12px;box-sizing:border-box;
+  border:1px solid var(--border);border-radius:var(--r2);background:var(--bg);
+  color:var(--text);outline:none;margin-bottom:12px;font-family:inherit;}
+.book-search:focus{border-color:var(--accent);}
+.book-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  border:1px solid var(--border);background:var(--bg);border-radius:var(--r2);
+  padding:11px 14px;margin-bottom:6px;cursor:pointer;transition:all .12s;font-family:inherit;}
+.book-item:hover{border-color:var(--text3);background:var(--bg2);}
+.book-item.on{border-color:var(--accent);background:var(--accent-bg);}
+.book-item-main{flex:1;min-width:0;}
+.book-item-title{font-size:13px;font-weight:600;color:var(--text);}
+.book-item-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.book-item-chev{color:var(--text3);font-size:18px;flex:none;line-height:1;}
+.book-empty{text-align:center;color:var(--text3);font-size:12px;padding:24px 0;}
+.book-pv-head{font-size:12px;font-weight:600;color:var(--text2);margin:16px 0 8px;}
+.book-pv-table{overflow:auto;max-height:300px;border:1px solid var(--border);border-radius:var(--r);}
+.book-pv-table th{position:sticky;top:0;background:var(--bg2);z-index:1;}
 
 /* ── 온보딩 배너 ── */
 .onboard{background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--r);

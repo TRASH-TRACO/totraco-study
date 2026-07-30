@@ -1104,7 +1104,7 @@ function copyEdDone(){
 // ══════════════════════════════════════════
 // 현재 상태 전체를 덩어리 하나로 (버전 스냅샷 · 클라우드 업로드 공용)
 function buildBlob(){
-  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle};
+  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName};
   SUBJECTS.forEach(s=>{data[s.dataKey]=DATA[s.id]||[];});
   return data;
 }
@@ -1236,6 +1236,13 @@ async function applyBlob(data){
     appTitle=data.title.trim();
     try{await idbSet('app_title',appTitle);}catch(_){}
     renderAppTitle();
+  }
+
+  // 0-1) 사용자 이름 복원
+  if(typeof data.userName==='string'){
+    userName=data.userName;
+    try{await idbSet('user_name',userName);}catch(_){}
+    if(typeof window.__refreshUserLabel==='function') window.__refreshUserLabel();
   }
 
   // 1) 기존 IndexedDB 정리 — 백업에 없는 과목 데이터 삭제
@@ -2005,6 +2012,208 @@ async function applyReschedule(){
   showToast(`✅ 미완료 ${undoneN}문제 재배치 완료 (총 ${result.totalDays}일)`);
 }
 
+// ══════════════════════════════════════════
+// 문제집 카탈로그 (목차 불러오기)
+// ══════════════════════════════════════════
+// 각 장의 유형별 값은 "문제 개수"(1..n)입니다. loadSelectedBook에서 [번호,일차] 쌍으로 펼칩니다.
+// cols의 key와 장(chapter) 객체의 key가 일치해야 합니다.
+const PROBLEM_BOOKS = [
+  {
+    id:'kkd-2026-fin',
+    title:'2026 김기동 재무회계 연습서',
+    subject:'재무회계',
+    author:'김기동',
+    year:'2026',
+    color:'fin',
+    cols:[{key:'b',label:'기본',cls:'ba'},{key:'a',label:'응용',cls:'av'}],
+    chapters:[
+      {ch:'1장 개념체계',b:0,a:0},
+      {ch:'2장 현금과 채권',b:0,a:0},
+      {ch:'3장 재고자산',b:4,a:6},
+      {ch:'4장 유형자산과 투자부동산',b:5,a:4},
+      {ch:'5장 차입원가 자본화',b:4,a:0},
+      {ch:'6장 무형자산과 기타자산',b:4,a:0},
+      {ch:'7장 금융부채와 사채',b:3,a:2},
+      {ch:'8장 충당부채와 종업원급여',b:5,a:4},
+      {ch:'9장 자본',b:4,a:0},
+      {ch:'10장 수익',b:5,a:4},
+      {ch:'11장 투자목적 금융자산',b:5,a:2},
+      {ch:'12장 복합금융상품',b:2,a:2},
+      {ch:'13장 주식기준보상거래',b:5,a:3},
+      {ch:'14장 주당이익',b:4,a:2},
+      {ch:'15장 리스',b:4,a:3},
+      {ch:'16장 법인세회계',b:4,a:3},
+      {ch:'17장 회계변경과 오류수정',b:4,a:2},
+      {ch:'18장 현금흐름표',b:3,a:2},
+      {ch:'19장 재무회계의 기타사항',b:2,a:0},
+      {ch:'20장 환율변동효과와 파생상품',b:0,a:0},
+      {ch:'21장 관계기업과 공동기업투자',b:4,a:2},
+      {ch:'22장 사업결합과 합병회계',b:4,a:0},
+      {ch:'23장 연결회계',b:3,a:0},
+    ],
+  },
+];
+
+// 1..n 정수 배열
+function bookRange(n){const a=[];for(let i=1;i<=(n|0);i++)a.push(i);return a;}
+function bookProbCount(b){return b.chapters.reduce((t,ch)=>t+b.cols.reduce((s,c)=>s+(ch[c.key]||0),0),0);}
+
+let selectedBookId = null;
+
+function openBookModal(){
+  selectedBookId = null;
+  const s=document.getElementById('book-search'); if(s)s.value='';
+  const pv=document.getElementById('book-preview'); if(pv)pv.innerHTML='';
+  const btn=document.getElementById('book-load-btn'); if(btn)btn.disabled=true;
+  renderBookList();
+  document.getElementById('book-modal').style.display='flex';
+}
+function closeBookModal(){
+  const m=document.getElementById('book-modal'); if(m)m.style.display='none';
+}
+window.openBookModal=openBookModal;
+window.closeBookModal=closeBookModal;
+
+function filteredBooks(){
+  const q=(document.getElementById('book-search')?.value||'').trim().toLowerCase();
+  if(!q)return PROBLEM_BOOKS;
+  return PROBLEM_BOOKS.filter(b=>
+    [b.title,b.subject,b.author,b.year].join(' ').toLowerCase().includes(q));
+}
+function renderBookList(){
+  const con=document.getElementById('book-list');
+  if(!con)return;
+  const books=filteredBooks();
+  if(!books.length){con.innerHTML='<div class="book-empty">검색 결과가 없어요</div>';return;}
+  con.innerHTML=books.map(b=>{
+    const on=b.id===selectedBookId;
+    return `<button class="book-item${on?' on':''}" onclick="selectBook('${b.id}')">`+
+      `<div class="book-item-main">`+
+        `<div class="book-item-title">${escapeHtml(b.title)}</div>`+
+        `<div class="book-item-meta">${escapeHtml(b.subject)} · ${escapeHtml(b.author)} · ${b.chapters.length}개 장 · ${bookProbCount(b)}문제</div>`+
+      `</div><span class="book-item-chev">›</span></button>`;
+  }).join('');
+}
+window.renderBookList=renderBookList;
+
+function selectBook(id){
+  selectedBookId=id;
+  renderBookList();
+  renderBookPreview(id);
+  const btn=document.getElementById('book-load-btn'); if(btn)btn.disabled=false;
+}
+window.selectBook=selectBook;
+
+function renderBookPreview(id){
+  const box=document.getElementById('book-preview');
+  if(!box)return;
+  const b=PROBLEM_BOOKS.find(x=>x.id===id);
+  if(!b){box.innerHTML='';return;}
+  let html=`<div class="book-pv-head">${escapeHtml(b.title)} · 목차 미리보기</div>`;
+  html+='<div class="book-pv-table"><table class="ss-table"><thead><tr><th>장</th>'+
+    b.cols.map(c=>`<th>${escapeHtml(c.label)}</th>`).join('')+'</tr></thead><tbody>';
+  b.chapters.forEach(ch=>{
+    html+=`<tr><td style="padding:6px 10px;font-size:12px;white-space:nowrap;">${escapeHtml(ch.ch)}</td>`;
+    b.cols.forEach(c=>{
+      const nums=bookRange(ch[c.key]||0);
+      html+='<td style="padding:6px 10px;">'+
+        (nums.length?nums.map(x=>`<span class="prob-chip-inline">${x}</span>`).join('')
+                    :'<span style="color:var(--text3)">—</span>')+'</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  box.innerHTML=html;
+}
+
+async function loadSelectedBook(){
+  const b=PROBLEM_BOOKS.find(x=>x.id===selectedBookId);
+  if(!b){showToast('먼저 문제집을 선택해주세요');return;}
+
+  // 과목 id 충돌 방지 — 선호 id(색상 계열)가 이미 있으면 숫자 접미사를 붙인다
+  const usedIds=SUBJECTS.map(s=>s.id);
+  const base=b.color||'subj';
+  let id=base;
+  for(let i=2;usedIds.includes(id);i++) id=base+i;
+
+  // 색상도 이미 쓰였으면 미사용 팔레트로
+  const usedColors=SUBJECTS.map(s=>s.color);
+  let color=b.color;
+  if(usedColors.includes(color)){
+    const av=COLOR_PALETTE.find(c=>!usedColors.includes(c.id));
+    if(av)color=av.id;
+  }
+
+  const subj={
+    id, name:b.subject, color,
+    dataKey:id+'Data', idbKey:'c'+id,
+    cols:JSON.parse(JSON.stringify(b.cols))
+  };
+  SUBJECTS.push(subj);
+  DATA[id]=b.chapters.map(ch=>{
+    const row={ch:ch.ch};
+    b.cols.forEach(c=>{ row[c.key]=bookRange(ch[c.key]||0).map(n=>[n,0]); });
+    return row;
+  });
+  DEFAULTS[id]=DEFAULTS[id]||[];
+
+  updateSubjectCSS();
+  await idbSet('subjects_config', SUBJECTS);
+  await saveAllSubjData();   // 여기서 CloudSync.schedulePush()가 호출됨
+
+  // 새 과목을 선택 상태로 두고 전체 UI 재구성
+  curEdSubj=id; curRandSubj=id;
+  ensureCurSubjects();
+  rebuildUI();
+  renderSubjGrid(true);
+  renderEd();
+  renderAssignInfo();
+  applyEdSection();
+  refreshOnboarding();
+  updateEmptyStates();
+  document.getElementById('hdr-sub-names').textContent=SUBJECTS.map(s=>s.name).join(' · ');
+
+  closeBookModal();
+  showToast(`✅ ${b.title} 목차를 불러왔어요`);
+}
+window.loadSelectedBook=loadSelectedBook;
+
+// ══════════════════════════════════════════
+// 사용자 이름 (로그인 후 1회 수집 · 동기화됨)
+// ══════════════════════════════════════════
+let userName='';
+async function loadUserName(){
+  try{ const n=await idbGet('user_name'); if(typeof n==='string') userName=n; }catch(_){}
+}
+window.getUserName=()=>userName;
+
+/** 로그인 직후 이름이 없으면 입력 모달을 띄운다(구글 표시이름을 기본값으로). */
+function ensureUserName(googleName){
+  if(userName&&userName.trim())return;
+  const inp=document.getElementById('name-input');
+  if(inp)inp.value=(googleName||'').trim();
+  const m=document.getElementById('name-modal');
+  if(m)m.style.display='flex';
+  setTimeout(()=>{ if(inp)inp.focus(); },100);
+}
+window.ensureUserName=ensureUserName;
+
+async function saveUserName(){
+  const inp=document.getElementById('name-input');
+  const v=(inp?inp.value:'').trim();
+  if(!v){ closeNameModal(); return; }
+  userName=v;
+  try{ await idbSet('user_name', userName); }catch(_){}
+  closeNameModal();
+  if(typeof window.__refreshUserLabel==='function') window.__refreshUserLabel();
+  if(window.CloudSync&&window.CloudSync.schedulePush) window.CloudSync.schedulePush();
+  showToast('반가워요, '+v+'님!');
+}
+function skipUserName(){ closeNameModal(); }
+function closeNameModal(){ const m=document.getElementById('name-modal'); if(m)m.style.display='none'; }
+window.saveUserName=saveUserName;
+window.skipUserName=skipUserName;
+
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);}
 
 
@@ -2020,6 +2229,7 @@ async function fetchData(){
 async function init(){
   applyThemeIcon();
   try{ const t=await idbGet('app_title'); if(typeof t==='string'&&t.trim()) appTitle=t.trim(); }catch(_){}
+  await loadUserName();
   renderAppTitle();
   await loadSubjectsConfig();
   await fetchData();
