@@ -2288,7 +2288,7 @@ window.closeLogoutModal=closeLogoutModal;
  */
 async function doLogout(wipe){
   closeLogoutModal();
-  if(wipe && !confirm('이 기기의 진도·과목·설정을 모두 지우고 로그아웃할까요?\n클라우드에 저장된 데이터는 유지됩니다.\n\n이 기기에서는 되돌릴 수 없어요.')) return;
+  if(wipe && !confirm('이 기기의 진도·과목·설정을 지우고 로그아웃할까요?\n클라우드에 저장된 데이터는 그대로라 다시 로그인하면 불러옵니다.')) return;
   // 1) 동기화 중단(로그아웃). 이후 pull/push가 로컬을 덮어쓰지 않게 먼저 끊는다.
   try{ await window.CloudSync?.signOut?.(); }catch(_){}
   if(!wipe){ showToast('로그아웃됐어요 — 이 기기 데이터는 그대로예요'); return; }
