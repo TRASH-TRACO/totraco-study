@@ -2052,11 +2052,60 @@ const PROBLEM_BOOKS = [
       {ch:'23장 연결회계',b:3,a:0},
     ],
   },
+  {
+    id:'lcj-jws-2026-tax',
+    title:'2026 세무회계연습',
+    subject:'세무회계',
+    author:'이철재·정우승',
+    year:'2026',
+    subjectId:'setax',   // 'tax'는 부/법/소 특화 렌더링과 충돌하므로 일반 경로를 타는 id를 쓴다
+    color:'tax',
+    cols:[
+      {key:'req',label:'필수',cls:'av'},
+      {key:'prac',label:'연습',cls:'ba'},
+      {key:'def',label:'유예',cls:'si'},
+    ],
+    // 필수 문제 번호는 비연속이므로 배열로 명시. 연습·유예는 아직 비어 있어 생략(빈 배열).
+    chapters:[
+      {ch:'부가가치세 1장',req:[1,2,3,4,5,6,7,8,9,10,11,12,13]},
+      {ch:'부가가치세 2장',req:[1,2,3,4,9,12]},
+      {ch:'부가가치세 3장',req:[1,2,3,4,5,7,8,9]},
+      {ch:'부가가치세 4장',req:[1,2,3,4,5]},
+      {ch:'법인세 1장',req:[1,2]},
+      {ch:'법인세 2장',req:[1,2,3,4,5,6,7]},
+      {ch:'법인세 3장',req:[1,3,4,8,9,10,11]},
+      {ch:'법인세 4장',req:[1,3,4,5,6,7,8,10]},
+      {ch:'법인세 5장',req:[1,2,4,5,6]},
+      {ch:'법인세 6장',req:[1,3,4,5,6,8,9,10,11,12]},
+      {ch:'법인세 7장',req:[1,2,3]},
+      {ch:'법인세 8장',req:[1,3,4,5,8,9,10,12]},
+      {ch:'법인세 9장',req:[1,2,3,4,5,6,7,8,9,11,12,13,16]},
+      {ch:'법인세 10장',req:[1,2,3,9,10]},
+      {ch:'법인세 11장',req:[2,3,5,6,7]},
+      {ch:'법인세 12장',req:[1,3]},
+      {ch:'법인세 13장',req:[1,2,3,4,5,7,11,13,14,15]},
+      {ch:'법인세 14장',req:[2,5,9,11,13,14,15,18,21,22,23]},
+      {ch:'법인세 15장',req:[2,4,5,6,12]},
+      {ch:'법인세 16장',req:[1,2,3]},
+      {ch:'법인세 17장',req:[1,3,5]},
+      {ch:'소득세 1장',req:[1,2,3,4,5,6,7,8,9]},
+      {ch:'소득세 2장',req:[1,3,4,5,7,8,9,10,11]},
+      {ch:'소득세 3장',req:[1,2,3,4,5,6,8,9,10,12]},
+      {ch:'소득세 4장',req:[2,3,5]},
+      {ch:'소득세 5장',req:[1,2,3]},
+      {ch:'소득세 6장',req:[1,2,3,6,7,8,9,16,17]},
+      {ch:'소득세 7장',req:[1,2,5]},
+      {ch:'소득세 8장',req:[1,2,3,4,5,6,8,11,12,13]},
+      {ch:'소득세 9장',req:[2]},
+    ],
+  },
 ];
 
 // 1..n 정수 배열
 function bookRange(n){const a=[];for(let i=1;i<=(n|0);i++)a.push(i);return a;}
-function bookProbCount(b){return b.chapters.reduce((t,ch)=>t+b.cols.reduce((s,c)=>s+(ch[c.key]||0),0),0);}
+// 장의 유형별 값 → 문제번호 배열. 숫자면 1..n, 배열이면 그 번호들(비연속 허용), 없으면 빈 배열.
+function bookNums(v){ if(Array.isArray(v))return v.slice(); if(typeof v==='number')return bookRange(v); return []; }
+function bookProbCount(b){return b.chapters.reduce((t,ch)=>t+b.cols.reduce((s,c)=>s+bookNums(ch[c.key]).length,0),0);}
 
 let selectedBookId = null;
 
@@ -2115,7 +2164,7 @@ function renderBookPreview(id){
   b.chapters.forEach(ch=>{
     html+=`<tr><td style="padding:6px 10px;font-size:12px;white-space:nowrap;">${escapeHtml(ch.ch)}</td>`;
     b.cols.forEach(c=>{
-      const nums=bookRange(ch[c.key]||0);
+      const nums=bookNums(ch[c.key]);
       html+='<td style="padding:6px 10px;">'+
         (nums.length?nums.map(x=>`<span class="prob-chip-inline">${x}</span>`).join('')
                     :'<span style="color:var(--text3)">—</span>')+'</td>';
@@ -2132,7 +2181,7 @@ async function loadSelectedBook(){
 
   // 과목 id 충돌 방지 — 선호 id(색상 계열)가 이미 있으면 숫자 접미사를 붙인다
   const usedIds=SUBJECTS.map(s=>s.id);
-  const base=b.color||'subj';
+  const base=b.subjectId||b.color||'subj';
   let id=base;
   for(let i=2;usedIds.includes(id);i++) id=base+i;
 
@@ -2152,7 +2201,7 @@ async function loadSelectedBook(){
   SUBJECTS.push(subj);
   DATA[id]=b.chapters.map(ch=>{
     const row={ch:ch.ch};
-    b.cols.forEach(c=>{ row[c.key]=bookRange(ch[c.key]||0).map(n=>[n,0]); });
+    b.cols.forEach(c=>{ row[c.key]=bookNums(ch[c.key]).map(n=>[n,0]); });
     return row;
   });
   DEFAULTS[id]=DEFAULTS[id]||[];
