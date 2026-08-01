@@ -555,7 +555,7 @@ function buildDG(){
   const bucket=dm[0]||[];
   if(bucket.length){
     const b=document.createElement('button');b.className='db done-bucket';b.id='db0';
-    b.innerHTML=`<span>✓ 완료된 문제</span><span class="dbadge">✓</span>`;
+    b.innerHTML=`<span>✓ 완료된 문제</span>`;
     b.onclick=()=>selDay(0);g.appendChild(b);
   }
   for(let d=1;d<=max;d++){
