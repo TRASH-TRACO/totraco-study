@@ -173,6 +173,31 @@ let subjEditRows = [];
 // 데이터
 // ══════════════════════════════════════════
 let DATA={},DEFAULTS={};
+// 남은 문제 조정으로 완료 문제를 "완료된 문제" 버킷(일차 0)에 몰아넣기 전의 원래 배치를
+// 과목별로 스냅샷해 둔다. { subjId: { "ci|colKey|num": 원래일차 } }
+// 전체/과목 진도를 미완료로 초기화하면 이 스냅샷의 "문제별 순서"대로 되돌린다(일차 숫자는 달라도 순서 보존).
+let PLAN_SNAPSHOT={};
+async function savePlanSnapshot(){
+  try{ await idbSet('plan_snapshot', PLAN_SNAPSHOT); }catch(_){}
+  window.CloudSync?.schedulePush();
+}
+/** 스냅샷의 원래 순서(원래일차→ci→num)대로 과목 문제 일차를 다시 매긴다. 되돌릴 게 없으면 false. */
+function restorePlanOrder(subjId){
+  const snap = PLAN_SNAPSHOT[subjId];
+  const data = DATA[subjId];
+  if(!snap || !data) return false;
+  // 스냅샷 키를 원래 순서(원래일차→ci→num)로 정렬 → 그대로 일차 복원
+  data.forEach((ch,ci)=>{
+    Object.keys(ch).forEach(col=>{
+      if(col==='ch'||!Array.isArray(ch[col]))return;
+      ch[col]=ch[col].map(pair=>{
+        const od = snap[`${ci}|${col}|${pair[0]}`];
+        return od!==undefined ? [pair[0], od] : pair;
+      });
+    });
+  });
+  return true;
+}
 // Legacy aliases (동적 시스템과 기존 코드 브릿지)
 function syncLegacy(){
   FD=DATA.fin||[];CD=DATA.cost||[];TAXD=DATA.tax||[];GIBD=DATA.gib||[];JINGD=DATA.jing||[];BEOLD=DATA.beol||[];
@@ -408,6 +433,9 @@ function buildMaps(){
   });
   // 전체 맵
   const allMax=Math.max(0,...Object.values(MAXS));
+  // 완료된 문제 버킷(일차 0)도 합쳐 전체 뷰에서 보이게 한다
+  adm[0]=[];
+  SUBJECTS.forEach(s=>{ if(MAPS[s.id]&&MAPS[s.id][0])adm[0].push(...MAPS[s.id][0]); });
   for(let d=1;d<=allMax;d++){
     adm[d]=[];
     SUBJECTS.forEach(s=>{
@@ -523,6 +551,13 @@ function getMax(){return curSubj==='all'?Math.max(0,...Object.values(MAXS)):(MAX
 function buildDG(){
   const g=document.getElementById('dg');g.innerHTML='';
   const max=getMax(),isTax=curSubj==='tax',dm=getDM();
+  // 완료된 문제 버킷(일차 0) — 남은 문제 조정으로 완료 문제를 몰아둔 경우 맨 앞에 표시
+  const bucket=dm[0]||[];
+  if(bucket.length){
+    const b=document.createElement('button');b.className='db done-bucket';b.id='db0';
+    b.innerHTML=`<span>✓ 완료된 문제</span><span class="dbadge">✓</span>`;
+    b.onclick=()=>selDay(0);g.appendChild(b);
+  }
   for(let d=1;d<=max;d++){
     const b=document.createElement('button');b.className='db';b.id='db'+d;
     if(isTax){
@@ -538,6 +573,15 @@ function buildDG(){
 }
 function updateDBtns(){
   const dm=getDM(),max=getMax();
+  // 완료된 문제 버킷 타일
+  const b0=document.getElementById('db0');
+  if(b0){
+    const ps=dm[0]||[];const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length;
+    b0.className='db done-bucket';
+    if(curDay===0)b0.classList.add('sel');
+    if(ps.length>0&&dk===ps.length)b0.classList.add('full');
+    else if(dk>0)b0.classList.add('part');
+  }
   for(let d=1;d<=max;d++){
     const b=document.getElementById('db'+d);if(!b)continue;
     const ps=dm[d]||[];const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length;
@@ -557,7 +601,7 @@ function renderDP(day){
   const allD=ps.length>0&&dk===ps.length;
   // 헤더
   const hdr=document.createElement('div');hdr.className='dpanel-hdr';
-  const titleEl=document.createElement('div');titleEl.className='dpanel-title';titleEl.textContent=day+'일차';
+  const titleEl=document.createElement('div');titleEl.className='dpanel-title';titleEl.textContent=day===0?'완료된 문제':day+'일차';
   const metaEl=document.createElement('div');metaEl.style.display='flex';metaEl.style.alignItems='center';metaEl.style.gap='10px';
   const subEl=document.createElement('div');subEl.className='dpanel-meta';subEl.id='dp-sub';subEl.textContent=ps.length+'문제 · '+dk+'개 완료';
   const abtn=document.createElement('button');abtn.className='toggle-all-btn '+(allD?'ad':'nd');abtn.textContent=allD?'전체 해제':'전체 완료';abtn.id='all-btn';abtn.onclick=()=>toggleAll(day);
@@ -1114,7 +1158,7 @@ function copyEdDone(){
 // ══════════════════════════════════════════
 // 현재 상태 전체를 덩어리 하나로 (버전 스냅샷 · 클라우드 업로드 공용)
 function buildBlob(){
-  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName};
+  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT};
   SUBJECTS.forEach(s=>{data[s.dataKey]=DATA[s.id]||[];});
   return data;
 }
@@ -1255,6 +1299,12 @@ async function applyBlob(data){
     if(typeof window.__refreshUserLabel==='function') window.__refreshUserLabel();
   }
 
+  // 0-2) 남은 문제 조정 스냅샷 복원
+  if(data.planSnapshot&&typeof data.planSnapshot==='object'){
+    PLAN_SNAPSHOT=data.planSnapshot;
+    try{await idbSet('plan_snapshot',PLAN_SNAPSHOT);}catch(_){}
+  }
+
   // 1) 기존 IndexedDB 정리 — 백업에 없는 과목 데이터 삭제
   if(hasSubjects){
     const oldIds=SUBJECTS.map(s=>s.id);
@@ -1305,17 +1355,29 @@ async function applyBlob(data){
 // ══════════════════════════════════════════
 // 기타
 // ══════════════════════════════════════════
+/** 미완료로 초기화한 과목들의 원래 순서(스냅샷)를 복원하고 저장. 복원한 게 있으면 true. */
+async function restoreAfterReset(subjIds){
+  let restored=false;
+  subjIds.forEach(id=>{ if(restorePlanOrder(id))restored=true; });
+  if(restored){ syncLegacy(); await saveAllSubjData(); await savePlanSnapshot(); }
+  return restored;
+}
 async function newRound(){
   if(!confirm('모든 문제를 미완료로 초기화할까요?'))return;
-  S={};await saveState();curDay=null;
+  S={};await saveState();
+  // 완료 묶음(완료된 문제)을 원래 순서대로 되돌린다
+  await restoreAfterReset(SUBJECTS.map(s=>s.id));
+  curDay=null;
   const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
-  buildDG();updateProgress();
+  buildMaps();buildDG();if(curView==='chap')renderChaps();updateProgress();
 }
 async function resetAll(){
   if(!confirm('전체 진도를 초기화할까요?'))return;
-  S={};await saveState();curDay=null;
+  S={};await saveState();
+  await restoreAfterReset(SUBJECTS.map(s=>s.id));
+  curDay=null;
   const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
-  buildDG();if(curView==='chap')renderChaps();updateProgress();
+  buildMaps();buildDG();if(curView==='chap')renderChaps();updateProgress();
 }
 async function resetSubj(subj){
   const names={};
@@ -1324,9 +1386,11 @@ async function resetSubj(subj){
   if(!confirm(name+' 진도를 초기화할까요?'))return;
   const prefix=subj+'|';
   Object.keys(S).forEach(k=>{if(k.startsWith(prefix))delete S[k];});
-  await saveState();curDay=null;
+  await saveState();
+  await restoreAfterReset([subj]);
+  curDay=null;
   const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
-  buildDG();if(curView==='chap')renderChaps();updateProgress();
+  buildMaps();buildDG();if(curView==='chap')renderChaps();updateProgress();
   showToast('✅ '+name+' 진도 초기화 완료');
 }
 
@@ -1361,6 +1425,14 @@ async function runAssign(mode){
   const subj=SUBJECTS.find(s=>s.id===curEdSubj);
   if(!subj){showToast('과목을 먼저 등록해주세요');return;}
   const data=DATA[subj.id]||[];
+
+  // 완료한 문제가 하나라도 있으면 한 번 더 확인 (다시 배정하면 일차가 새로 짜인다)
+  const anyDone=data.some((ch,ci)=>subj.cols.some(c=>
+    (ch[c.key]||[]).some(p=>dn(subj.id,ci,colKeyToType(subj.id,c.key),Array.isArray(p)?p[0]:p))));
+  if(anyDone && !confirm(`${subj.name}에 이미 완료한 문제가 있어요.\n다시 배정하면 모든 문제의 일차가 새로 짜입니다.\n(완료 체크 자체는 그대로 유지돼요)\n\n계속할까요?`)) return;
+
+  // 새 배정은 원래 순서를 새로 정의하므로, 남은 문제 조정용 스냅샷은 초기화
+  if(PLAN_SNAPSHOT[subj.id]){ delete PLAN_SNAPSHOT[subj.id]; savePlanSnapshot(); }
 
   // 저장된 문제 수집
   const pool=[];
@@ -1878,8 +1950,8 @@ function openRescheduleModal(){
   // 정보 표시
   document.getElementById('reschedule-info').innerHTML =
     `<b>${subjDef.name}</b> · 총 ${allProbs.length}문제 (기존 ${origTotalDays}일 계획)<br>` +
-    `✓ 완료: ${completedCount}문제 (순서 유지 — 제자리에 남음)<br>` +
-    `🔄 남은 문제(미완료): ${undoneCount}문제 → 하루 정한 개수만큼 채움`;
+    `✓ 완료: ${completedCount}문제 → 「완료된 문제」로 모음<br>` +
+    `🔄 남은 문제: ${undoneCount}문제 → 1일차부터 하루 정한 개수만큼 배정`;
 
   // 기본값: 미완료 문제를 원래 진행하던 페이스에 맞춰 추정
   const distinctUndoneDays = new Set(seq.filter(p=>!p.done).map(p=>p.day)).size;
@@ -1895,79 +1967,54 @@ function closeRescheduleModal(){
   rescheduleData = null;
 }
 
-// 새 일차 배정 계산
-// 원래 순서(seq)를 그대로 유지하며 일차 경계만 다시 긋는다.
-// - 한 일차가 미완료 perDay개를 채우면 다음 일차로 넘어감 (완료 문제는 개수에 안 셈)
-// - 아직 미완료가 하나도 없는데 완료만 perDay개 쌓이면 다음 일차로 분리 (완료 일차 → 특정 일차 비대화 방지)
+// 새 배치 계산
+// 완료 문제 → "완료된 문제" 버킷(일차 0). 미완료 문제 → 원래 순서대로 1일차부터 perDay씩.
 function computeReschedule(perDay){
   if(!rescheduleData)return null;
   const pd = Math.max(1, perDay|0);
+  const seq = rescheduleData.seq;              // 원래 순서(일차→ci→num)
+  const bucket = seq.filter(p=>p.done);        // 완료 → 버킷
+  const undone = seq.filter(p=>!p.done);       // 미완료 → 1일차부터
 
-  let newDay = 1, undoneInDay = 0, totalInDay = 0;
-  const assign = rescheduleData.seq.map(p => {
-    if(undoneInDay >= pd || (undoneInDay === 0 && totalInDay >= pd)){
-      newDay++; undoneInDay = 0; totalInDay = 0;
-    }
-    totalInDay++;
-    if(!p.done) undoneInDay++;
-    return {...p, oldDay: p.day, newDay};
-  });
-
-  // 새 일차별 그룹 → 완료만 있는 일차 = 잠금(locked)
   const dayGroups = {};
-  assign.forEach(p => { (dayGroups[p.newDay] = dayGroups[p.newDay] || []).push(p); });
-  const lockedDays = new Set(
-    Object.keys(dayGroups)
-      .filter(d => dayGroups[d].every(p => p.done))
-      .map(Number)
-  );
-
-  return {
-    assign,
-    dayGroups,
-    lockedDays,
-    totalDays: assign.length ? Math.max(...assign.map(a => a.newDay)) : 0
-  };
+  let day=1, inDay=0;
+  undone.forEach(p=>{
+    if(inDay>=pd){ day++; inDay=0; }
+    (dayGroups[day]=dayGroups[day]||[]).push(p);
+    inDay++;
+  });
+  return { bucket, dayGroups, totalDays: undone.length?day:0 };
 }
 
 function updateReschedulePreview(){
   const perDay = parseInt(document.getElementById('reschedule-per-day').value) || 1;
   const result = computeReschedule(perDay);
   if(!result){document.getElementById('reschedule-preview').innerHTML = '';return;}
+  const {bucket, dayGroups, totalDays} = result;
 
-  const {dayGroups, lockedDays, totalDays} = result;
-  const days = [];
-  for(let d=1; d<=totalDays; d++) days.push(d);
+  const chip = p => {
+    const txt = `${escapeHtml(p.ch)}-${p.num}`;
+    return p.done ? `<span style="color:var(--cost);text-decoration:line-through;opacity:.6;">${txt}</span>` : txt;
+  };
+  const row = (label, color, probs, count) =>
+    `<div style="background:${color==='cost'?'var(--bg3)':'var(--bg)'};border:1px solid var(--${color});border-radius:4px;padding:6px 10px;display:flex;gap:10px;align-items:flex-start;">`+
+      `<div style="font-size:11px;font-weight:600;color:var(--${color});min-width:78px;">${label}</div>`+
+      `<div style="flex:1;font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.6;">${probs.map(chip).join(', ')}</div>`+
+      `<div style="font-size:10px;color:var(--text3);text-align:right;min-width:44px;">${count}문제</div>`+
+    `</div>`;
 
-  let html = `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 총 ${totalDays}일 (하루 미완료 ${Math.max(1,perDay)}문제)</div>`;
+  let html = `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)</div>`;
   html += '<div style="display:flex;flex-direction:column;gap:4px;">';
-  days.forEach(d => {
-    const probs = (dayGroups[d] || []).slice();
-    const isLocked = lockedDays.has(d);
-    const undoneN = probs.filter(p=>!p.done).length;
-    let bg, border;
-    if(isLocked){bg='var(--bg3)'; border='var(--border2)';}
-    else {bg='var(--bg)'; border='var(--accent)';}
-    html += `<div style="background:${bg};border:1px solid ${border};border-radius:4px;padding:6px 10px;display:flex;gap:10px;align-items:flex-start;">`;
-    html += `<div style="font-size:11px;font-weight:600;color:var(--text);min-width:42px;">${isLocked?'🔒':''} ${d}일</div>`;
-    html += `<div style="flex:1;font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.6;">`;
-    // seq 순서 유지 (day → ci → num). 같은 일차 내에서는 ci→num으로 표시.
-    probs.sort((a,b)=>{if(a.ci!==b.ci)return a.ci-b.ci;return a.num-b.num;});
-    html += probs.map(p => {
-      const txt = `${escapeHtml(p.ch)}-${p.num}`;
-      if(p.done)return `<span style="color:var(--cost);text-decoration:line-through;opacity:.6;" title="완료">${txt}</span>`;
-      return txt;
-    }).join(', ');
-    html += `</div>`;
-    html += `<div style="font-size:10px;color:var(--text3);text-align:right;min-width:56px;">${probs.length}문제${isLocked?'':`<br><span style="color:var(--accent);">미완료 ${undoneN}</span>`}</div>`;
-    html += `</div>`;
-  });
+  if(bucket.length){
+    const bs=[...bucket].sort((a,b)=>a.day-b.day||a.ci-b.ci||a.num-b.num);
+    html += row('✓ 완료된 문제','cost',bs,bucket.length);
+  }
+  for(let d=1; d<=totalDays; d++){
+    const probs=(dayGroups[d]||[]).slice().sort((a,b)=>a.ci-b.ci||a.num-b.num);
+    html += row(d+'일','accent',probs,probs.length);
+  }
   html += '</div>';
-  // 범례
-  html += '<div style="margin-top:8px;font-size:10px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap;">';
-  html += '<span>🔒 완료된 일차</span>';
-  html += '<span style="color:var(--cost);text-decoration:line-through;">완료 문제 (순서 그대로)</span>';
-  html += '</div>';
+  html += '<div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.5;">전체 또는 이 과목을 미완료로 초기화하면, 완료 묶음이 원래 순서대로 되돌아옵니다.</div>';
   document.getElementById('reschedule-preview').innerHTML=html;
 }
 
@@ -1976,35 +2023,42 @@ async function applyReschedule(){
   const result = computeReschedule(perDay);
   if(!result){showToast('계산 실패');return;}
 
-  const undoneN = result.assign.filter(p=>!p.done).length;
-  if(!undoneN){showToast('재배치할 미완료 문제가 없어요');return;}
-
-  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}: 미완료 ${undoneN}문제를 하루 ${Math.max(1,perDay)}문제씩 다시 배치합니다.\n• 문제 순서는 그대로 유지 (완료 문제도 제자리)\n• 총 ${result.totalDays}일 계획`))return;
-
-  // DATA[subjId]의 모든 문제 일차 업데이트 (순서 유지 재배치)
   const subjId = rescheduleData.subjId;
   const data = DATA[subjId];
   if(!data){showToast('데이터를 찾을 수 없어요');return;}
 
-  // 키: "ci|colKey|num" → newDay (완료·미완료 모두)
-  const map = {};
-  result.assign.forEach(p => {
-    map[`${p.ci}|${p.colKey}|${p.num}`] = p.newDay;
-  });
+  const bucketN = result.bucket.length;
+  const undoneN = rescheduleData.undoneCount;
+  if(!bucketN && !undoneN){showToast('조정할 문제가 없어요');return;}
 
-  data.forEach((ch, ci) => {
-    Object.keys(ch).forEach(key => {
-      if(key === 'ch')return;
-      if(!Array.isArray(ch[key]))return;
-      ch[key] = ch[key].map(pair => {
-        const newDay = map[`${ci}|${key}|${pair[0]}`];
-        return newDay !== undefined ? [pair[0], newDay] : pair;
-      });
+  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${result.totalDays}일)\n(완료 체크는 그대로 유지돼요)`))return;
+
+  // 조정 전 원래 배치를 스냅샷(최초 1회) — 초기화 시 원래 순서 복원용
+  if(!PLAN_SNAPSHOT[subjId]){
+    const snap={};
+    data.forEach((ch,ci)=>Object.keys(ch).forEach(col=>{
+      if(col==='ch'||!Array.isArray(ch[col]))return;
+      ch[col].forEach(pair=>{ snap[`${ci}|${col}|${pair[0]}`]=pair[1]; });
+    }));
+    PLAN_SNAPSHOT[subjId]=snap;
+  }
+
+  // 키 → 새 일차 (완료=0 버킷, 미완료=1..N)
+  const map={};
+  result.bucket.forEach(p=>{ map[`${p.ci}|${p.colKey}|${p.num}`]=0; });
+  Object.entries(result.dayGroups).forEach(([d,arr])=>arr.forEach(p=>{ map[`${p.ci}|${p.colKey}|${p.num}`]=+d; }));
+
+  data.forEach((ch,ci)=>Object.keys(ch).forEach(col=>{
+    if(col==='ch'||!Array.isArray(ch[col]))return;
+    ch[col]=ch[col].map(pair=>{
+      const nd=map[`${ci}|${col}|${pair[0]}`];
+      return nd!==undefined ? [pair[0],nd] : pair;
     });
-  });
+  }));
 
   syncLegacy();
   await saveAllSubjData();
+  await savePlanSnapshot();
   buildMaps();
   buildDG();
   if(curView==='chap')renderChaps();
@@ -2013,7 +2067,7 @@ async function applyReschedule(){
   const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
 
   closeRescheduleModal();
-  showToast(`✅ 미완료 ${undoneN}문제 재배치 완료 (총 ${result.totalDays}일)`);
+  showToast(`✅ 완료 ${bucketN}문제 모으기 · 남은 ${undoneN}문제 재배치 (총 ${result.totalDays}일)`);
 }
 
 // ══════════════════════════════════════════
@@ -2310,6 +2364,7 @@ async function init(){
   applyThemeIcon();
   try{ const t=await idbGet('app_title'); if(typeof t==='string'&&t.trim()) appTitle=t.trim(); }catch(_){}
   await loadUserName();
+  try{ const ps=await idbGet('plan_snapshot'); if(ps&&typeof ps==='object') PLAN_SNAPSHOT=ps; }catch(_){}
   renderAppTitle();
   await loadSubjectsConfig();
   await fetchData();
