@@ -338,10 +338,17 @@ async function login(){
   }
 }
 
+// 동기화 칩은 이제 상태 표시 + "지금 동기화"만 담당합니다(로그아웃은 별도 버튼).
 window.onSyncChipClick = function(){
   if(!uid){ login(); return; }
-  if(confirm('로그아웃할까요?\n이 기기의 데이터는 그대로 남고, 동기화만 멈춥니다.')) signOut(auth);
+  push().then(() => showToast('☁️ 최신 상태로 맞췄어요')).catch(() => {});
 };
+
+// 로그인 상태에서만 로그아웃 버튼을 보입니다.
+function setLogoutBtn(show){
+  const b = document.getElementById('sync-logout');
+  if(b) b.style.display = show ? '' : 'none';
+}
 
 // ── 진입점 ──────────────────────────────────
 window.CloudSync = {
@@ -349,7 +356,11 @@ window.CloudSync = {
     if(!uid || suppress > 0 || !reconciled) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(push, PUSH_DEBOUNCE_MS);
-  }
+  },
+  // 로그아웃(동기화 중단). 로컬 데이터 삭제 여부는 호출 측(doLogout)이 결정합니다.
+  signOut(){ return signOut(auth); },
+  // 지금 즉시 업로드
+  syncNow(){ return uid ? push() : Promise.resolve(); }
 };
 
 getRedirectResult(auth).catch(() => {});
@@ -368,11 +379,13 @@ onAuthStateChanged(auth, async user => {
     currentEmail = '';
     setChip('로그인', '');
     setUserLabel('');
+    setLogoutBtn(false);
     return;
   }
   uid = user.uid;
   currentEmail = user.email || '';
   refreshUserLabel();
+  setLogoutBtn(true);
   try{
     await reconcile();
   }catch(e){

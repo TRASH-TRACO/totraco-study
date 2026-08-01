@@ -229,6 +229,16 @@ async function idbDel(key){
     tx.onerror=e=>rej(e);
   });
 }
+// 이 기기의 앱 데이터 전체 삭제 (로그아웃 시 "데이터 지우기"용)
+async function idbClear(){
+  const db=await openIDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).clear();
+    tx.oncomplete=()=>res();
+    tx.onerror=e=>rej(e);
+  });
+}
 
 // ── 상태 저장/로드 (IndexedDB) ──
 async function saveState(){
@@ -2262,6 +2272,33 @@ function skipUserName(){ closeNameModal(); }
 function closeNameModal(){ const m=document.getElementById('name-modal'); if(m)m.style.display='none'; }
 window.saveUserName=saveUserName;
 window.skipUserName=skipUserName;
+
+// ══════════════════════════════════════════
+// 로그아웃 (동기화 중단 · 이 기기 데이터 유지/삭제 선택)
+// ══════════════════════════════════════════
+function openLogoutModal(){ const m=document.getElementById('logout-modal'); if(m)m.style.display='flex'; }
+function closeLogoutModal(){ const m=document.getElementById('logout-modal'); if(m)m.style.display='none'; }
+window.openLogoutModal=openLogoutModal;
+window.closeLogoutModal=closeLogoutModal;
+
+/**
+ * wipe=false: 로그아웃만 — 이 기기 데이터는 그대로 둔다(로컬 계속 사용 가능).
+ * wipe=true : 로그아웃 + 이 기기 앱 데이터(IndexedDB·localStorage) 전체 삭제 후 새로고침.
+ *             클라우드(계정) 데이터는 건드리지 않으므로 다시 로그인하면 되돌아온다.
+ */
+async function doLogout(wipe){
+  closeLogoutModal();
+  if(wipe && !confirm('이 기기의 진도·과목·설정을 모두 지우고 로그아웃할까요?\n클라우드에 저장된 데이터는 유지됩니다.\n\n이 기기에서는 되돌릴 수 없어요.')) return;
+  // 1) 동기화 중단(로그아웃). 이후 pull/push가 로컬을 덮어쓰지 않게 먼저 끊는다.
+  try{ await window.CloudSync?.signOut?.(); }catch(_){}
+  if(!wipe){ showToast('로그아웃됐어요 — 이 기기 데이터는 그대로예요'); return; }
+  // 2) 이 기기 앱 데이터 전체 삭제 후 깨끗한 상태로 새로고침
+  try{ await idbClear(); }catch(_){}
+  try{ localStorage.clear(); }catch(_){}
+  showToast('🗑 이 기기 데이터를 지웠어요');
+  setTimeout(()=>location.reload(), 500);
+}
+window.doLogout=doLogout;
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);}
 

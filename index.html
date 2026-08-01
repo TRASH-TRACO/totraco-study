@@ -41,7 +41,9 @@ if(localStorage.getItem('entryMode'))document.documentElement.classList.add('ent
         <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()"
                 title="라이트/다크 전환" aria-label="라이트/다크 전환"></button>
         <button class="hdr-btn" id="sync-chip" onclick="onSyncChipClick()"
-                title="기기 간 동기화">로그인</button>
+                title="기기 간 동기화 — 로그인 상태에서 누르면 지금 동기화">로그인</button>
+        <button class="hdr-btn" id="sync-logout" onclick="openLogoutModal()"
+                title="로그아웃" style="display:none;">로그아웃</button>
       </div>
     </div>
   </div>
@@ -304,6 +306,36 @@ if(localStorage.getItem('entryMode'))document.documentElement.classList.add('ent
     <div class="modal-footer">
       <button class="rbtn sec" onclick="closeBookModal()">닫기</button>
       <button class="rbtn pri" id="book-load-btn" onclick="loadSelectedBook()" disabled>이 문제집 불러오기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 로그아웃 모달 -->
+<div id="logout-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-hdr">
+      <div class="modal-title">로그아웃</div>
+      <button class="modal-close" onclick="closeLogoutModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px;">
+        로그아웃하면 이 기기의 <b>동기화가 멈춥니다</b>. 클라우드(계정)에 저장된 데이터는 그대로 남아,
+        다음에 다시 로그인하면 불러올 수 있어요.<br><br>
+        이 기기에 저장된 데이터는 어떻게 할까요?
+      </p>
+      <div class="cf-opts">
+        <button class="cf-opt" onclick="doLogout(false)">
+          <div class="cf-opt-t">📱 데이터 남기고 로그아웃 <span style="color:var(--cost);">— 권장</span></div>
+          <div class="cf-opt-d">이 기기의 진도·과목이 그대로 남습니다. 로그인 없이도 계속 보고 기록할 수 있어요.</div>
+        </button>
+        <button class="cf-opt lo-danger" onclick="doLogout(true)">
+          <div class="cf-opt-t" style="color:var(--red);">🗑 데이터 지우고 로그아웃</div>
+          <div class="cf-opt-d">이 기기에서 진도·과목·설정을 모두 지웁니다. 클라우드에 저장된 데이터는 유지되지만, 이 기기에서는 되돌릴 수 없어요.</div>
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="rbtn sec" onclick="closeLogoutModal()">취소</button>
     </div>
   </div>
 </div>
