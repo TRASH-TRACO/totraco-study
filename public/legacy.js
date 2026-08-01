@@ -1553,12 +1553,13 @@ function renderSubjGrid(reset){
   tbl.className = 'ss-table';
   const thead = document.createElement('thead');
   const htr = document.createElement('tr');
-  ['#','과목 ID','과목 이름','색상','문제 유형','삭제'].forEach((label,i)=>{
+  // 과목 ID는 내부 관리 값이라 폼에서 감춘다 (addSubjRow가 자동 생성)
+  ['#','과목 이름','색상','문제 유형','삭제'].forEach((label,i)=>{
     const th = document.createElement('th');
     th.textContent = label;
     if(i===0) th.style.minWidth='36px';
-    if(i===4) th.style.minWidth='200px';
-    if(i===5) th.style.minWidth='44px';
+    if(i===3) th.style.minWidth='200px';
+    if(i===4) th.style.minWidth='44px';
     htr.appendChild(th);
   });
   thead.appendChild(htr);tbl.appendChild(thead);
@@ -1567,13 +1568,7 @@ function renderSubjGrid(reset){
     const tr = document.createElement('tr');
     // #
     const tdN = document.createElement('td');tdN.className='row-num';tdN.textContent=ri+1;tr.appendChild(tdN);
-    // ID
-    const tdId = document.createElement('td');tdId.className='cell-ch';
-    const inpId = document.createElement('input');inpId.value=row.id;inpId.placeholder='영문 ID';
-    inpId.style.fontFamily="'JetBrains Mono',monospace";inpId.style.fontSize='11px';
-    inpId.addEventListener('input',()=>{subjEditRows[ri].id=inpId.value.replace(/[^a-z0-9_]/g,'');inpId.value=subjEditRows[ri].id;});
-    tdId.appendChild(inpId);tr.appendChild(tdId);
-    // 이름
+    // 이름 (ID 칸은 제거 — 기존 id는 subjEditRows에 그대로 보존됨)
     const tdNm = document.createElement('td');tdNm.className='cell-ch';
     const inpNm = document.createElement('input');inpNm.value=row.name;inpNm.placeholder='과목 이름';
     inpNm.addEventListener('input',()=>{subjEditRows[ri].name=inpNm.value;});
@@ -1729,15 +1724,14 @@ async function saveSubjects(){
   // 저장 직전: DOM의 모든 input/select 값을 subjEditRows에 강제 동기화 (이벤트 미발생 케이스 대비)
   document.querySelectorAll('#subj-grid-wrap tbody tr').forEach((tr,ri)=>{
     if(!subjEditRows[ri])return;
-    // 과목 ID
+    // 과목 이름 (ID는 폼에서 제거 — 내부에서 자동 관리, subjEditRows[ri].id 유지)
     const inps=tr.querySelectorAll('input');
-    if(inps[0])subjEditRows[ri].id=inps[0].value;
-    if(inps[1])subjEditRows[ri].name=inps[1].value;
+    if(inps[0])subjEditRows[ri].name=inps[0].value;
     // 색상
     const sels=tr.querySelectorAll('select');
     if(sels[0])subjEditRows[ri].color=sels[0].value;
     // 유형 칩들 — 유형명 input과 색상 select
-    const chips=tr.querySelectorAll('td:nth-child(5) > div > div'); // tdT 안의 chip div
+    const chips=tr.querySelectorAll('td:nth-child(4) > div > div'); // tdT(문제 유형) 안의 chip div
     chips.forEach((chip,ci)=>{
       if(!subjEditRows[ri].cols[ci])return;
       const lblIn=chip.querySelector('input');
