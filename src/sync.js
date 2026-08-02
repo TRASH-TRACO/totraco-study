@@ -8,7 +8,7 @@ import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7X0NgYVXAN6hGv9nIutpxFCQK_PrYiDA",
-  authDomain: "study-3f275.firebaseapp.com",
+  authDomain: "study.totraco.com",
   projectId: "study-3f275",
   storageBucket: "study-3f275.firebasestorage.app",
   messagingSenderId: "365352183497",
