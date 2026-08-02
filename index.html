@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학습 일지</title>
 <script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);
-if(localStorage.getItem('entryMode'))document.documentElement.classList.add('entered');}catch(e){}</script>
+if(localStorage.getItem('entryMode'))document.documentElement.classList.add('entered');
+if(sessionStorage.getItem('pendingLogin'))document.documentElement.classList.add('logging-in');}catch(e){}</script>
 <link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/style.css">
 </head>
@@ -22,6 +23,15 @@ if(localStorage.getItem('entryMode'))document.documentElement.classList.add('ent
     </button>
     <button class="gate-btn" onclick="chooseEntry('local')">로그인 없이 사용하기</button>
     <p class="gate-note">Google 계정으로 시작하면 기기 간에 진도가 동기화됩니다. 로그인 없이 써보고 나중에 로그인해도 됩니다.</p>
+  </div>
+</div>
+
+<!-- 로그인 진행 중 화면 — 로그인하는 동안 실제 앱 대신 이걸 덮어 보인다 -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-overlay-box">
+    <div class="lo-spinner" aria-hidden="true"></div>
+    <div class="lo-title">로그인 중…</div>
+    <p class="lo-desc">Google 계정으로 로그인하고 있어요.<br>잠시만 기다려 주세요.</p>
   </div>
 </div>
 

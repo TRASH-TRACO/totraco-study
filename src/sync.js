@@ -195,6 +195,8 @@ function showConflict(local, remote, localTouchedAt){
     '<b>☁️ 서버</b> (' + escapeHtml(remote.device) + ')<br>' +
     '체크 ' + countChecked(remote.blob) + '개<br>' +
     '<span style="color:var(--text3);">' + fmtTime(remote.at) + '</span>';
+  // 충돌 해결은 사용자 입력이 필요하므로 로그인 진행 오버레이는 걷어 모달이 보이게 한다.
+  document.documentElement.classList.remove('logging-in');
   document.getElementById('conflict-modal').style.display = 'flex';
   setChip('확인 필요', 'busy');
 }
@@ -222,6 +224,8 @@ window.resolveConflict = async function(choice){
     showToast('🤝 합쳤어요 — 체크 ' + countChecked(merged) + '개');
   }
   subscribe();
+  // 로그인 중 충돌을 해결한 경우, 이제 화면을 새로고침한다.
+  if(finishLoginReload()) return;
 };
 
 // ── 최초 조정 ───────────────────────────────
@@ -306,17 +310,39 @@ function subscribe(){
 }
 
 // ── 로그인 / 로그아웃 ───────────────────────
+// 로그인 진행 중 화면 표시/해제. 로그인하는 동안 실제 앱 대신 "로그인 중" 오버레이를 덮는다.
+function beginLoginProgress(){
+  try{ sessionStorage.setItem('pendingLogin','1'); }catch(_){}
+  document.documentElement.classList.add('logging-in');
+}
+function cancelLoginProgress(){
+  try{ sessionStorage.removeItem('pendingLogin'); }catch(_){}
+  document.documentElement.classList.remove('logging-in');
+}
+// 새 로그인이 끝나면 화면을 한 번 새로고침해 깨끗한 상태로 보여준다.
+function finishLoginReload(){
+  let pending=false;
+  try{ pending = sessionStorage.getItem('pendingLogin')==='1'; }catch(_){}
+  if(!pending) return false;
+  try{ sessionStorage.removeItem('pendingLogin'); }catch(_){}
+  location.reload();
+  return true;
+}
+
 async function login(){
   setChip('로그인 중', 'busy');
+  beginLoginProgress();
   const provider = new GoogleAuthProvider();
   try{
     await signInWithPopup(auth, provider);
   }catch(e){
-    // 모바일에서 팝업이 막히는 경우가 많아 리디렉션으로 대체
+    // 모바일에서 팝업이 막히는 경우가 많아 리디렉션으로 대체 (진행 화면 유지)
     if(['auth/popup-blocked','auth/popup-closed-by-user','auth/cancelled-popup-request',
         'auth/operation-not-supported-in-this-environment'].includes(e.code)){
       try{ await signInWithRedirect(auth, provider); return; }catch(_){}
     }
+    // 실패/취소 → 진행 화면 해제하고 앱으로 복귀
+    cancelLoginProgress();
     console.warn('[sync] 로그인 실패:', e.code || e.message);
     setChip('로그인', '');
     // 콘솔 설정 누락은 원인이 화면에 안 드러나면 찾기 어려우므로 해결 방법까지 안내합니다
@@ -380,6 +406,7 @@ onAuthStateChanged(auth, async user => {
     setChip('로그인', '');
     setUserLabel('');
     setLogoutBtn(false);
+    cancelLoginProgress();
     return;
   }
   uid = user.uid;
@@ -392,8 +419,12 @@ onAuthStateChanged(auth, async user => {
     console.warn('[sync] 조정 실패:', e.message);
     setChip('동기화 오류', 'err');
   }
+  refreshUserLabel();
+  // 충돌 모달이 떠 있으면 사용자가 해결한 뒤(resolveConflict)에 처리한다.
+  if(pendingConflict) return;
+  // 새 로그인이면 여기서 화면을 새로고침한다. (새로고침 후 페이지에서 이름 입력을 받음)
+  if(finishLoginReload()) return;
   // 조정으로 원격 이름을 받았을 수 있으니 라벨을 한 번 더 맞추고,
   // 그래도 이름이 없으면 구글 표시이름을 기본값으로 입력을 받습니다.
-  refreshUserLabel();
   if(typeof window.ensureUserName === 'function') window.ensureUserName(user.displayName || '');
 });

@@ -346,6 +346,17 @@ label.fbtn{cursor:pointer;}
 .noprob{font-size:13px;color:var(--text3);padding:24px 0;text-align:center;}
 @media(max-width:600px){.prog-cards{grid-template-columns:1fr 1fr;}.app{padding:16px 12px 60px;}.hdr-title{font-size:22px;}}
 
+/* ── 로그인 진행 중 오버레이 ── */
+.login-overlay{display:none;position:fixed;inset:0;z-index:2000;flex-direction:column;
+  align-items:center;justify-content:center;background:var(--bg2);padding:24px;text-align:center;}
+:root.logging-in .login-overlay{display:flex;}
+.login-overlay-box{max-width:320px;}
+.lo-title{font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--text);}
+.lo-desc{font-size:13px;color:var(--text2);margin-top:8px;line-height:1.6;}
+.lo-spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--border2);
+  border-top-color:var(--accent);animation:lo-spin .8s linear infinite;margin:0 auto 18px;}
+@keyframes lo-spin{to{transform:rotate(360deg);}}
+
 /* ── 진입 게이트 ── */
 .gate{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
   background:var(--bg2);padding:24px;}
