@@ -4,6 +4,8 @@
   --border:var(--slate-200);--border2:var(--slate-300);
   --text:var(--slate-900);--text2:var(--slate-500);--text3:var(--slate-400);
   --accent:var(--emerald-600);--accent-bg:var(--emerald-50);
+  --accent-solid:var(--emerald-600);
+  --footer-bg:rgba(255,255,255,.92);
   /* 과목 구분색 (기능적) — 라이트 */
   --fin:#d44c47;--fin-bg:#fdf3f2;--fin-border:#f5c8c6;
   --cost:#448361;--cost-bg:#f1f8f4;--cost-border:#b8d9c4;
@@ -25,6 +27,8 @@
     --border:var(--slate-800);--border2:var(--slate-700);
     --text:var(--slate-100);--text2:var(--slate-400);--text3:var(--slate-500);
     --accent:var(--emerald-400);--accent-bg:rgba(16,185,129,.15);
+    --accent-solid:var(--emerald-600);
+    --footer-bg:rgba(15,23,42,.92);
     --fin-bg:rgba(212,76,71,.14);--fin-border:rgba(212,76,71,.35);
     --cost-bg:rgba(68,131,97,.14);--cost-border:rgba(68,131,97,.35);
     --tax-bg:rgba(144,101,176,.16);--tax-border:rgba(144,101,176,.38);
@@ -40,6 +44,8 @@
   --border:var(--slate-800);--border2:var(--slate-700);
   --text:var(--slate-100);--text2:var(--slate-400);--text3:var(--slate-500);
   --accent:var(--emerald-400);--accent-bg:rgba(16,185,129,.15);
+  --accent-solid:var(--emerald-600);
+  --footer-bg:rgba(15,23,42,.92);
   --fin-bg:rgba(212,76,71,.14);--fin-border:rgba(212,76,71,.35);
   --cost-bg:rgba(68,131,97,.14);--cost-border:rgba(68,131,97,.35);
   --tax-bg:rgba(144,101,176,.16);--tax-border:rgba(144,101,176,.38);
@@ -51,6 +57,10 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg2);min-height:100vh;font-family:var(--font-sans);color:var(--text);font-size:14px;line-height:1.5;}
+/* 폼 요소 기본 — 네이티브 검정 글씨가 다크모드 어두운 배경에 묻히지 않도록 테마색을 강제한다 */
+select,input,textarea{color:var(--text);}
+select{background:var(--bg);color:var(--text);}
+select option{background:var(--bg);color:var(--text);}
 
 /* ── 앱 레이아웃 ── */
 .app{max-width:960px;margin:0 auto;padding:24px 16px 60px;}
@@ -117,7 +127,7 @@ body{background:var(--bg2);min-height:100vh;font-family:var(--font-sans);color:v
 .day-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;}
 .db{width:48px;height:40px;border-radius:var(--r2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;font-weight:500;cursor:pointer;background:var(--bg);color:var(--text2);transition:all .12s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;user-select:none;}
 .db:hover{border-color:var(--border2);background:var(--bg3);color:var(--text);}
-.db.sel{background:var(--accent);border-color:var(--accent);color:#fff;}
+.db.sel{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
 .db.full{background:var(--cost-bg);border-color:var(--cost-border);color:var(--cost);}
 .db.part{border-color:var(--accent);color:var(--accent);}
 .db.tax-mode{width:72px;height:54px;font-size:10px;gap:1px;padding:4px 2px;}
@@ -138,9 +148,9 @@ body{background:var(--bg2);min-height:100vh;font-family:var(--font-sans);color:v
 .dpanel-tip{font-size:11px;color:var(--text3);padding:6px 16px;border-bottom:1px solid var(--border);background:var(--bg2);}
 .toggle-all-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:11px;font-weight:500;border-radius:var(--r2);cursor:pointer;transition:all .15s;border:1px solid;user-select:none;}
 .toggle-all-btn.nd{color:var(--cost);border-color:var(--cost-border);background:var(--cost-bg);}
-.toggle-all-btn.nd:hover{background:#d8f0e4;}
-.toggle-all-btn.ad{color:var(--red);border-color:#f5c5c5;background:#fdf3f2;}
-.toggle-all-btn.ad:hover{background:#fbe8e8;}
+.toggle-all-btn.nd:hover{background:var(--cost-border);}
+.toggle-all-btn.ad{color:var(--red);border-color:var(--fin-border);background:var(--fin-bg);}
+.toggle-all-btn.ad:hover{background:var(--fin-border);}
 
 /* ── 과목 구분 ── */
 .subj-divider{display:flex;align-items:center;gap:8px;padding:10px 16px 6px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;}
@@ -200,12 +210,12 @@ body{background:var(--bg2);min-height:100vh;font-family:var(--font-sans);color:v
 .subj-hdr::after{content:'';flex:1;height:1px;background:var(--border);}
 
 /* ── 푸터 ── */
-.footer{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px solid var(--border);padding:8px 20px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--text3);z-index:100;}
+.footer{position:fixed;bottom:0;left:0;right:0;background:var(--footer-bg);backdrop-filter:blur(8px);border-top:1px solid var(--border);padding:8px 20px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--text3);z-index:100;}
 .fbtns{display:flex;gap:6px;}
 .fbtn{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);color:var(--text2);font-size:11px;font-weight:500;padding:4px 10px;border-radius:var(--r2);cursor:pointer;transition:all .12s;font-family:inherit;}
 .fbtn:hover{background:var(--bg3);border-color:var(--border2);color:var(--text);}
 .fbtn.gr{color:var(--cost);border-color:var(--cost-border);background:var(--cost-bg);}
-.fbtn.gr:hover{background:#d8f0e4;}
+.fbtn.gr:hover{background:var(--cost-border);}
 label.fbtn{cursor:pointer;}
 
 /* ── 데이터 편집 ── */
@@ -229,7 +239,7 @@ label.fbtn{cursor:pointer;}
 .ed-hint{font-size:11px;color:var(--text3);margin-left:auto;}
 .rbtn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:var(--r2);font-size:12px;font-weight:500;cursor:pointer;transition:all .12s;border:1px solid;font-family:inherit;}
 /* 다크모드에서 --text는 밝은 색이라 배경으로 쓰면 흰 글씨가 묻힌다 → 액센트 사용 */
-.rbtn.pri{background:var(--accent);border-color:var(--accent);color:#fff;}
+.rbtn.pri{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
 .rbtn.pri:hover{filter:brightness(1.08);}
 .rbtn.sec{background:var(--bg);border-color:var(--border);color:var(--text2);}
 .rbtn.sec:hover{background:var(--bg3);color:var(--text);}
