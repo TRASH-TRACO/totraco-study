@@ -179,7 +179,24 @@ function mergeBlobs(local, remote, remoteIsNewer){
   for(const k in (local.progress  || {})) if(local.progress[k])  prog[k] = true;
   for(const k in (remote.progress || {})) if(remote.progress[k]) prog[k] = true;
   base.progress = prog;
+  // 풀이 날짜 기록도 합집합: 같은 문제(pid)면 양쪽 날짜를 모두 살린다.
+  base.log = mergeLog(local.log || {}, remote.log || {});
   return base;
+}
+// LOG 병합 — pid별로 날짜 배열을 합집합. 메타(subj/ci/type/num/ch)는 더 최근 것 우선.
+function mergeLog(a, b){
+  const out = {};
+  const pids = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for(const pid of pids){
+    const ea = a[pid], eb = b[pid];
+    if(ea && eb){
+      const dates = Array.from(new Set([...(ea.dates||[]), ...(eb.dates||[])])).sort();
+      out[pid] = { ...ea, ...eb, dates };
+    }else{
+      out[pid] = ea || eb;
+    }
+  }
+  return out;
 }
 
 // ── 충돌 모달 ───────────────────────────────

@@ -192,7 +192,7 @@ function restorePlanOrder(subjId){
       if(col==='ch'||!Array.isArray(ch[col]))return;
       ch[col]=ch[col].map(pair=>{
         const od = snap[`${ci}|${col}|${pair[0]}`];
-        return od!==undefined ? [pair[0], od] : pair;
+        return od!==undefined ? [pair[0], od, pair[2]] : pair;
       });
     });
   });
@@ -460,6 +460,97 @@ let curEdSubj=null,curEdMode='grid',edRows=[];
 function gk(s,ci,t,n){return s+'|'+ci+'|'+t+'|'+n;}
 function dn(s,ci,t,n){return!!S[gk(s,ci,t,n)];}
 
+// ══════════════════════════════════════════
+// 문제 고유 ID(pid) + 풀이 날짜 기록(LOG)
+// ══════════════════════════════════════════
+// 문제 튜플은 [번호, 일차, pid] 형태. pid는 문제를 추가·수정·재배정해도 바뀌지 않는
+// 고유값이라, "언제 이 문제를 풀었는지" 기록을 문제 편집과 무관하게 유지할 수 있다.
+// LOG[pid] = { subj, ci, type, num, ch, dates:['YYYY-MM-DD', ...] }
+//   dates: 완료 체크한 날짜들(회독을 거치며 여러 날이 쌓일 수 있다). 캘린더는 이걸 날짜별로 뒤집어 보여준다.
+let LOG={};
+let _pidSeq=0;
+function newPid(){
+  _pidSeq=(_pidSeq+1)&0xffff;
+  return 'p'+Date.now().toString(36)+_pidSeq.toString(36)+Math.random().toString(36).slice(2,5);
+}
+// 로컬 날짜 기준 YYYY-MM-DD (UTC로 밀리면 사용자 달력과 하루 어긋날 수 있어 로컬로 계산)
+function todayStr(d){
+  const t=d||new Date();
+  const y=t.getFullYear(),m=String(t.getMonth()+1).padStart(2,'0'),day=String(t.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+/** 모든 문제 튜플에 pid가 있도록 채운다. 하나라도 새로 채웠으면 true. */
+function ensurePids(){
+  let changed=false;
+  SUBJECTS.forEach(s=>{
+    const data=DATA[s.id]||[];
+    data.forEach(ch=>{
+      s.cols.forEach(col=>{
+        const arr=ch[col.key];
+        if(!Array.isArray(arr))return;
+        arr.forEach(p=>{
+          if(Array.isArray(p)&&(p.length<3||!p[2])){p[2]=newPid();changed=true;}
+        });
+      });
+    });
+  });
+  return changed;
+}
+/** subj·ci·type·num 으로 살아있는 문제 튜플을 찾는다. 없으면 null. */
+function findProb(subj,ci,type,num){
+  const data=DATA[subj];if(!data)return null;
+  const ch=data[ci];if(!ch)return null;
+  const s=SUBJECTS.find(x=>x.id===subj);if(!s)return null;
+  const col=s.cols.find(c=>colKeyToType(subj,c.key)===type);if(!col)return null;
+  const arr=ch[col.key]||[];
+  return arr.find(p=>(Array.isArray(p)?p[0]:p)===num)||null;
+}
+function pidOf(subj,ci,type,num){const p=findProb(subj,ci,type,num);return p&&Array.isArray(p)?p[2]:null;}
+
+/** 완료 토글 시 풀이 날짜를 기록/해제한다. done=true면 오늘 날짜 추가, false면 오늘 기록 제거. */
+function recordSolve(subj,ci,type,num,done){
+  const p=findProb(subj,ci,type,num);
+  if(!p||!Array.isArray(p))return;
+  let pid=p[2];
+  if(!pid){pid=p[2]=newPid();}
+  const today=todayStr();
+  if(done){
+    let e=LOG[pid];
+    if(!e){e={subj,ci,type,num,ch:'',dates:[]};LOG[pid]=e;}
+    // 메타는 최신 위치·이름으로 갱신(장 이름이 바뀌었을 수 있다)
+    e.subj=subj;e.ci=ci;e.type=type;e.num=num;
+    e.ch=(DATA[subj]&&DATA[subj][ci]&&DATA[subj][ci].ch)||e.ch||'';
+    if(!e.dates.includes(today))e.dates.push(today);
+  }else{
+    const e=LOG[pid];
+    if(e){
+      e.dates=e.dates.filter(d=>d!==today);
+      if(!e.dates.length)delete LOG[pid];
+    }
+  }
+}
+async function saveLog(){
+  try{ await idbSet('study_log',LOG); }
+  catch(_){ try{ localStorage.setItem('study_log',JSON.stringify(LOG)); }catch(__){} }
+  window.CloudSync?.schedulePush();
+}
+async function loadLog(){
+  try{ const v=await idbGet('study_log'); if(v&&typeof v==='object')LOG=v; }
+  catch(_){ try{ const s=localStorage.getItem('study_log'); if(s)LOG=JSON.parse(s); }catch(__){} }
+}
+/** LOG를 날짜별로 뒤집어 { 'YYYY-MM-DD': [ {pid,subj,ci,type,num,ch} ] } 로 만든다. */
+function buildDateIndex(){
+  const byDate={};
+  Object.keys(LOG).forEach(pid=>{
+    const e=LOG[pid];if(!e||!Array.isArray(e.dates))return;
+    e.dates.forEach(d=>{
+      if(!byDate[d])byDate[d]=[];
+      byDate[d].push({pid,subj:e.subj,ci:e.ci,type:e.type,num:e.num,ch:e.ch});
+    });
+  });
+  return byDate;
+}
+
 // XSS 방지 헬퍼
 function escapeHtml(str){
   const d=document.createElement('div');d.textContent=str;return d.innerHTML;
@@ -483,7 +574,7 @@ function makeChip(subj,ci,type,num,day,cls){
   cst.textContent='✓';
   el.appendChild(cst);
 
-  el.addEventListener('click',()=>{S[gk(subj,ci,type,num)]=!S[gk(subj,ci,type,num)];saveState();refreshChip(el,subj,ci,type,num);refreshDPMeta(curDay);updateProgress();updateDBtns();});
+  el.addEventListener('click',()=>{const done=S[gk(subj,ci,type,num)]=!S[gk(subj,ci,type,num)];recordSolve(subj,ci,type,num,done);saveState();saveLog();refreshChip(el,subj,ci,type,num);refreshDPMeta(curDay);updateProgress();updateDBtns();});
   return el;
 }
 function refreshChip(el,subj,ci,type,num){
@@ -497,10 +588,11 @@ function refreshChip(el,subj,ci,type,num){
 // ══════════════════════════════════════════
 function goNav(n){
   curNav=n;
-  ['study','setup'].forEach(id=>{
+  ['study','cal','setup'].forEach(id=>{
     document.getElementById('nt-'+id).classList.toggle('on',id===n);
     document.getElementById('nav-'+id).style.display=id===n?'block':'none';
   });
+  if(n==='cal') renderCalendar();
   if(n==='setup'){
     ensureCurSubjects();
     renderSubjGrid(true);   // 과목 목록
@@ -673,8 +765,8 @@ function refreshDPMeta(day){
 }
 function toggleAll(day){
   const ps=(getDM()[day])||[];const allD=ps.length>0&&ps.every(p=>dn(p.subj,p.ci,p.type,p.num));
-  ps.forEach(p=>{S[gk(p.subj,p.ci,p.type,p.num)]=!allD;const chip=document.querySelector(`#dpanel .chip[data-subj="${p.subj}"][data-ci="${p.ci}"][data-type="${p.type}"][data-num="${p.num}"]`);if(chip)refreshChip(chip,p.subj,p.ci,p.type,p.num);});
-  saveState();refreshDPMeta(day);updateProgress();updateDBtns();
+  ps.forEach(p=>{S[gk(p.subj,p.ci,p.type,p.num)]=!allD;recordSolve(p.subj,p.ci,p.type,p.num,!allD);const chip=document.querySelector(`#dpanel .chip[data-subj="${p.subj}"][data-ci="${p.ci}"][data-type="${p.type}"][data-num="${p.num}"]`);if(chip)refreshChip(chip,p.subj,p.ci,p.type,p.num);});
+  saveState();saveLog();refreshDPMeta(day);updateProgress();updateDBtns();
 }
 
 // ══════════════════════════════════════════
@@ -850,9 +942,13 @@ function edRowsToData(){
     const obj={};
     cols.forEach(c=>{
       if(c.type==='ch'){obj[c.key]=r[c.key];return;}
-      // 화면에는 번호만 있으므로, 같은 장·같은 번호의 기존 일차를 되살린다
-      const prev=new Map(((old[ri]||{})[c.key]||[]).map(p=>[p[0],p[1]]));
-      obj[c.key]=textToProbs(r[c.key]).map(([num,day])=>[num, day||prev.get(num)||0]);
+      // 화면에는 번호만 있으므로, 같은 장·같은 번호의 기존 일차·pid를 되살린다.
+      // 새로 추가된 번호는 새 pid를 발급 → 기존 문제의 풀이 기록은 편집해도 유지된다.
+      const prev=new Map(((old[ri]||{})[c.key]||[]).map(p=>[p[0],p]));
+      obj[c.key]=textToProbs(r[c.key]).map(([num,day])=>{
+        const pv=prev.get(num);
+        return [num, day||(pv&&pv[1])||0, (pv&&pv[2])||newPid()];
+      });
     });
     return obj;
   });
@@ -1158,7 +1254,7 @@ function copyEdDone(){
 // ══════════════════════════════════════════
 // 현재 상태 전체를 덩어리 하나로 (버전 스냅샷 · 클라우드 업로드 공용)
 function buildBlob(){
-  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT};
+  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT,log:LOG};
   SUBJECTS.forEach(s=>{data[s.dataKey]=DATA[s.id]||[];});
   return data;
 }
@@ -1272,6 +1368,7 @@ function closeVersionModal(){
 function validateBlob(data){
   if(!data.version||typeof data.version!=='number')throw new Error('올바른 백업 파일이 아니에요');
   if(data.progress&&typeof data.progress!=='object')throw new Error('진도 데이터 형식 오류');
+  if(data.log&&typeof data.log!=='object')throw new Error('풀이 기록 형식 오류');
   if(data.subjects&&!Array.isArray(data.subjects))throw new Error('과목 설정 형식 오류');
   // legacy 키 검증 (호환성)
   if(data.finData&&!Array.isArray(data.finData))throw new Error('재무회계 데이터 형식 오류');
@@ -1327,6 +1424,9 @@ async function applyBlob(data){
   // 2) 진도 복원
   S=data.progress||{};
 
+  // 2-1) 풀이 날짜 기록 복원
+  if(data.log&&typeof data.log==='object')LOG=data.log;
+
   // 3) 데이터 복원 — SUBJECTS 기준으로 dataKey 매핑
   SUBJECTS.forEach(s=>{
     if(Array.isArray(data[s.dataKey])){
@@ -1335,9 +1435,11 @@ async function applyBlob(data){
     }
   });
   syncLegacy();
+  ensurePids();  // 예전 백업엔 pid가 없을 수 있으니 보강
 
   // 4) 저장
   await saveState();
+  await saveLog();
   await saveAllSubjData();
 
   // 5) UI 전체 재구성
@@ -1349,6 +1451,7 @@ async function applyBlob(data){
   if(curView==='chap')renderChaps();
   if(curNav==='data')renderEd();
   if(curNav==='subj')renderSubjGrid(true);
+  if(curNav==='cal')renderCalendar();
   document.getElementById('hdr-sub-names').textContent=SUBJECTS.map(s=>s.name).join(' · ');
 }
 
@@ -1500,7 +1603,8 @@ async function runAssign(mode){
   data.forEach((ch,ci)=>subj.cols.forEach(c=>{
     ch[c.key]=(ch[c.key]||[]).map(p=>{
       const num=Array.isArray(p)?p[0]:p;
-      return [num, dayOf.get(ci+'|'+c.key+'|'+num)||0];
+      const pid=(Array.isArray(p)&&p[2])||newPid();
+      return [num, dayOf.get(ci+'|'+c.key+'|'+num)||0, pid];
     });
   }));
 
@@ -2052,7 +2156,7 @@ async function applyReschedule(){
     if(col==='ch'||!Array.isArray(ch[col]))return;
     ch[col]=ch[col].map(pair=>{
       const nd=map[`${ci}|${col}|${pair[0]}`];
-      return nd!==undefined ? [pair[0],nd] : pair;
+      return nd!==undefined ? [pair[0],nd,pair[2]] : pair;
     });
   }));
 
@@ -2259,7 +2363,7 @@ async function loadSelectedBook(){
   SUBJECTS.push(subj);
   DATA[id]=b.chapters.map(ch=>{
     const row={ch:ch.ch};
-    b.cols.forEach(c=>{ row[c.key]=bookNums(ch[c.key]).map(n=>[n,0]); });
+    b.cols.forEach(c=>{ row[c.key]=bookNums(ch[c.key]).map(n=>[n,0,newPid()]); });
     return row;
   });
   DEFAULTS[id]=DEFAULTS[id]||[];
@@ -2360,6 +2464,112 @@ async function fetchData(){
   SUBJECTS.forEach(s=>{ if(!DEFAULTS[s.id]) DEFAULTS[s.id]=[]; });
   syncLegacy();
 }
+// ══════════════════════════════════════════
+// 학습 캘린더 — 몇월 며칠에 어떤 문제를 풀었는지
+// ══════════════════════════════════════════
+let calYear=null, calMonth=null, calSelDate=null;
+const CAL_WD=['일','월','화','수','목','금','토'];
+
+function calInit(){
+  if(calYear===null){const t=new Date();calYear=t.getFullYear();calMonth=t.getMonth();}
+  if(calSelDate===null)calSelDate=todayStr();
+}
+function calShift(delta){
+  calInit();
+  calMonth+=delta;
+  if(calMonth<0){calMonth=11;calYear--;}
+  else if(calMonth>11){calMonth=0;calYear++;}
+  renderCalendar();
+}
+function calToday(){
+  const t=new Date();
+  calYear=t.getFullYear();calMonth=t.getMonth();calSelDate=todayStr(t);
+  renderCalendar();
+}
+function subjColorVar(id){return SUBJECTS.find(s=>s.id===id)?('var(--'+id+')'):(SUBJ_COLOR[id]||'var(--text3)');}
+function subjDispName(id){const s=SUBJECTS.find(x=>x.id===id);return s?s.name:(SUBJ_NAME[id]||id);}
+function typeDispLabel(subj,type){
+  const s=SUBJECTS.find(x=>x.id===subj);
+  if(s){const c=s.cols.find(c=>colKeyToType(subj,c.key)===type);if(c)return c.label||c.key;}
+  return TL[type]||'';
+}
+
+function renderCalendar(){
+  calInit();
+  const byDate=buildDateIndex();
+  const hasAny=Object.keys(byDate).length>0;
+  const emptyEl=document.getElementById('cal-empty'),bodyEl=document.getElementById('cal-body');
+  if(emptyEl)emptyEl.style.display=hasAny?'none':'block';
+  if(bodyEl)bodyEl.style.display=hasAny?'block':'none';
+  if(!hasAny)return;
+
+  document.getElementById('cal-title').textContent=calYear+'년 '+(calMonth+1)+'월';
+
+  const grid=document.getElementById('cal-grid');grid.innerHTML='';
+  CAL_WD.forEach((w,i)=>{const c=document.createElement('div');c.className='cal-wd'+(i===0?' sun':i===6?' sat':'');c.textContent=w;grid.appendChild(c);});
+
+  const startDow=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const today=todayStr();
+  for(let i=0;i<startDow;i++){const c=document.createElement('div');c.className='cal-cell empty';grid.appendChild(c);}
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=todayStr(new Date(calYear,calMonth,d));
+    const items=byDate[ds]||[];
+    const dow=(startDow+d-1)%7;
+    const cell=document.createElement('div');cell.className='cal-cell';
+    if(ds===today)cell.classList.add('today');
+    if(ds===calSelDate)cell.classList.add('sel');
+    if(items.length)cell.classList.add('has');
+    const dnum=document.createElement('div');dnum.className='cal-dnum'+(dow===0?' sun':dow===6?' sat':'');dnum.textContent=d;cell.appendChild(dnum);
+    if(items.length){
+      const bySubj={};items.forEach(it=>bySubj[it.subj]=(bySubj[it.subj]||0)+1);
+      const dots=document.createElement('div');dots.className='cal-dots';
+      Object.keys(bySubj).slice(0,4).forEach(sid=>{const dot=document.createElement('span');dot.className='cal-dot';dot.style.background=subjColorVar(sid);dots.appendChild(dot);});
+      cell.appendChild(dots);
+      const cnt=document.createElement('div');cnt.className='cal-cnt';cnt.textContent=items.length;cell.appendChild(cnt);
+    }
+    cell.onclick=()=>selCalDay(ds);
+    grid.appendChild(cell);
+  }
+
+  const prefix=calYear+'-'+String(calMonth+1).padStart(2,'0');
+  if(calSelDate&&calSelDate.startsWith(prefix))renderCalPanel(calSelDate,byDate);
+  else document.getElementById('cal-panel').innerHTML='';
+}
+
+function selCalDay(ds){calSelDate=ds;renderCalendar();}
+
+function renderCalPanel(ds,byDate){
+  byDate=byDate||buildDateIndex();
+  const items=byDate[ds]||[];
+  const panel=document.getElementById('cal-panel');
+  const dObj=new Date(ds+'T00:00:00');
+  const dateLabel=`${dObj.getMonth()+1}월 ${dObj.getDate()}일 (${CAL_WD[dObj.getDay()]})`;
+  if(!items.length){panel.innerHTML=`<div class="cal-panel-hdr">${dateLabel}</div><div class="noprob">이 날 푼 문제가 없어요</div>`;return;}
+
+  let html=`<div class="cal-panel-hdr">${dateLabel}<span class="cal-panel-cnt">${items.length}문제</span></div>`;
+  const bySubj={},subjOrder=[];
+  items.forEach(it=>{if(!bySubj[it.subj]){bySubj[it.subj]=[];subjOrder.push(it.subj);}bySubj[it.subj].push(it);});
+  subjOrder.forEach(sid=>{
+    const list=bySubj[sid];
+    html+=`<div class="cal-subj"><span class="cal-subj-dot" style="background:${subjColorVar(sid)}"></span><span class="cal-subj-nm">${escapeHtml(subjDispName(sid))}</span><span class="cal-subj-cnt">${list.length}</span></div>`;
+    const byCh={},chOrder=[];
+    list.forEach(it=>{const key=it.ch||'';if(!byCh[key]){byCh[key]=[];chOrder.push(key);}byCh[key].push(it);});
+    chOrder.forEach(ch=>{
+      const chItems=byCh[ch].slice().sort((a,b)=>a.num-b.num);
+      const dispCh=sid==='tax'?taxDisplayName(ch):ch;
+      html+=`<div class="cal-ch"><div class="cal-ch-nm">${escapeHtml(dispCh||'(장 없음)')}</div><div class="cal-ch-chips">`;
+      chItems.forEach(it=>{
+        const tl=typeDispLabel(it.subj,it.type);
+        const pre=(it.type!=='single'&&tl)?escapeHtml(tl)+' ':'';
+        html+=`<span class="cal-chip" style="border-color:${subjColorVar(it.subj)}">${pre}${it.num}번</span>`;
+      });
+      html+=`</div></div>`;
+    });
+  });
+  panel.innerHTML=html;
+}
+
 async function init(){
   applyThemeIcon();
   try{ const t=await idbGet('app_title'); if(typeof t==='string'&&t.trim()) appTitle=t.trim(); }catch(_){}
@@ -2370,6 +2580,8 @@ async function init(){
   await fetchData();
   await loadData();
   await loadState();
+  await loadLog();
+  if(ensurePids()) await saveAllSubjData();  // 기존 문제에 고유 ID 채우기(최초 1회 마이그레이션)
   buildMaps();
   const now=new Date();document.getElementById('today-date').textContent=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}`;
   buildDG();updateProgress();

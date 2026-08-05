@@ -61,6 +61,7 @@ if(sessionStorage.getItem('pendingLogin'))document.documentElement.classList.add
   <!-- 네비 -->
   <div class="nav">
     <div class="nt on" id="nt-study" onclick="goNav('study')">학습</div>
+    <div class="nt" id="nt-cal" onclick="goNav('cal')">학습 캘린더</div>
     <div class="nt" id="nt-setup" onclick="goNav('setup')">과목 설정</div>
   </div>
 
@@ -102,6 +103,24 @@ if(sessionStorage.getItem('pendingLogin'))document.documentElement.classList.add
       <div id="chap-con"></div>
     </div>
     </div><!-- /study-body -->
+  </div>
+
+  <!-- 학습 캘린더 탭 — 몇월 며칠에 어떤 문제를 풀었는지 -->
+  <div id="nav-cal" style="display:none">
+    <div class="cal-empty" id="cal-empty" style="display:none">
+      <div class="empty-title">아직 기록된 풀이가 없어요</div>
+      <p class="empty-desc">학습 탭에서 문제를 완료로 체크하면, 그날 푼 문제가 여기 캘린더에 쌓입니다.</p>
+    </div>
+    <div id="cal-body">
+      <div class="cal-hdr">
+        <button class="cal-nav" id="cal-prev" onclick="calShift(-1)" aria-label="이전 달">‹</button>
+        <div class="cal-title" id="cal-title"></div>
+        <button class="cal-nav" id="cal-next" onclick="calShift(1)" aria-label="다음 달">›</button>
+        <button class="cal-today-btn" onclick="calToday()">오늘</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-panel" id="cal-panel"></div>
+    </div>
   </div>
 
   <!-- 과목 설정 탭 — 과목 등록 → 문제 등록 → 회독 시작 순서 -->
