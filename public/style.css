@@ -530,6 +530,15 @@ label.fbtn{cursor:pointer;}
 .cal-chip{font-size:11px;font-weight:500;color:var(--text2);background:var(--bg);
   border:1px solid var(--border);border-left-width:3px;border-radius:var(--r2);padding:2px 8px;
   font-family:var(--font-mono);white-space:nowrap;}
+/* 하루 한 줄 기록 */
+.cal-note-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.cal-note-input{flex:1;min-width:0;font-size:13px;padding:8px 11px;border:1px solid var(--border);
+  border-radius:var(--r2);background:var(--bg);color:var(--text);outline:none;font-family:inherit;transition:border-color .12s;}
+.cal-note-input:focus{border-color:var(--accent);}
+.cal-note-input::placeholder{color:var(--text3);}
+.cal-note-count{font-size:11px;color:var(--text3);font-family:var(--font-mono);flex:none;min-width:38px;text-align:right;}
+.cal-note-mark{position:absolute;right:6px;top:5px;font-size:10px;line-height:1;color:var(--accent);}
+.cal-cell.has .cal-note-mark{color:var(--accent);}
 @media(max-width:560px){
   .cal-cell{min-height:52px;padding:5px;}
   .cal-ch{flex-direction:column;gap:3px;}

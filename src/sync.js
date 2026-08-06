@@ -181,7 +181,20 @@ function mergeBlobs(local, remote, remoteIsNewer){
   base.progress = prog;
   // 풀이 날짜 기록도 합집합: 같은 문제(pid)면 양쪽 날짜를 모두 살린다.
   base.log = mergeLog(local.log || {}, remote.log || {});
+  // 하루 한 줄 기록: 빈 값이 덮지 못하게 병합, 둘 다 있으면 더 최근(remote) 우선
+  base.dayNotes = mergeNotes(local.dayNotes || {}, remote.dayNotes || {}, remoteIsNewer);
   return base;
+}
+// 하루 기록 병합 — 날짜별 단일 문자열. 빈 값은 상대의 기록을 지우지 않는다.
+function mergeNotes(a, b, remoteIsNewer){
+  const out = { ...a };
+  for(const ds in b){ if((b[ds] || '').trim()) out[ds] = b[ds]; }
+  // 양쪽 다 값이 있고 다르면, 더 최근 쪽을 우선
+  for(const ds in a){
+    const va = (a[ds] || '').trim(), vb = (b[ds] || '').trim();
+    if(va && vb && va !== vb) out[ds] = remoteIsNewer ? b[ds] : a[ds];
+  }
+  return out;
 }
 // LOG 병합 — pid별로 날짜 배열을 합집합. 메타(subj/ci/type/num/ch)는 더 최근 것 우선.
 function mergeLog(a, b){

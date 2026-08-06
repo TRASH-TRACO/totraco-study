@@ -468,6 +468,9 @@ function dn(s,ci,t,n){return!!S[gk(s,ci,t,n)];}
 // LOG[pid] = { subj, ci, type, num, ch, dates:['YYYY-MM-DD', ...] }
 //   dates: 완료 체크한 날짜들(회독을 거치며 여러 날이 쌓일 수 있다). 캘린더는 이걸 날짜별로 뒤집어 보여준다.
 let LOG={};
+// 하루 한 줄 기록 — DAYNOTES['YYYY-MM-DD'] = '메모(20자 이내)'
+const DAYNOTE_MAX=20;
+let DAYNOTES={};
 let _pidSeq=0;
 function newPid(){
   _pidSeq=(_pidSeq+1)&0xffff;
@@ -538,6 +541,23 @@ async function loadLog(){
   try{ const v=await idbGet('study_log'); if(v&&typeof v==='object')LOG=v; }
   catch(_){ try{ const s=localStorage.getItem('study_log'); if(s)LOG=JSON.parse(s); }catch(__){} }
 }
+async function saveDayNotes(){
+  try{ await idbSet('day_notes',DAYNOTES); }
+  catch(_){ try{ localStorage.setItem('day_notes',JSON.stringify(DAYNOTES)); }catch(__){} }
+  window.CloudSync?.schedulePush();
+}
+async function loadDayNotes(){
+  try{ const v=await idbGet('day_notes'); if(v&&typeof v==='object')DAYNOTES=v; }
+  catch(_){ try{ const s=localStorage.getItem('day_notes'); if(s)DAYNOTES=JSON.parse(s); }catch(__){} }
+}
+// 하루 기록 병합 — 날짜별 단일 문자열이라 합집합이 아니라 "빈 값이 덮어쓰지 못하게" 한다.
+// 양쪽 다 값이 있으면 들어온(원격) 쪽을 우선. 빈 incoming은 로컬 기록을 지우지 않는다.
+function mergeNotesInto(localNotes, incoming){
+  const out={...(localNotes||{})};
+  const inc=incoming||{};
+  Object.keys(inc).forEach(ds=>{ const v=(inc[ds]||'').trim(); if(v)out[ds]=inc[ds]; });
+  return out;
+}
 /** LOG를 날짜별로 뒤집어 { 'YYYY-MM-DD': [ {pid,subj,ci,type,num,ch} ] } 로 만든다. */
 function buildDateIndex(){
   const byDate={};
@@ -549,6 +569,22 @@ function buildDateIndex(){
     });
   });
   return byDate;
+}
+// 풀이 이력은 누적(append-only)이라 어느 방향으로도 줄어들면 안 된다.
+// 로컬과 들어온 기록을 pid별 날짜 "합집합"으로 병합한다 — 빈 기록이 내려와도 기존 이력이 살아남는다.
+function mergeLogInto(localLog, incoming){
+  const out={};
+  const pids=new Set([...Object.keys(localLog||{}),...Object.keys(incoming||{})]);
+  pids.forEach(pid=>{
+    const a=(localLog||{})[pid], b=(incoming||{})[pid];
+    if(a&&b){
+      const dates=Array.from(new Set([...(a.dates||[]),...(b.dates||[])])).sort();
+      out[pid]={...a,...b,dates};   // 메타는 들어온 쪽 우선, 날짜는 합집합
+    }else{
+      out[pid]=a||b;
+    }
+  });
+  return out;
 }
 
 // XSS 방지 헬퍼
@@ -1254,7 +1290,7 @@ function copyEdDone(){
 // ══════════════════════════════════════════
 // 현재 상태 전체를 덩어리 하나로 (버전 스냅샷 · 클라우드 업로드 공용)
 function buildBlob(){
-  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT,log:LOG};
+  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT,log:LOG,dayNotes:DAYNOTES};
   SUBJECTS.forEach(s=>{data[s.dataKey]=DATA[s.id]||[];});
   return data;
 }
@@ -1369,6 +1405,7 @@ function validateBlob(data){
   if(!data.version||typeof data.version!=='number')throw new Error('올바른 백업 파일이 아니에요');
   if(data.progress&&typeof data.progress!=='object')throw new Error('진도 데이터 형식 오류');
   if(data.log&&typeof data.log!=='object')throw new Error('풀이 기록 형식 오류');
+  if(data.dayNotes&&typeof data.dayNotes!=='object')throw new Error('하루 기록 형식 오류');
   if(data.subjects&&!Array.isArray(data.subjects))throw new Error('과목 설정 형식 오류');
   // legacy 키 검증 (호환성)
   if(data.finData&&!Array.isArray(data.finData))throw new Error('재무회계 데이터 형식 오류');
@@ -1424,8 +1461,11 @@ async function applyBlob(data){
   // 2) 진도 복원
   S=data.progress||{};
 
-  // 2-1) 풀이 날짜 기록 복원
-  if(data.log&&typeof data.log==='object')LOG=data.log;
+  // 2-1) 풀이 날짜 기록 복원 — 이력은 절대 줄어들지 않게 "합집합"으로 병합.
+  //      (다른 기기가 빈 기록을 올려도, 내려받을 때 어제의 풀이 날짜가 사라지지 않도록)
+  if(data.log&&typeof data.log==='object')LOG=mergeLogInto(LOG,data.log);
+  // 2-2) 하루 한 줄 기록 복원 — 빈 값이 로컬 기록을 지우지 못하게 병합
+  if(data.dayNotes&&typeof data.dayNotes==='object')DAYNOTES=mergeNotesInto(DAYNOTES,data.dayNotes);
 
   // 3) 데이터 복원 — SUBJECTS 기준으로 dataKey 매핑
   SUBJECTS.forEach(s=>{
@@ -1440,6 +1480,7 @@ async function applyBlob(data){
   // 4) 저장
   await saveState();
   await saveLog();
+  await saveDayNotes();
   await saveAllSubjData();
 
   // 5) UI 전체 재구성
@@ -2497,7 +2538,7 @@ function typeDispLabel(subj,type){
 function renderCalendar(){
   calInit();
   const byDate=buildDateIndex();
-  const hasAny=Object.keys(byDate).length>0;
+  const hasAny=Object.keys(byDate).length>0 || Object.keys(DAYNOTES).length>0;
   const emptyEl=document.getElementById('cal-empty'),bodyEl=document.getElementById('cal-body');
   if(emptyEl)emptyEl.style.display=hasAny?'none':'block';
   if(bodyEl)bodyEl.style.display=hasAny?'block':'none';
@@ -2516,11 +2557,12 @@ function renderCalendar(){
     const ds=todayStr(new Date(calYear,calMonth,d));
     const items=byDate[ds]||[];
     const dow=(startDow+d-1)%7;
-    const cell=document.createElement('div');cell.className='cal-cell';
+    const cell=document.createElement('div');cell.className='cal-cell';cell.dataset.ds=ds;
     if(ds===today)cell.classList.add('today');
     if(ds===calSelDate)cell.classList.add('sel');
     if(items.length)cell.classList.add('has');
     const dnum=document.createElement('div');dnum.className='cal-dnum'+(dow===0?' sun':dow===6?' sat':'');dnum.textContent=d;cell.appendChild(dnum);
+    if((DAYNOTES[ds]||'').trim()){const mk=document.createElement('div');mk.className='cal-note-mark';mk.textContent='✎';mk.title=DAYNOTES[ds];cell.appendChild(mk);}
     if(items.length){
       const bySubj={};items.forEach(it=>bySubj[it.subj]=(bySubj[it.subj]||0)+1);
       const dots=document.createElement('div');dots.className='cal-dots';
@@ -2539,15 +2581,31 @@ function renderCalendar(){
 
 function selCalDay(ds){calSelDate=ds;renderCalendar();}
 
+// 하루 한 줄 기록 입력 행 (패널 상단 공통)
+function calNoteRowHtml(ds){
+  const cur=DAYNOTES[ds]||'';
+  return `<div class="cal-note-row">`+
+    `<input id="cal-note-input" class="cal-note-input" type="text" maxlength="${DAYNOTE_MAX}" `+
+      `placeholder="이 날 한 줄 기록 (${DAYNOTE_MAX}자 이내)" oninput="calNoteInput(this.value)">`+
+    `<span class="cal-note-count" id="cal-note-count">${cur.length}/${DAYNOTE_MAX}</span>`+
+  `</div>`;
+}
+
 function renderCalPanel(ds,byDate){
   byDate=byDate||buildDateIndex();
   const items=byDate[ds]||[];
   const panel=document.getElementById('cal-panel');
   const dObj=new Date(ds+'T00:00:00');
   const dateLabel=`${dObj.getMonth()+1}월 ${dObj.getDate()}일 (${CAL_WD[dObj.getDay()]})`;
-  if(!items.length){panel.innerHTML=`<div class="cal-panel-hdr">${dateLabel}</div><div class="noprob">이 날 푼 문제가 없어요</div>`;return;}
+  const cntLabel=items.length?`<span class="cal-panel-cnt">${items.length}문제</span>`:'';
+  const noteRow=calNoteRowHtml(ds);
+  if(!items.length){
+    panel.innerHTML=`<div class="cal-panel-hdr">${dateLabel}</div>${noteRow}<div class="noprob">이 날 푼 문제가 없어요</div>`;
+    const ni=document.getElementById('cal-note-input');if(ni)ni.value=DAYNOTES[ds]||'';
+    return;
+  }
 
-  let html=`<div class="cal-panel-hdr">${dateLabel}<span class="cal-panel-cnt">${items.length}문제</span></div>`;
+  let html=`<div class="cal-panel-hdr">${dateLabel}${cntLabel}</div>${noteRow}`;
   const bySubj={},subjOrder=[];
   items.forEach(it=>{if(!bySubj[it.subj]){bySubj[it.subj]=[];subjOrder.push(it.subj);}bySubj[it.subj].push(it);});
   subjOrder.forEach(sid=>{
@@ -2568,7 +2626,28 @@ function renderCalPanel(ds,byDate){
     });
   });
   panel.innerHTML=html;
+  const ni=document.getElementById('cal-note-input');if(ni)ni.value=DAYNOTES[ds]||'';
 }
+
+// 하루 기록 입력 — 타이핑 중엔 전체 재렌더 없이(포커스 유지) DAYNOTES만 갱신하고 저장한다.
+function calNoteInput(val){
+  const ds=calSelDate;if(!ds)return;
+  val=(val||'').slice(0,DAYNOTE_MAX);
+  if(val.trim())DAYNOTES[ds]=val; else delete DAYNOTES[ds];
+  saveDayNotes();
+  const cnt=document.getElementById('cal-note-count');if(cnt)cnt.textContent=val.length+'/'+DAYNOTE_MAX;
+  updateCalCellNote(ds);
+}
+// 해당 날짜 셀의 메모 표식(✎)만 즉석 갱신 — 전체 재렌더를 피해 입력 포커스를 지킨다.
+function updateCalCellNote(ds){
+  const cell=document.querySelector('.cal-cell[data-ds="'+ds+'"]');if(!cell)return;
+  const has=(DAYNOTES[ds]||'').trim();
+  let mk=cell.querySelector('.cal-note-mark');
+  if(has&&!mk){mk=document.createElement('div');mk.className='cal-note-mark';mk.textContent='✎';cell.insertBefore(mk,cell.querySelector('.cal-dnum').nextSibling);}
+  else if(!has&&mk){mk.remove();}
+  if(mk)mk.title=DAYNOTES[ds]||'';
+}
+window.calNoteInput=calNoteInput;
 
 async function init(){
   applyThemeIcon();
@@ -2581,6 +2660,7 @@ async function init(){
   await loadData();
   await loadState();
   await loadLog();
+  await loadDayNotes();
   if(ensurePids()) await saveAllSubjData();  // 기존 문제에 고유 ID 채우기(최초 1회 마이그레이션)
   buildMaps();
   const now=new Date();document.getElementById('today-date').textContent=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}`;
