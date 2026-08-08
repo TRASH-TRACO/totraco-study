@@ -6,7 +6,11 @@
 <title>학습 일지</title>
 <script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);
 if(localStorage.getItem('entryMode'))document.documentElement.classList.add('entered');
-if(sessionStorage.getItem('pendingLogin'))document.documentElement.classList.add('logging-in');}catch(e){}</script>
+if(sessionStorage.getItem('pendingLogin'))document.documentElement.classList.add('logging-in');
+// 새로고침 깜빡임 방지 — 첫 페인트부터 앱 본문을 숨겼다가 init이 끝나면 드러낸다.
+// (init이 실패/지연돼도 화면이 영영 안 뜨지 않도록 안전 타임아웃으로 강제 해제)
+document.documentElement.classList.add('booting');
+setTimeout(function(){document.documentElement.classList.remove('booting');},2000);}catch(e){}</script>
 <link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/style.css">
 </head>

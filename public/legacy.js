@@ -2714,6 +2714,9 @@ async function init(){
   restoreView();     // 뷰 토글·선택 일자·활성 탭을 DOM에 반영
   // 아직 아무것도 없으면 준비 화면부터 보여준다
   if(!hasAnyProblems()) goNav('setup');
+  // 모든 렌더가 끝났으니 앱을 드러낸다 (깜빡임 방지용 booting 해제)
+  document.documentElement.classList.remove('booting');
 }
 // 클라우드 동기화 모듈이 최초 로드 완료를 기다릴 수 있도록 promise를 노출
-window.__appReady = init();
+// init이 실패로 끝나더라도 앱이 계속 숨겨지지 않도록 booting은 반드시 해제한다.
+window.__appReady = init().finally(()=>{document.documentElement.classList.remove('booting');});

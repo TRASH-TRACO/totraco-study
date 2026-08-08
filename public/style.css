@@ -63,7 +63,9 @@ select{background:var(--bg);color:var(--text);}
 select option{background:var(--bg);color:var(--text);}
 
 /* ── 앱 레이아웃 ── */
-.app{max-width:960px;margin:0 auto;padding:24px 16px 60px;}
+.app{max-width:960px;margin:0 auto;padding:24px 16px 60px;opacity:1;transition:opacity .18s ease;}
+/* 새로고침 시 데이터 로드 전 기본 화면이 번쩍이는 걸 막는다 — init 완료 후 booting 해제하며 페이드인 */
+:root.booting .app{opacity:0;}
 
 /* ── 헤더 ── */
 .hdr{padding:32px 0 20px;border-bottom:1px solid var(--border);margin-bottom:4px;}
@@ -130,12 +132,15 @@ select option{background:var(--bg);color:var(--text);}
 .db.sel{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
 .db.full{background:var(--cost-bg);border-color:var(--cost-border);color:var(--cost);}
 .db.part{border-color:var(--accent);color:var(--accent);}
+/* 선택된 일차는 part/full 여부와 무관하게 항상 초록 배경+흰 글씨 (안 그러면 초록 글씨가 초록 배경에 묻혀 며칠차인지 안 보임) */
+.db.sel,.db.sel.part,.db.sel.full{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
 .db.tax-mode{width:72px;height:54px;font-size:10px;gap:1px;padding:4px 2px;}
 .db.tax-mode .db-day{font-size:11px;font-weight:600;}
 .db.tax-mode .db-th{color:var(--theory);font-size:9px;white-space:nowrap;}
 .db.tax-mode .db-ca{color:var(--tax);font-size:9px;white-space:nowrap;}
-.db.tax-mode.sel .db-th,.db.tax-mode.sel .db-ca{color:rgba(255,255,255,.7);}
 .db.tax-mode.full .db-th,.db.tax-mode.full .db-ca{color:var(--cost);}
+.db.tax-mode.sel .db-th,.db.tax-mode.sel .db-ca,
+.db.tax-mode.sel.full .db-th,.db.tax-mode.sel.full .db-ca{color:rgba(255,255,255,.7);}
 .dbadge{display:none;font-size:9px;font-weight:600;}
 .db.full .dbadge{display:block;}
 
