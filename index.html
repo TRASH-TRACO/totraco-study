@@ -394,7 +394,16 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
   </div>
 </div>
 
-<script src="/legacy.js"></script>
+<!-- 앱 스크립트 — 반드시 이 순서로 로드(전역 스코프 공유, boot.js가 init 실행) -->
+<script src="/js/core.js"></script>
+<script src="/js/records.js"></script>
+<script src="/js/study.js"></script>
+<script src="/js/editor.js"></script>
+<script src="/js/sync-blob.js"></script>
+<script src="/js/assign.js"></script>
+<script src="/js/account.js"></script>
+<script src="/js/calendar.js"></script>
+<script src="/js/boot.js"></script>
 <script type="module" src="/src/sync.js"></script>
 </body>
 </html>
