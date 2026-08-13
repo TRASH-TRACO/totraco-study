@@ -558,6 +558,143 @@ function mergeNotesInto(localNotes, incoming){
   Object.keys(inc).forEach(ds=>{ const v=(inc[ds]||'').trim(); if(v)out[ds]=inc[ds]; });
   return out;
 }
+
+// ══════════════════════════════════════════
+// 틀린 문제 다시 풀기 (재수강)
+// ══════════════════════════════════════════
+// 원본(DATA/S)과 분리해 관리한다 — 같은 문제가 두 일차에 들어가도 완료 표시가 안 엉키게.
+//  RETRIES: [{ rid, subj, ci, type, num, pid, day, done }]  각자 고유 rid + 독립 완료(done)
+//  WRONG:   { pid: true }  이번 회차 '오답' 표시(빨강)
+//  RETRY_BASE: { subj: { pid: 원래일차 } }  재수강 삽입으로 밀리기 전 정규 일차 스냅샷(복원용)
+const RETRY_OFFSET=7;   // 며칠 뒤에 다시 풀지
+let RETRIES=[], WRONG={}, RETRY_BASE={};
+let _ridSeq=0;
+function newRid(){ _ridSeq=(_ridSeq+1)&0xffff; return 'r'+Date.now().toString(36)+_ridSeq.toString(36)+Math.random().toString(36).slice(2,4); }
+
+async function saveRetries(){
+  try{ await idbSet('retries',RETRIES); await idbSet('wrong',WRONG); await idbSet('retry_base',RETRY_BASE); }
+  catch(_){ try{ localStorage.setItem('retries',JSON.stringify(RETRIES)); localStorage.setItem('wrong',JSON.stringify(WRONG)); localStorage.setItem('retry_base',JSON.stringify(RETRY_BASE)); }catch(__){} }
+  window.CloudSync?.schedulePush();
+}
+async function loadRetries(){
+  try{
+    const r=await idbGet('retries'); if(Array.isArray(r))RETRIES=r;
+    const w=await idbGet('wrong'); if(w&&typeof w==='object')WRONG=w;
+    const b=await idbGet('retry_base'); if(b&&typeof b==='object')RETRY_BASE=b;
+  }catch(_){
+    try{
+      const r=localStorage.getItem('retries'); if(r)RETRIES=JSON.parse(r);
+      const w=localStorage.getItem('wrong'); if(w)WRONG=JSON.parse(w);
+      const b=localStorage.getItem('retry_base'); if(b)RETRY_BASE=JSON.parse(b);
+    }catch(__){}
+  }
+}
+// 재수강으로 완료한 날짜 표식 — 캘린더에서 '다시 풀기'로 구분해 보여주기 위한 이력.
+// { "pid|YYYY-MM-DD": true } · 이력이라 다음 회차에도 유지(clearAllRetries가 건드리지 않음).
+let RETRY_DONE={};
+async function saveRetryDone(){
+  try{ await idbSet('retry_done',RETRY_DONE); }
+  catch(_){ try{ localStorage.setItem('retry_done',JSON.stringify(RETRY_DONE)); }catch(__){} }
+  window.CloudSync?.schedulePush();
+}
+async function loadRetryDone(){
+  try{ const v=await idbGet('retry_done'); if(v&&typeof v==='object')RETRY_DONE=v; }
+  catch(_){ try{ const s=localStorage.getItem('retry_done'); if(s)RETRY_DONE=JSON.parse(s); }catch(__){} }
+}
+
+// 오답 표시
+function isWrong(subj,ci,type,num){ const pid=pidOf(subj,ci,type,num); return !!(pid&&WRONG[pid]); }
+function toggleWrong(subj,ci,type,num){
+  const pid=pidOf(subj,ci,type,num); if(!pid)return;
+  if(WRONG[pid])delete WRONG[pid]; else WRONG[pid]=true;
+  saveRetries();
+}
+
+// 재수강 예약 여부
+function isRetryScheduled(subj,ci,type,num){
+  return RETRIES.some(r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num);
+}
+// 과목의 정규 일차 스냅샷(재수강 삽입 전) — 최초 1회만
+function snapshotRetryBase(subj){
+  if(RETRY_BASE[subj])return;
+  const sdef=SUBJECTS.find(s=>s.id===subj); if(!sdef)return;
+  const base={};
+  (DATA[subj]||[]).forEach(ch=>sdef.cols.forEach(col=>{
+    (ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[2])base[p[2]]=p[1]; });
+  }));
+  RETRY_BASE[subj]=base;
+}
+// base에서 정규 일차를 되돌린 뒤, 예약된 재수강을 일차 오름차순으로 "그 일차의 마지막 문제 한 개를
+// 다음 일차로 밀기"를 적용해 재계산한다(순차 이동 삽입 — 여러 개면 자연스럽게 뒤로 연쇄).
+function applyRetrySchedule(subj){
+  const base=RETRY_BASE[subj]; const data=DATA[subj]; const sdef=SUBJECTS.find(s=>s.id===subj);
+  if(!base||!data||!sdef)return;
+  data.forEach(ch=>sdef.cols.forEach(col=>{
+    (ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&base[p[2]]!==undefined)p[1]=base[p[2]]; });
+  }));
+  const rs=RETRIES.filter(r=>r.subj===subj).sort((a,b)=>a.day-b.day||(a.rid<b.rid?-1:1));
+  rs.forEach(r=>{
+    const T=r.day; let last=null,lastKey=-1;
+    data.forEach((ch,ci)=>sdef.cols.forEach(col=>{
+      (ch[col.key]||[]).forEach(p=>{
+        if(Array.isArray(p)&&p[1]===T){ const key=ci*100000+p[0]; if(key>lastKey){lastKey=key;last=p;} }
+      });
+    }));
+    if(last)last[1]=T+1;   // 마지막 정규 문제를 다음 일차로 밀어 자리 확보
+  });
+}
+function scheduleRetry(subj,ci,type,num,fromDay){
+  if(isRetryScheduled(subj,ci,type,num))return;
+  if(!(fromDay>=1))return;   // 실제 일차에서만 예약(완료 버킷 등 제외)
+  snapshotRetryBase(subj);
+  RETRIES.push({rid:newRid(),subj,ci,type,num,pid:pidOf(subj,ci,type,num),day:fromDay+RETRY_OFFSET,done:false});
+  applyRetrySchedule(subj);
+}
+function unscheduleRetry(subj,ci,type,num){
+  const before=RETRIES.length;
+  RETRIES=RETRIES.filter(r=>!(r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num));
+  if(RETRIES.length===before)return;
+  applyRetrySchedule(subj);
+  if(!RETRIES.some(r=>r.subj===subj))delete RETRY_BASE[subj];   // 다 지웠으면 스냅샷 정리(이미 base로 복원됨)
+}
+function toggleRetryDone(rid){
+  const r=RETRIES.find(x=>x.rid===rid); if(!r)return;
+  r.done=!r.done;
+  recordSolve(r.subj,r.ci,r.type,r.num,r.done);   // 재수강 완료도 그날 풀이로 캘린더에 기록
+  // 그날 그 문제 완료가 '다시 풀기'였음을 표식 → 캘린더에서 구분 표시
+  const pid=r.pid||pidOf(r.subj,r.ci,r.type,r.num);
+  if(pid){ const key=pid+'|'+todayStr(); if(r.done)RETRY_DONE[key]=true; else delete RETRY_DONE[key]; }
+  saveRetries();saveLog();saveRetryDone();
+}
+// 특정 일차/과목의 재수강들
+function retriesForDay(day){ return RETRIES.filter(r=>r.day===day&&(curSubj==='all'||r.subj===curSubj)); }
+function maxRetryDay(){ let m=0; RETRIES.forEach(r=>{ if((curSubj==='all'||r.subj===curSubj)&&r.day>m)m=r.day; }); return m; }
+// 재수강 정리 — base로 정규 일차 복원 후 제거
+function clearRetriesForSubj(subj){
+  const base=RETRY_BASE[subj], sdef=SUBJECTS.find(s=>s.id===subj), data=DATA[subj];
+  if(base&&sdef&&data){
+    data.forEach(ch=>sdef.cols.forEach(col=>{
+      (ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&base[p[2]]!==undefined)p[1]=base[p[2]]; });
+    }));
+  }
+  RETRIES=RETRIES.filter(r=>r.subj!==subj);
+  Object.keys(WRONG).forEach(pid=>{ /* pid는 과목 정보가 없어 그대로 둔다 — clearAllRetries에서 일괄 정리 */ });
+  delete RETRY_BASE[subj];
+}
+async function clearAllRetries(){
+  SUBJECTS.forEach(s=>{ if(RETRY_BASE[s.id])clearRetriesForSubj(s.id); });
+  RETRIES=[]; WRONG={}; RETRY_BASE={};
+  await saveRetries(); await saveAllSubjData();
+}
+// 원본 문제의 완료를 해제하면 그 문제의 오답·다시풀기 예약도 함께 해제한다.
+// 바뀐 게 있으면 true(호출 측이 저장·재렌더).
+function clearRetryAndWrong(subj,ci,type,num){
+  let changed=false;
+  const pid=pidOf(subj,ci,type,num);
+  if(pid&&WRONG[pid]){ delete WRONG[pid]; changed=true; }
+  if(isRetryScheduled(subj,ci,type,num)){ unscheduleRetry(subj,ci,type,num); changed=true; }
+  return changed;
+}
 /** LOG를 날짜별로 뒤집어 { 'YYYY-MM-DD': [ {pid,subj,ci,type,num,ch} ] } 로 만든다. */
 function buildDateIndex(){
   const byDate={};
@@ -565,7 +702,7 @@ function buildDateIndex(){
     const e=LOG[pid];if(!e||!Array.isArray(e.dates))return;
     e.dates.forEach(d=>{
       if(!byDate[d])byDate[d]=[];
-      byDate[d].push({pid,subj:e.subj,ci:e.ci,type:e.type,num:e.num,ch:e.ch});
+      byDate[d].push({pid,subj:e.subj,ci:e.ci,type:e.type,num:e.num,ch:e.ch,retry:!!RETRY_DONE[pid+'|'+d]});
     });
   });
   return byDate;
@@ -610,13 +747,47 @@ function makeChip(subj,ci,type,num,day,cls){
   cst.textContent='✓';
   el.appendChild(cst);
 
-  el.addEventListener('click',()=>{const done=S[gk(subj,ci,type,num)]=!S[gk(subj,ci,type,num)];recordSolve(subj,ci,type,num,done);saveState();saveLog();refreshChip(el,subj,ci,type,num);refreshDPMeta(curDay);updateProgress();updateDBtns();});
+  el.addEventListener('click',async()=>{
+    const done=S[gk(subj,ci,type,num)]=!S[gk(subj,ci,type,num)];
+    recordSolve(subj,ci,type,num,done);
+    const reflow=!done && clearRetryAndWrong(subj,ci,type,num);   // 완료 해제 시 오답·다시풀기도 해제
+    saveState();saveLog();
+    if(reflow){ await saveRetries();await saveAllSubjData();buildMaps();buildDG();renderDP(curDay);updateProgress(); }
+    else { refreshChip(el,subj,ci,type,num);refreshDPMeta(curDay);updateProgress();updateDBtns(); }
+  });
   return el;
 }
 function refreshChip(el,subj,ci,type,num){
   el.classList.toggle('done',dn(subj,ci,type,num));
   const cst=el.querySelector('.cst');
   if(cst){cst.style.display=dn(subj,ci,type,num)?'flex':'none';}
+}
+// 일차 패널용 — 칩 + (완료 시 노출되는) [오답][다시풀기] 버튼 묶음.
+// 버튼 노출은 CSS 형제 선택자(.chip.done ~ .pu-actions)로 처리해 완료 토글에 자동 반응한다.
+function makeProbUnit(subj,ci,type,num,cls){
+  const unit=document.createElement('div');unit.className='prob-unit';
+  if(isWrong(subj,ci,type,num))unit.classList.add('wrong');
+  unit.appendChild(makeChip(subj,ci,type,num,null,cls));
+  const act=document.createElement('div');act.className='pu-actions';
+  const wb=document.createElement('button');wb.type='button';
+  wb.className='pu-btn pu-wrong'+(isWrong(subj,ci,type,num)?' on':'');wb.textContent='오답';
+  wb.onclick=e=>{e.stopPropagation();toggleWrong(subj,ci,type,num);const on=isWrong(subj,ci,type,num);wb.classList.toggle('on',on);unit.classList.toggle('wrong',on);};
+  act.appendChild(wb);
+  if(curDay>=1){   // 실제 일차에서만 다시풀기 가능(완료 버킷 등 제외)
+    const rb=document.createElement('button');rb.type='button';
+    rb.className='pu-btn pu-retry'+(isRetryScheduled(subj,ci,type,num)?' on':'');
+    rb.textContent=isRetryScheduled(subj,ci,type,num)?'예약됨':'다시풀기';
+    rb.onclick=async e=>{
+      e.stopPropagation();
+      if(isRetryScheduled(subj,ci,type,num))unscheduleRetry(subj,ci,type,num);
+      else scheduleRetry(subj,ci,type,num,curDay);
+      await saveRetries();await saveAllSubjData();
+      buildMaps();buildDG();renderDP(curDay);updateProgress();
+    };
+    act.appendChild(rb);
+  }
+  unit.appendChild(act);
+  return unit;
 }
 
 // ══════════════════════════════════════════
@@ -677,7 +848,7 @@ function goView(v){
 // 일차 그리드
 // ══════════════════════════════════════════
 function getDM(){return curSubj==='all'?adm:(MAPS[curSubj]||{});}
-function getMax(){return curSubj==='all'?Math.max(0,...Object.values(MAXS)):(MAXS[curSubj]||0);}
+function getMax(){const reg=curSubj==='all'?Math.max(0,...Object.values(MAXS)):(MAXS[curSubj]||0);return Math.max(reg,maxRetryDay());}
 
 function buildDG(){
   const g=document.getElementById('dg');g.innerHTML='';
@@ -715,10 +886,13 @@ function updateDBtns(){
   }
   for(let d=1;d<=max;d++){
     const b=document.getElementById('db'+d);if(!b)continue;
-    const ps=dm[d]||[];const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length;
+    const ps=dm[d]||[];const rs=retriesForDay(d);
+    const total=ps.length+rs.length;
+    const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length + rs.filter(r=>r.done).length;
     b.className='db'+(curSubj==='tax'?' tax-mode':'');
+    if(rs.length)b.classList.add('has-retry');
     if(d===curDay)b.classList.add('sel');
-    if(ps.length>0&&dk===ps.length)b.classList.add('full');
+    if(total>0&&dk===total)b.classList.add('full');
     else if(dk>0)b.classList.add('part');
   }
 }
@@ -727,14 +901,16 @@ function selDay(day){curDay=day;updateDBtns();const dp=document.getElementById('
 function renderDP(day){
   const dp=document.getElementById('dpanel');dp.innerHTML='';
   const dm=getDM();const ps=dm[day]||[];
-  if(!ps.length){dp.innerHTML='<div class="noprob">이 일차에 배정된 문제가 없어요</div>';return;}
-  const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length;
-  const allD=ps.length>0&&dk===ps.length;
+  const rs=retriesForDay(day);
+  if(!ps.length&&!rs.length){dp.innerHTML='<div class="noprob">이 일차에 배정된 문제가 없어요</div>';return;}
+  const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length + rs.filter(r=>r.done).length;
+  const totalN=ps.length+rs.length;
+  const allD=totalN>0&&dk===totalN;
   // 헤더
   const hdr=document.createElement('div');hdr.className='dpanel-hdr';
   const titleEl=document.createElement('div');titleEl.className='dpanel-title';titleEl.textContent=day===0?'완료된 문제':day+'일차';
   const metaEl=document.createElement('div');metaEl.style.display='flex';metaEl.style.alignItems='center';metaEl.style.gap='10px';
-  const subEl=document.createElement('div');subEl.className='dpanel-meta';subEl.id='dp-sub';subEl.textContent=ps.length+'문제 · '+dk+'개 완료';
+  const subEl=document.createElement('div');subEl.className='dpanel-meta';subEl.id='dp-sub';subEl.textContent=totalN+'문제 · '+dk+'개 완료';
   const abtn=document.createElement('button');abtn.className='toggle-all-btn '+(allD?'ad':'nd');abtn.textContent=allD?'전체 해제':'전체 완료';abtn.id='all-btn';abtn.onclick=()=>toggleAll(day);
   metaEl.appendChild(subEl);metaEl.appendChild(abtn);hdr.appendChild(titleEl);hdr.appendChild(metaEl);dp.appendChild(hdr);
   const tip=document.createElement('div');tip.className='dpanel-tip';tip.textContent='클릭: 완료 토글';dp.appendChild(tip);
@@ -767,7 +943,36 @@ function renderDP(day){
     }
     renderDPChunks(body,sp,subj);
   });
-  dp.appendChild(body);
+  if(body.childNodes.length)dp.appendChild(body);   // 재수강만 있는 일차는 빈 본문 생략
+  renderRetrySection(dp,day);
+}
+// 일차 패널의 '다시 풀기' 별도 섹션 — 정규 문제와 구분해서 보여준다. 자체 완료 토글.
+function renderRetrySection(dp,day){
+  const rs=retriesForDay(day);
+  if(!rs.length)return;
+  const sec=document.createElement('div');sec.className='retry-sec';
+  const hd=document.createElement('div');hd.className='retry-sec-hdr';
+  hd.innerHTML='🔁 다시 풀기 <span class="retry-sec-cnt" id="retry-cnt">'+rs.filter(r=>r.done).length+' / '+rs.length+'</span>';
+  sec.appendChild(hd);
+  const row=document.createElement('div');row.className='retry-row';
+  rs.slice().sort((a,b)=>a.ci-b.ci||a.num-b.num).forEach(r=>{
+    const chip=document.createElement('div');
+    chip.className='chip retry-chip '+(CC[r.type]||'si')+(r.done?' done':'');
+    const chName=(DATA[r.subj]&&DATA[r.subj][r.ci]&&DATA[r.subj][r.ci].ch)||'';
+    const dispCh=r.subj==='tax'?taxDisplayName(chName):chName;
+    const subjTag=curSubj==='all'?(subjDispName(r.subj)+' · '):'';
+    chip.innerHTML=escapeHtml(subjTag+dispCh)+' '+r.num+'번';
+    const cst=document.createElement('div');cst.className='cst';cst.textContent='✓';chip.appendChild(cst);
+    chip.addEventListener('click',()=>{
+      toggleRetryDone(r.rid);
+      chip.classList.toggle('done',r.done);
+      const cntEl=document.getElementById('retry-cnt');const cur=retriesForDay(day);
+      if(cntEl)cntEl.textContent=cur.filter(x=>x.done).length+' / '+cur.length;
+      refreshDPMeta(day);updateDBtns();
+    });
+    row.appendChild(chip);
+  });
+  sec.appendChild(row);dp.appendChild(sec);
 }
 function renderDPChunks(body,sp,subj){
     const byCI={},order=[];
@@ -788,7 +993,7 @@ function renderDPChunks(body,sp,subj){
         const grp=document.createElement('div');grp.className='ch-group';
         if(tp!=='single'){const lbl=document.createElement('div');lbl.className='type-label '+(cls||CC[tp]||'');lbl.textContent=lblText;grp.appendChild(lbl);}
         const row=document.createElement('div');row.className='chip-row';
-        nums.forEach(num=>row.appendChild(makeChip(subj,ci,tp,num,null,cls)));
+        nums.forEach(num=>row.appendChild(makeProbUnit(subj,ci,tp,num,cls)));
         grp.appendChild(row);groups.appendChild(grp);
       });
       inner.appendChild(groups);block.appendChild(inner);body.appendChild(block);
@@ -796,16 +1001,25 @@ function renderDPChunks(body,sp,subj){
 }
 
 function refreshDPMeta(day){
-  if(!day)return;
-  const ps=(getDM()[day])||[];const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length;
-  const allD=ps.length>0&&dk===ps.length;
-  const sub=document.getElementById('dp-sub');if(sub)sub.textContent=ps.length+'문제 · '+dk+'개 완료';
+  if(day==null)return;
+  const ps=(getDM()[day])||[];const rs=retriesForDay(day);
+  const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length + rs.filter(r=>r.done).length;
+  const totalN=ps.length+rs.length;
+  const allD=totalN>0&&dk===totalN;
+  const sub=document.getElementById('dp-sub');if(sub)sub.textContent=totalN+'문제 · '+dk+'개 완료';
   const btn=document.getElementById('all-btn');if(btn){btn.className='toggle-all-btn '+(allD?'ad':'nd');btn.textContent=allD?'전체 해제':'전체 완료';}
 }
 function toggleAll(day){
-  const ps=(getDM()[day])||[];const allD=ps.length>0&&ps.every(p=>dn(p.subj,p.ci,p.type,p.num));
-  ps.forEach(p=>{S[gk(p.subj,p.ci,p.type,p.num)]=!allD;recordSolve(p.subj,p.ci,p.type,p.num,!allD);const chip=document.querySelector(`#dpanel .chip[data-subj="${p.subj}"][data-ci="${p.ci}"][data-type="${p.type}"][data-num="${p.num}"]`);if(chip)refreshChip(chip,p.subj,p.ci,p.type,p.num);});
-  saveState();saveLog();refreshDPMeta(day);updateProgress();updateDBtns();
+  const ps=(getDM()[day])||[];const rs=retriesForDay(day);
+  const allD=(ps.length+rs.length)>0 && ps.every(p=>dn(p.subj,p.ci,p.type,p.num)) && rs.every(r=>r.done);
+  const nv=!allD;
+  ps.forEach(p=>{S[gk(p.subj,p.ci,p.type,p.num)]=nv;recordSolve(p.subj,p.ci,p.type,p.num,nv);});
+  rs.forEach(r=>{r.done=nv;recordSolve(r.subj,r.ci,r.type,r.num,nv);const pid=r.pid||pidOf(r.subj,r.ci,r.type,r.num);if(pid){const k=pid+'|'+todayStr();if(nv)RETRY_DONE[k]=true;else delete RETRY_DONE[k];}});
+  let reflow=false;
+  if(!nv)ps.forEach(p=>{ if(clearRetryAndWrong(p.subj,p.ci,p.type,p.num))reflow=true; });   // 전체 해제 시 오답·다시풀기도 해제
+  saveState();saveLog();saveRetries();saveRetryDone();
+  if(reflow){buildMaps();buildDG();saveAllSubjData();}
+  renderDP(day);refreshDPMeta(day);updateProgress();updateDBtns();
 }
 
 // ══════════════════════════════════════════
@@ -1293,7 +1507,7 @@ function copyEdDone(){
 // ══════════════════════════════════════════
 // 현재 상태 전체를 덩어리 하나로 (버전 스냅샷 · 클라우드 업로드 공용)
 function buildBlob(){
-  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT,log:LOG,dayNotes:DAYNOTES};
+  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT,log:LOG,dayNotes:DAYNOTES,retries:RETRIES,wrong:WRONG,retryBase:RETRY_BASE,retryDone:RETRY_DONE};
   SUBJECTS.forEach(s=>{data[s.dataKey]=DATA[s.id]||[];});
   return data;
 }
@@ -1409,6 +1623,7 @@ function validateBlob(data){
   if(data.progress&&typeof data.progress!=='object')throw new Error('진도 데이터 형식 오류');
   if(data.log&&typeof data.log!=='object')throw new Error('풀이 기록 형식 오류');
   if(data.dayNotes&&typeof data.dayNotes!=='object')throw new Error('하루 기록 형식 오류');
+  if(data.retries&&!Array.isArray(data.retries))throw new Error('재수강 형식 오류');
   if(data.subjects&&!Array.isArray(data.subjects))throw new Error('과목 설정 형식 오류');
   // legacy 키 검증 (호환성)
   if(data.finData&&!Array.isArray(data.finData))throw new Error('재무회계 데이터 형식 오류');
@@ -1469,6 +1684,12 @@ async function applyBlob(data){
   if(data.log&&typeof data.log==='object')LOG=mergeLogInto(LOG,data.log);
   // 2-2) 하루 한 줄 기록 복원 — 빈 값이 로컬 기록을 지우지 못하게 병합
   if(data.dayNotes&&typeof data.dayNotes==='object')DAYNOTES=mergeNotesInto(DAYNOTES,data.dayNotes);
+  // 2-3) 재수강 복원 — 회차 단위라 최신 것으로 교체(진도 S와 동일 성격)
+  if(Array.isArray(data.retries))RETRIES=data.retries;
+  if(data.wrong&&typeof data.wrong==='object')WRONG=data.wrong;
+  if(data.retryBase&&typeof data.retryBase==='object')RETRY_BASE=data.retryBase;
+  // 재수강 완료 표식은 이력 → 합집합(빈 값이 덮어쓰지 못하게)
+  if(data.retryDone&&typeof data.retryDone==='object')RETRY_DONE={...RETRY_DONE,...data.retryDone};
 
   // 3) 데이터 복원 — SUBJECTS 기준으로 dataKey 매핑
   SUBJECTS.forEach(s=>{
@@ -1484,6 +1705,8 @@ async function applyBlob(data){
   await saveState();
   await saveLog();
   await saveDayNotes();
+  await saveRetries();
+  await saveRetryDone();
   await saveAllSubjData();
 
   // 5) UI 전체 재구성
@@ -1510,8 +1733,9 @@ async function restoreAfterReset(subjIds){
   return restored;
 }
 async function newRound(){
-  if(!confirm('모든 문제를 미완료로 초기화할까요?'))return;
+  if(!confirm('모든 문제를 미완료로 초기화할까요?\n(다시 풀기·오답 표시도 함께 초기화됩니다)'))return;
   S={};await saveState();
+  await clearAllRetries();   // 재수강·오답 제거 + 밀린 정규 일차 복원
   // 완료 묶음(완료된 문제)을 원래 순서대로 되돌린다
   await restoreAfterReset(SUBJECTS.map(s=>s.id));
   curDay=null;
@@ -1521,6 +1745,7 @@ async function newRound(){
 async function resetAll(){
   if(!confirm('전체 진도를 초기화할까요?'))return;
   S={};await saveState();
+  await clearAllRetries();
   await restoreAfterReset(SUBJECTS.map(s=>s.id));
   curDay=null;
   const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
@@ -1651,6 +1876,9 @@ async function runAssign(mode){
       return [num, dayOf.get(ci+'|'+c.key+'|'+num)||0, pid];
     });
   }));
+
+  // 일차를 새로 짜면 기존 재수강 스케줄은 무효 → 이 과목 재수강 제거(base는 새 배정이 기준)
+  RETRIES=RETRIES.filter(r=>r.subj!==subj.id); delete RETRY_BASE[subj.id]; await saveRetries();
 
   syncLegacy();
   await saveAllSubjData();
@@ -2204,6 +2432,9 @@ async function applyReschedule(){
     });
   }));
 
+  // 일차를 다시 배치했으니 이 과목 재수강 스케줄은 무효 → 제거
+  RETRIES=RETRIES.filter(r=>r.subj!==subjId); delete RETRY_BASE[subjId]; await saveRetries();
+
   syncLegacy();
   await saveAllSubjData();
   await savePlanSnapshot();
@@ -2623,7 +2854,8 @@ function renderCalPanel(ds,byDate){
       chItems.forEach(it=>{
         const tl=typeDispLabel(it.subj,it.type);
         const pre=(it.type!=='single'&&tl)?escapeHtml(tl)+' ':'';
-        html+=`<span class="cal-chip" style="border-color:${subjColorVar(it.subj)}">${pre}${it.num}번</span>`;
+        const rmark=it.retry?'<span class="cal-chip-re">🔁</span> ':'';
+        html+=`<span class="cal-chip${it.retry?' retry':''}" style="border-color:${subjColorVar(it.subj)}">${rmark}${pre}${it.num}번</span>`;
       });
       html+=`</div></div>`;
     });
@@ -2702,6 +2934,8 @@ async function init(){
   await loadState();
   await loadLog();
   await loadDayNotes();
+  await loadRetries();
+  await loadRetryDone();
   if(ensurePids()) await saveAllSubjData();  // 기존 문제에 고유 ID 채우기(최초 1회 마이그레이션)
   buildMaps();
   loadSavedView();   // 마지막으로 보던 화면을 렌더 전에 전역으로 복원
