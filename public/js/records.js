@@ -162,28 +162,58 @@ function snapshotRetryBase(subj){
   }));
   RETRY_BASE[subj]=base;
 }
-// base에서 정규 일차를 되돌린 뒤, 예약된 재수강을 일차 오름차순으로 "그 일차의 마지막 문제 한 개를
-// 다음 일차로 밀기"를 적용해 재계산한다(순차 이동 삽입 — 여러 개면 자연스럽게 뒤로 연쇄).
+// base에서 정규 일차를 되돌린 뒤, 예약된 재수강을 일차 오름차순으로 삽입한다.
+// 삽입한 일차의 마지막 문제를 다음 일차로 밀고, 그 일차의 마지막도 또 다음으로 …
+// 끝까지 한 칸씩 연쇄 이동(맨 끝은 새 일차 생성). → 각 일차의 문항 수가 유지된다.
 function applyRetrySchedule(subj){
   const base=RETRY_BASE[subj]; const data=DATA[subj]; const sdef=SUBJECTS.find(s=>s.id===subj);
   if(!base||!data||!sdef)return;
+  // 1) 정규 일차를 base로 복원
   data.forEach(ch=>sdef.cols.forEach(col=>{
     (ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&base[p[2]]!==undefined)p[1]=base[p[2]]; });
   }));
+  // 헬퍼: 일차 d의 정규 문제들(ci,num 순), exclPid 제외
+  function dayRegs(d,exclPid){
+    const out=[];
+    data.forEach((ch,ci)=>sdef.cols.forEach(col=>{
+      (ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[1]===d&&p[2]!==exclPid)out.push({p,key:ci*100000+p[0]}); });
+    }));
+    out.sort((a,b)=>a.key-b.key);
+    return out.map(x=>x.p);
+  }
+  function curMax(){ let m=0; data.forEach(ch=>sdef.cols.forEach(col=>(ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[1]>m)m=p[1]; }))); return m; }
+  // 2) 재수강을 일차 오름차순으로 각각 삽입 + 끝까지 연쇄 이동
   const rs=RETRIES.filter(r=>r.subj===subj).sort((a,b)=>a.day-b.day||(a.rid<b.rid?-1:1));
   rs.forEach(r=>{
-    const T=r.day; let last=null,lastKey=-1;
-    data.forEach((ch,ci)=>sdef.cols.forEach(col=>{
-      (ch[col.key]||[]).forEach(p=>{
-        if(Array.isArray(p)&&p[1]===T){ const key=ci*100000+p[0]; if(key>lastKey){lastKey=key;last=p;} }
-      });
-    }));
-    if(last)last[1]=T+1;   // 마지막 정규 문제를 다음 일차로 밀어 자리 확보
+    const T=r.day;
+    const first=dayRegs(T,null);
+    if(!first.length)return;              // T에 정규 문제가 없으면 밀 것 없음
+    let carry=first[first.length-1];      // T의 마지막을 밀어냄
+    carry[1]=T+1;
+    const maxD=curMax();
+    let d=T+1;
+    while(d<=maxD){
+      const regs=dayRegs(d,carry[2]);     // 이 일차의 원래 문제들(방금 밀려온 carry 제외)
+      if(!regs.length)break;              // 원래 비어있던 칸 → carry 안착, 연쇄 종료
+      const last=regs[regs.length-1];
+      last[1]=d+1;                        // 이 일차의 마지막을 다음 일차로
+      carry=last; d++;
+    }
   });
+}
+// 완료 버킷 등 실제 일차가 없는 경우, "현재 진행 위치"(첫 미완료 일차)를 기준일차로 삼는다.
+function frontDayOf(subj){
+  const dm=MAPS[subj]||{}; const max=MAXS[subj]||0;
+  for(let d=1;d<=max;d++){
+    const ps=dm[d]||[];
+    if(ps.some(p=>!dn(p.subj,p.ci,p.type,p.num)))return d;
+    if(RETRIES.some(r=>r.subj===subj&&r.day===d&&!r.done))return d;
+  }
+  return Math.max(1,max);
 }
 function scheduleRetry(subj,ci,type,num,fromDay){
   if(isRetryScheduled(subj,ci,type,num))return;
-  if(!(fromDay>=1))return;   // 실제 일차에서만 예약(완료 버킷 등 제외)
+  if(!(fromDay>=1))fromDay=frontDayOf(subj);   // 완료 버킷(일차 0)이면 현재 진행 위치 기준으로
   snapshotRetryBase(subj);
   RETRIES.push({rid:newRid(),subj,ci,type,num,pid:pidOf(subj,ci,type,num),day:fromDay+RETRY_OFFSET,done:false});
   applyRetrySchedule(subj);

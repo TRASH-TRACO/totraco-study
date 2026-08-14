@@ -37,19 +37,18 @@ function makeProbUnit(subj,ci,type,num,cls){
   wb.className='pu-btn pu-wrong'+(isWrong(subj,ci,type,num)?' on':'');wb.textContent='오답';
   wb.onclick=e=>{e.stopPropagation();toggleWrong(subj,ci,type,num);const on=isWrong(subj,ci,type,num);wb.classList.toggle('on',on);unit.classList.toggle('wrong',on);};
   act.appendChild(wb);
-  if(curDay>=1){   // 실제 일차에서만 다시풀기 가능(완료 버킷 등 제외)
-    const rb=document.createElement('button');rb.type='button';
-    rb.className='pu-btn pu-retry'+(isRetryScheduled(subj,ci,type,num)?' on':'');
-    rb.textContent=isRetryScheduled(subj,ci,type,num)?'예약됨':'다시풀기';
-    rb.onclick=async e=>{
-      e.stopPropagation();
-      if(isRetryScheduled(subj,ci,type,num))unscheduleRetry(subj,ci,type,num);
-      else scheduleRetry(subj,ci,type,num,curDay);
-      await saveRetries();await saveAllSubjData();
-      buildMaps();buildDG();renderDP(curDay);updateProgress();
-    };
-    act.appendChild(rb);
-  }
+  // 다시풀기 — 완료 버킷(일차 0) 포함 어디서든 가능. 버킷이면 현재 진행 위치+7로 예약된다.
+  const rb=document.createElement('button');rb.type='button';
+  rb.className='pu-btn pu-retry'+(isRetryScheduled(subj,ci,type,num)?' on':'');
+  rb.textContent=isRetryScheduled(subj,ci,type,num)?'예약됨':'다시풀기';
+  rb.onclick=async e=>{
+    e.stopPropagation();
+    if(isRetryScheduled(subj,ci,type,num))unscheduleRetry(subj,ci,type,num);
+    else scheduleRetry(subj,ci,type,num,curDay);
+    await saveRetries();await saveAllSubjData();
+    buildMaps();buildDG();renderDP(curDay);updateProgress();
+  };
+  act.appendChild(rb);
   unit.appendChild(act);
   return unit;
 }
