@@ -52,6 +52,8 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
       <div class="hdr-actions">
         <span class="hdr-date" id="today-date"></span>
         <span class="sync-user" id="sync-user"></span>
+        <button class="hdr-btn" id="hdr-setup" onclick="goNav('setup')"
+                title="과목·문제 등록/수정">⚙ 과목 설정</button>
         <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()"
                 title="라이트/다크 전환" aria-label="라이트/다크 전환"></button>
         <button class="hdr-btn" id="sync-chip" onclick="onSyncChipClick()"
@@ -66,7 +68,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
   <div class="nav">
     <div class="nt on" id="nt-study" onclick="goNav('study')">학습</div>
     <div class="nt" id="nt-cal" onclick="goNav('cal')">학습 캘린더</div>
-    <div class="nt" id="nt-setup" onclick="goNav('setup')">과목 설정</div>
+    <div class="nt" id="nt-wrong" onclick="goNav('wrong')">오답노트</div>
   </div>
 
   <!-- 학습 탭 -->
@@ -125,6 +127,15 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
       <div class="cal-grid" id="cal-grid"></div>
       <div class="cal-panel" id="cal-panel"></div>
     </div>
+  </div>
+
+  <!-- 오답노트 탭 — '오답' 표시한 문제 모아보기 -->
+  <div id="nav-wrong" style="display:none">
+    <div class="wrong-empty" id="wrong-empty" style="display:none">
+      <div class="empty-title">오답으로 표시한 문제가 없어요</div>
+      <p class="empty-desc">학습 탭에서 문제를 완료한 뒤 <b>오답</b>을 누르면 여기에 모여요.</p>
+    </div>
+    <div id="wrong-body"></div>
   </div>
 
   <!-- 과목 설정 탭 — 과목 등록 → 문제 등록 → 회독 시작 순서 -->
@@ -403,6 +414,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
 <script src="/js/assign.js"></script>
 <script src="/js/account.js"></script>
 <script src="/js/calendar.js"></script>
+<script src="/js/wrongnote.js"></script>
 <script src="/js/boot.js"></script>
 <script type="module" src="/src/sync.js"></script>
 </body>

@@ -17,7 +17,7 @@ function loadSavedView(){
   try{ const s=localStorage.getItem(VIEW_KEY); if(s)v=JSON.parse(s); }catch(_){}
   if(!v||typeof v!=='object')return;
   const ids=SUBJECTS.map(s=>s.id);
-  if(v.nav==='study'||v.nav==='cal'||v.nav==='setup') curNav=v.nav;
+  if(v.nav==='study'||v.nav==='cal'||v.nav==='wrong'||v.nav==='setup') curNav=v.nav;
   if(v.subj==='all'||ids.includes(v.subj)) curSubj=v.subj;
   if(v.view==='day'||v.view==='chap') curView=v.view;
   _pendingDay=(typeof v.day==='number')?v.day:null;   // 실제 적용·검증은 restoreView에서

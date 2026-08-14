@@ -360,6 +360,7 @@ label.fbtn{cursor:pointer;}
 .hdr-btn.ok::before{background:var(--emerald-500);}
 .hdr-btn.busy::before{background:var(--amber-500);}
 .hdr-btn.err::before{background:var(--red-500);}
+.hdr-btn.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
 
 @media(max-width:600px){
   .hdr-date,.sync-user{display:none;}
@@ -572,3 +573,13 @@ label.fbtn{cursor:pointer;}
   .cal-ch{flex-direction:column;gap:3px;}
   .cal-ch-nm{min-width:0;}
 }
+
+/* ── 오답노트 ── */
+.wrong-empty{text-align:center;padding:56px 20px;border:1px dashed var(--border2);border-radius:var(--radius-lg);}
+.wrong-hdr{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.wrong-cnt{font-size:12px;font-weight:600;color:var(--fin);font-family:var(--font-mono);margin-left:6px;}
+.wrong-items{display:flex;flex-wrap:wrap;gap:8px;flex:1;}
+.wrong-item{display:inline-flex;align-items:center;gap:4px;background:var(--bg);
+  border:1px solid var(--border);border-radius:var(--r2);padding:4px 6px;}
+.wrong-item .chip{cursor:default;}
+.wrong-item .chip:hover{filter:none;transform:none;box-shadow:none;}

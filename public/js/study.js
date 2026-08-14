@@ -58,11 +58,17 @@ function makeProbUnit(subj,ci,type,num,cls){
 // ══════════════════════════════════════════
 function goNav(n){
   curNav=n;
-  ['study','cal','setup'].forEach(id=>{
-    document.getElementById('nt-'+id).classList.toggle('on',id===n);
-    document.getElementById('nav-'+id).style.display=id===n?'block':'none';
+  // 컨테이너 표시 (setup은 헤더 버튼으로 진입하지만 컨테이너는 여기서 함께 토글)
+  ['study','cal','wrong','setup'].forEach(id=>{
+    const nav=document.getElementById('nav-'+id); if(nav)nav.style.display=id===n?'block':'none';
   });
+  // 메인 탭 하이라이트 (setup은 헤더의 ⚙ 과목 설정 버튼을 대신 하이라이트)
+  ['study','cal','wrong'].forEach(id=>{
+    const nt=document.getElementById('nt-'+id); if(nt)nt.classList.toggle('on',id===n);
+  });
+  const hs=document.getElementById('hdr-setup'); if(hs)hs.classList.toggle('on',n==='setup');
   if(n==='cal') renderCalendar();
+  if(n==='wrong') renderWrongNote();
   if(n==='setup'){
     ensureCurSubjects();
     renderSubjGrid(true);   // 과목 목록
