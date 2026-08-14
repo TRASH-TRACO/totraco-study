@@ -212,9 +212,11 @@ async function applyBlob(data){
   curDay=null;
   const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
   if(curView==='chap')renderChaps();
-  if(curNav==='data')renderEd();
-  if(curNav==='subj')renderSubjGrid(true);
   if(curNav==='cal')renderCalendar();
+  if(curNav==='wrong')renderWrongNote();
+  // 과목 설정 모달이 열려 있으면 내용도 갱신
+  const setupM=document.getElementById('nav-setup');
+  if(setupM&&setupM.style.display!=='none'){ renderSubjGrid(true);renderEd();renderAssignInfo();applyEdSection(); }
   document.getElementById('hdr-sub-names').textContent=SUBJECTS.map(s=>s.name).join(' · ');
 }
 

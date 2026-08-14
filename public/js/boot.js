@@ -17,7 +17,7 @@ function loadSavedView(){
   try{ const s=localStorage.getItem(VIEW_KEY); if(s)v=JSON.parse(s); }catch(_){}
   if(!v||typeof v!=='object')return;
   const ids=SUBJECTS.map(s=>s.id);
-  if(v.nav==='study'||v.nav==='cal'||v.nav==='wrong'||v.nav==='setup') curNav=v.nav;
+  if(v.nav==='study'||v.nav==='cal'||v.nav==='wrong') curNav=v.nav;   // setup은 모달이라 탭 복원 대상 아님
   if(v.subj==='all'||ids.includes(v.subj)) curSubj=v.subj;
   if(v.view==='day'||v.view==='chap') curView=v.view;
   _pendingDay=(typeof v.day==='number')?v.day:null;   // 실제 적용·검증은 restoreView에서
@@ -60,10 +60,10 @@ async function init(){
   applyEntryGate();
   refreshOnboarding();
   restoreView();     // 뷰 토글·선택 일자·활성 탭을 DOM에 반영
-  // 아직 아무것도 없으면 준비 화면부터 보여준다
-  if(!hasAnyProblems()) goNav('setup');
   // 모든 렌더가 끝났으니 앱을 드러낸다 (깜빡임 방지용 booting 해제)
   document.documentElement.classList.remove('booting');
+  // 아직 아무것도 없으면 과목 설정 모달을 띄워 온보딩 (앱이 보인 뒤에)
+  if(!hasAnyProblems()) openSetup();
 }
 // 클라우드 동기화 모듈이 최초 로드 완료를 기다릴 수 있도록 promise를 노출
 // init이 실패로 끝나더라도 앱이 계속 숨겨지지 않도록 booting은 반드시 해제한다.

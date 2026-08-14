@@ -57,28 +57,32 @@ function makeProbUnit(subj,ci,type,num,cls){
 // 네비
 // ══════════════════════════════════════════
 function goNav(n){
+  if(n==='setup'){ openSetup(); return; }   // 과목 설정은 이제 모달 (옛 호출 호환용 가드)
   curNav=n;
-  // 컨테이너 표시 (setup은 헤더 버튼으로 진입하지만 컨테이너는 여기서 함께 토글)
-  ['study','cal','wrong','setup'].forEach(id=>{
-    const nav=document.getElementById('nav-'+id); if(nav)nav.style.display=id===n?'block':'none';
-  });
-  // 메인 탭 하이라이트 (setup은 헤더의 ⚙ 과목 설정 버튼을 대신 하이라이트)
   ['study','cal','wrong'].forEach(id=>{
+    const nav=document.getElementById('nav-'+id); if(nav)nav.style.display=id===n?'block':'none';
     const nt=document.getElementById('nt-'+id); if(nt)nt.classList.toggle('on',id===n);
   });
-  const hs=document.getElementById('hdr-setup'); if(hs)hs.classList.toggle('on',n==='setup');
   if(n==='cal') renderCalendar();
   if(n==='wrong') renderWrongNote();
-  if(n==='setup'){
-    ensureCurSubjects();
-    renderSubjGrid(true);   // 과목 목록
-    renderEd();             // 선택 과목의 문제 등록
-    renderAssignInfo();  // 회독 배정
-    applyEdSection();
-    refreshOnboarding();
-  }
   updateEmptyStates();
   saveView();
+}
+// 과목 설정 모달 — 헤더 ⚙ 버튼으로 열고, 내용을 채운 뒤 표시한다. 밑의 탭(학습 등)은 유지.
+function openSetup(){
+  ensureCurSubjects();
+  renderSubjGrid(true);   // 과목 목록
+  renderEd();             // 선택 과목의 문제 등록
+  renderAssignInfo();     // 회독 배정
+  applyEdSection();
+  refreshOnboarding();
+  updateEmptyStates();
+  const m=document.getElementById('nav-setup'); if(m)m.style.display='flex';
+  const hs=document.getElementById('hdr-setup'); if(hs)hs.classList.add('on');
+}
+function closeSetup(){
+  const m=document.getElementById('nav-setup'); if(m)m.style.display='none';
+  const hs=document.getElementById('hdr-setup'); if(hs)hs.classList.remove('on');
 }
 function goSubj(s){
   curSubj=s;

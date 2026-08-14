@@ -52,7 +52,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
       <div class="hdr-actions">
         <span class="hdr-date" id="today-date"></span>
         <span class="sync-user" id="sync-user"></span>
-        <button class="hdr-btn" id="hdr-setup" onclick="goNav('setup')"
+        <button class="hdr-btn" id="hdr-setup" onclick="openSetup()"
                 title="과목·문제 등록/수정">⚙ 과목 설정</button>
         <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()"
                 title="라이트/다크 전환" aria-label="라이트/다크 전환"></button>
@@ -77,7 +77,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
     <div class="empty-state" id="study-empty" style="display:none">
       <div class="empty-title">아직 등록된 문제가 없어요</div>
       <p class="empty-desc">과목을 만들고 문제를 등록하면 여기에 회독 진도가 표시됩니다.</p>
-      <button class="rbtn pri" onclick="goNav('setup')">과목 설정으로 가기</button>
+      <button class="rbtn pri" onclick="openSetup()">과목 설정으로 가기</button>
     </div>
 
     <div id="study-body">
@@ -138,8 +138,14 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
     <div id="wrong-body"></div>
   </div>
 
-  <!-- 과목 설정 탭 — 과목 등록 → 문제 등록 → 회독 시작 순서 -->
-  <div id="nav-setup" style="display:none">
+  <!-- 과목 설정 모달 — 과목 등록 → 문제 등록 → 회독 시작 순서 -->
+  <div id="nav-setup" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeSetup()">
+   <div class="modal-box modal-box-wide">
+    <div class="modal-hdr">
+      <div class="modal-title">과목 설정</div>
+      <button class="modal-close" onclick="closeSetup()">✕</button>
+    </div>
+    <div class="modal-body">
     <div class="onboard" id="onboard" style="display:none"></div>
 
   <!-- 과목 관리 탭 -->
@@ -233,7 +239,9 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
       <div id="assign-preview" class="assign-preview" style="display:none"></div>
     </div>
   </div>
-  </div>
+    </div><!-- /modal-body -->
+   </div><!-- /modal-box -->
+  </div><!-- /nav-setup 모달 -->
 
 <!-- 푸터 -->
 <div class="footer">
