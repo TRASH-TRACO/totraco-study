@@ -260,6 +260,12 @@ function renderEdSubjTabs(){
     btn.onclick=()=>goEdSubj(s.id);
     con.appendChild(btn);
   });
+  // 과목 즉시 추가 (+) — 저장 안 눌러도 바로 반영되는 별도 모달
+  const add=document.createElement('button');
+  add.className='ed-stab ed-stab-add';add.type='button';add.title='새 과목 추가';
+  add.textContent='＋';
+  add.onclick=openNewSubjectModal;
+  con.appendChild(add);
 }
 function renderEd(){renderEdSubjTabs();buildEdRows();if(curEdMode==='grid')renderEdGrid();else renderPastePanel();document.getElementById('ed-st').textContent='';}
 

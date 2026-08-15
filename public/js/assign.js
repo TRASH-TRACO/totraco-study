@@ -482,6 +482,46 @@ async function saveSubjects(){
   showToast('✅ 과목 설정 저장 완료');
 }
 
+// ── 새 과목 추가 모달 (즉시 저장) ─────────────
+function openNewSubjectModal(){
+  const colorSel=document.getElementById('ns-color');
+  const used=SUBJECTS.map(s=>s.color);
+  colorSel.innerHTML='';
+  COLOR_PALETTE.forEach(cp=>{ const o=document.createElement('option');o.value=cp.id;o.textContent=cp.label;colorSel.appendChild(o); });
+  colorSel.value=(COLOR_PALETTE.find(c=>!used.includes(c.id))||COLOR_PALETTE[0]).id;
+  const presetSel=document.getElementById('ns-preset');
+  presetSel.innerHTML='';
+  COL_PRESETS.forEach((cp,i)=>{ const o=document.createElement('option');o.value=i;o.textContent=cp.label;presetSel.appendChild(o); });
+  presetSel.value=1;   // 이론+기본+심화 기본
+  document.getElementById('ns-name').value='';
+  document.getElementById('newsubj-modal').style.display='flex';
+  setTimeout(()=>{const n=document.getElementById('ns-name');if(n)n.focus();},50);
+}
+function closeNewSubjectModal(){
+  const m=document.getElementById('newsubj-modal'); if(m)m.style.display='none';
+}
+async function confirmNewSubject(){
+  const name=(document.getElementById('ns-name').value||'').trim();
+  if(!name){ showToast('과목 이름을 입력하세요'); const n=document.getElementById('ns-name'); if(n)n.focus(); return; }
+  const colorId=document.getElementById('ns-color').value;
+  const presetIdx=parseInt(document.getElementById('ns-preset').value)||0;
+  const cols=JSON.parse(JSON.stringify((COL_PRESETS[presetIdx]||COL_PRESETS[0]).cols));
+  const used=SUBJECTS.map(s=>s.id); let id='subj1';
+  for(let i=1;i<1000;i++){ if(!used.includes('subj'+i)){id='subj'+i;break;} }
+  SUBJECTS.push({ id, name, color:colorId, dataKey:id+'Data', idbKey:'c'+id, cols });
+  DATA[id]=[]; DEFAULTS[id]=[];
+  updateSubjectCSS();
+  await idbSet('subjects_config', SUBJECTS);
+  await saveAllSubjData();
+  // 새 과목을 편집·학습 대상으로 선택
+  curEdSubj=id; curRandSubj=id; curSubj=id;
+  ensureCurSubjects();
+  rebuildUI();
+  renderSubjGrid(true); renderEd(); renderAssignInfo(); applyEdSection(); refreshOnboarding(); updateEmptyStates();
+  closeNewSubjectModal();
+  showToast('✅ 과목 추가: '+name);
+}
+
 function updateSubjectCSS(){
   // 동적 CSS 변수 업데이트
   let styleEl = document.getElementById('dynamic-subj-css');

@@ -250,6 +250,8 @@ label.fbtn{cursor:pointer;}
 .ed-subj-tabs{display:flex;gap:4px;}
 .ed-stab{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:all .12s;font-family:inherit;}
 .ed-stab:hover{background:var(--bg4);}
+.ed-stab-add{background:transparent;border-style:dashed;border-color:var(--border2);color:var(--text3);font-weight:700;}
+.ed-stab-add:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
 /* 선택 상태는 그 과목의 색을 쓴다 (--stab-c는 렌더 시 과목별로 주입) */
 .ed-stab{display:inline-flex;align-items:center;gap:7px;}
 .stab-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--stab-c,var(--text3));}
@@ -325,6 +327,15 @@ label.fbtn{cursor:pointer;}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .modal-box{background:var(--bg);border-radius:var(--r);box-shadow:var(--shadow2);max-width:560px;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:slideUp .2s;}
 .modal-box-wide{max-width:840px;}   /* 과목 설정 모달 — 그리드·에디터가 들어가 넓게 */
+/* 새 과목 추가 모달 폼 */
+.ns-field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;}
+.ns-label{font-size:12px;font-weight:600;color:var(--text2);}
+.ns-row{display:flex;gap:12px;margin-top:14px;}
+#newsubj-modal input,#newsubj-modal select{font-size:14px;padding:9px 11px;border:1px solid var(--border);
+  border-radius:var(--r2);background:var(--bg);color:var(--text);outline:none;font-family:inherit;width:100%;box-sizing:border-box;}
+#newsubj-modal input:focus,#newsubj-modal select:focus{border-color:var(--accent);}
+#newsubj-modal input::placeholder{color:var(--text3);}
+.ns-note{font-size:11px;color:var(--text3);line-height:1.6;margin-top:14px;}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
 .modal-title{font-size:14px;font-weight:600;color:var(--text);}
