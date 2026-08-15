@@ -109,8 +109,21 @@ async function runAssign(mode){
     });
   }));
 
-  // 일차를 새로 짜면 기존 재수강 스케줄은 무효 → 이 과목 재수강 제거(base는 새 배정이 기준)
-  RETRIES=RETRIES.filter(r=>r.subj!==subj.id); delete RETRY_BASE[subj.id]; await saveRetries();
+  // 재수강(다시풀기)은 유지 — 새 배정된 일차 + 7로 다시 앵커링하고 캐스케이드 재적용
+  const _sr=RETRIES.filter(r=>r.subj===subj.id);
+  delete RETRY_BASE[subj.id];
+  if(_sr.length){
+    _sr.forEach(r=>{
+      const col=subj.cols.find(c=>colKeyToType(subj.id,c.key)===r.type);
+      const nd=col?dayOf.get(r.ci+'|'+col.key+'|'+r.num):undefined;
+      r.day=((nd&&nd>=1)?nd:1)+RETRY_OFFSET;
+    });
+    const base={};
+    data.forEach(ch=>subj.cols.forEach(c=>{ (ch[c.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[2])base[p[2]]=p[1]; }); }));
+    RETRY_BASE[subj.id]=base;
+    applyRetrySchedule(subj.id);
+  }
+  await saveRetries();
 
   syncLegacy();
   await saveAllSubjData();
@@ -795,8 +808,25 @@ async function applyReschedule(){
     });
   }));
 
-  // 일차를 다시 배치했으니 이 과목 재수강 스케줄은 무효 → 제거
-  RETRIES=RETRIES.filter(r=>r.subj!==subjId); delete RETRY_BASE[subjId]; await saveRetries();
+  // 재수강(다시풀기)은 제거하지 않고 유지 — 새 일차에 맞춰 (문제의 새 일차 + 7)로 다시 앵커링하고,
+  // 재조정된 깔끔한 일차를 base로 캐스케이드를 다시 적용한다. (예전엔 제거해서 다시풀기 문제가 사라졌음)
+  const sdefR=SUBJECTS.find(s=>s.id===subjId);
+  const subjRetries=RETRIES.filter(r=>r.subj===subjId);
+  delete RETRY_BASE[subjId];
+  if(subjRetries.length && sdefR){
+    subjRetries.forEach(r=>{
+      const col=sdefR.cols.find(c=>colKeyToType(subjId,c.key)===r.type);
+      const nd=col?map[`${r.ci}|${col.key}|${r.num}`]:undefined;
+      r.day=((nd&&nd>=1)?nd:1)+RETRY_OFFSET;
+    });
+    const base={};
+    (DATA[subjId]||[]).forEach(ch=>sdefR.cols.forEach(c=>{
+      (ch[c.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[2])base[p[2]]=p[1]; });
+    }));
+    RETRY_BASE[subjId]=base;
+    applyRetrySchedule(subjId);
+  }
+  await saveRetries();
 
   syncLegacy();
   await saveAllSubjData();
