@@ -158,8 +158,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
       </div>
       <div class="ss-wrap" id="subj-grid-wrap"></div>
       <div class="setup-add-row">
-        <button class="add-row-btn" onclick="openNewSubjectModal()">＋ 새 과목 추가</button>
-        <button class="add-row-btn" onclick="openBookModal()">📚 문제집에서 불러오기</button>
+        <button class="add-row-btn" onclick="openNewSubjectModal()">＋ 새 과목 추가 · 문제집 불러오기</button>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="rbtn pri" onclick="saveSubjects()">저장 및 적용</button>
@@ -339,29 +338,6 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
 </div>
 
 <!-- 문제집 불러오기 모달 -->
-<div id="book-modal" class="modal-overlay" style="display:none;">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <div class="modal-title">📚 문제집에서 불러오기</div>
-      <button class="modal-close" onclick="closeBookModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6;">
-        저장된 문제집을 검색해 과목·장·문제 목차를 한 번에 불러올 수 있어요.<br>
-        불러온 뒤에도 과목 설정에서 자유롭게 수정할 수 있습니다.
-      </div>
-      <input id="book-search" class="book-search" type="text"
-        placeholder="문제집 검색 — 제목·과목·저자·연도" oninput="renderBookList()">
-      <div id="book-list"></div>
-      <div id="book-preview"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="rbtn sec" onclick="closeBookModal()">닫기</button>
-      <button class="rbtn pri" id="book-load-btn" onclick="loadSelectedBook()" disabled>이 문제집 불러오기</button>
-    </div>
-  </div>
-</div>
-
 <!-- 로그아웃 모달 -->
 <div id="logout-modal" class="modal-overlay" style="display:none;">
   <div class="modal-box" style="max-width:440px;">
@@ -413,34 +389,53 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
   </div>
 </div>
 
-<!-- 새 과목 추가 모달 — 추가하면 저장 및 적용 없이 바로 반영 -->
+<!-- 새 과목 추가 모달 — 직접 만들기 / 문제집 불러오기 (추가하면 바로 저장) -->
 <div id="newsubj-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeNewSubjectModal()">
-  <div class="modal-box" style="max-width:420px;">
+  <div class="modal-box" style="max-width:560px;">
     <div class="modal-hdr">
       <div class="modal-title">새 과목 추가</div>
       <button class="modal-close" onclick="closeNewSubjectModal()">✕</button>
     </div>
     <div class="modal-body">
-      <label class="ns-field">
-        <span class="ns-label">과목 이름</span>
-        <input id="ns-name" type="text" maxlength="20" placeholder="예: 재무회계"
-          onkeydown="if(event.key==='Enter')confirmNewSubject()">
-      </label>
-      <div class="ns-row">
-        <label class="ns-field">
-          <span class="ns-label">색상</span>
-          <select id="ns-color"></select>
-        </label>
-        <label class="ns-field">
-          <span class="ns-label">문제 유형</span>
-          <select id="ns-preset"></select>
-        </label>
+      <div class="ns-modes">
+        <button class="ns-mode on" id="ns-mode-manual" type="button" onclick="nsSetMode('manual')">직접 만들기</button>
+        <button class="ns-mode" id="ns-mode-book" type="button" onclick="nsSetMode('book')">📚 문제집에서 불러오기</button>
       </div>
-      <p class="ns-note">추가하면 <b>바로 저장</b>돼요. 이름·색상·유형은 나중에 아래 <b>과목 관리</b>에서 바꿀 수 있어요.</p>
+
+      <!-- 직접 만들기 -->
+      <div id="ns-manual">
+        <label class="ns-field">
+          <span class="ns-label">과목 이름</span>
+          <input id="ns-name" type="text" maxlength="20" placeholder="예: 재무회계"
+            onkeydown="if(event.key==='Enter')nsConfirm()">
+        </label>
+        <div class="ns-field" style="margin-top:16px;">
+          <span class="ns-label">색상</span>
+          <div class="ns-swatches" id="ns-color-swatches"></div>
+        </div>
+        <div class="ns-field" style="margin-top:16px;">
+          <span class="ns-label">문제 유형</span>
+          <div class="ns-preset-row" id="ns-preset-row"></div>
+          <div class="ns-types" id="ns-types"></div>
+          <button class="ns-type-add" type="button" onclick="nsAddType()">＋ 유형 추가</button>
+        </div>
+        <p class="ns-note">추가하면 <b>바로 저장</b>돼요. 유형별 색 점을 눌러 색을 고르세요. 나중에 <b>과목 관리</b>에서도 바꿀 수 있어요.</p>
+      </div>
+
+      <!-- 문제집 불러오기 -->
+      <div id="ns-book" style="display:none;">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.6;">
+          저장된 문제집을 검색해 과목·장·문제 목차를 한 번에 불러와요. 불러온 뒤 과목 관리에서 수정할 수 있어요.
+        </div>
+        <input id="book-search" class="book-search" type="text"
+          placeholder="문제집 검색 — 제목·과목·저자·연도" oninput="renderBookList()">
+        <div id="book-list"></div>
+        <div id="book-preview"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="rbtn sec" onclick="closeNewSubjectModal()">취소</button>
-      <button class="rbtn pri" onclick="confirmNewSubject()">추가</button>
+      <button class="rbtn pri" id="ns-confirm" onclick="nsConfirm()">추가</button>
     </div>
   </div>
 </div>

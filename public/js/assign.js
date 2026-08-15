@@ -253,17 +253,15 @@ function renderSubjGrid(reset){
     const inpNm = document.createElement('input');inpNm.value=row.name;inpNm.placeholder='과목 이름';
     inpNm.addEventListener('input',()=>{subjEditRows[ri].name=inpNm.value;});
     tdNm.appendChild(inpNm);tr.appendChild(tdNm);
-    // 색상
+    // 색상 (스와치 팔레트)
     const tdC = document.createElement('td');tdC.style.padding='4px 8px';
-    const sel = document.createElement('select');
-    sel.style.cssText='font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--r2);background:var(--bg);font-family:inherit;';
+    const cwrap = document.createElement('div');
+    cwrap.style.cssText='display:flex;flex-wrap:wrap;gap:4px;max-width:150px;';
     COLOR_PALETTE.forEach(cp=>{
-      const opt = document.createElement('option');opt.value=cp.id;opt.textContent=cp.label;
-      if(cp.id===row.color)opt.selected=true;
-      sel.appendChild(opt);
+      cwrap.appendChild(swatchBtn(cp.c, cp.id===row.color,
+        ()=>{ subjEditRows[ri].color=cp.id; renderSubjGrid(); }, cp.label, true));
     });
-    sel.addEventListener('change',()=>{subjEditRows[ri].color=sel.value;});
-    tdC.appendChild(sel);tr.appendChild(tdC);
+    tdC.appendChild(cwrap);tr.appendChild(tdC);
     // 문제 유형 — 칩 형태로 자유롭게 편집
     const tdT = document.createElement('td');tdT.style.padding='6px 8px';
     tdT.appendChild(renderTypeChips(ri));
@@ -313,20 +311,14 @@ function renderTypeChips(ri){
     });
     chip.appendChild(lblInp);
 
-    // 색상 셀렉트 (작게)
-    const clsSel = document.createElement('select');
-    clsSel.title = '칩 색상';
-    clsSel.style.cssText = 'font-size:10px;padding:1px 2px;border:1px solid var(--border);border-radius:3px;background:var(--bg);font-family:inherit;';
-    TYPE_CLS_OPTIONS.forEach(opt => {
-      const o = document.createElement('option');
-      o.value = opt.id; o.textContent = opt.label;
-      if (opt.id === col.cls) o.selected = true;
-      clsSel.appendChild(o);
+    // 색상 스와치 (텍스트 셀렉트 대신 팔레트)
+    const clsWrap = document.createElement('div');
+    clsWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:3px;align-items:center;';
+    TYPE_COLORS.forEach(tc => {
+      clsWrap.appendChild(swatchBtn('var('+tc.v+')', tc.id===col.cls,
+        () => { subjEditRows[ri].cols[ci].cls = tc.id; renderSubjGrid(); }, '', true));
     });
-    clsSel.addEventListener('change', () => {
-      subjEditRows[ri].cols[ci].cls = clsSel.value;
-    });
-    chip.appendChild(clsSel);
+    chip.appendChild(clsWrap);
 
     // 삭제 버튼
     const delBtn = document.createElement('button');
@@ -482,30 +474,100 @@ async function saveSubjects(){
   showToast('✅ 과목 설정 저장 완료');
 }
 
-// ── 새 과목 추가 모달 (즉시 저장) ─────────────
+// 유형(문제 유형) 색상 팔레트 — 칩/뱃지 CSS 클래스와 매칭(테마 변수 사용)
+const TYPE_COLORS=[
+  {id:'th',v:'--theory'},{id:'ba',v:'--cost'},{id:'av',v:'--fin'},{id:'ca',v:'--tax'},
+  {id:'gib',v:'--gib'},{id:'jing',v:'--jing'},{id:'beol',v:'--beol'},{id:'si',v:'--text3'}
+];
+// 색상 스와치 버튼 하나
+function swatchBtn(bg,selected,onclick,title,small){
+  const b=document.createElement('button');b.type='button';
+  b.className='sw'+(small?' sw-sm':'')+(selected?' on':'');
+  b.style.background=bg; if(title)b.title=title; b.onclick=onclick; return b;
+}
+
+// ── 새 과목 추가 모달 (즉시 저장 · 문제집 불러오기 내장) ─────────────
+let nsMode='manual';        // 'manual' | 'book'
+let nsColorId=null;         // 선택한 과목 색상
+let nsTypes=[];             // [{key,label,cls}]
 function openNewSubjectModal(){
-  const colorSel=document.getElementById('ns-color');
   const used=SUBJECTS.map(s=>s.color);
-  colorSel.innerHTML='';
-  COLOR_PALETTE.forEach(cp=>{ const o=document.createElement('option');o.value=cp.id;o.textContent=cp.label;colorSel.appendChild(o); });
-  colorSel.value=(COLOR_PALETTE.find(c=>!used.includes(c.id))||COLOR_PALETTE[0]).id;
-  const presetSel=document.getElementById('ns-preset');
-  presetSel.innerHTML='';
-  COL_PRESETS.forEach((cp,i)=>{ const o=document.createElement('option');o.value=i;o.textContent=cp.label;presetSel.appendChild(o); });
-  presetSel.value=1;   // 이론+기본+심화 기본
+  nsColorId=(COLOR_PALETTE.find(c=>!used.includes(c.id))||COLOR_PALETTE[0]).id;
+  nsTypes=JSON.parse(JSON.stringify(COL_PRESETS[1].cols));   // 이론+기본+심화 기본
   document.getElementById('ns-name').value='';
+  // 문제집 검색 상태 초기화
+  selectedBookId=null;
+  const bs=document.getElementById('book-search'); if(bs)bs.value='';
+  const bp=document.getElementById('book-preview'); if(bp)bp.innerHTML='';
+  nsRenderColors(); nsRenderPresets(); nsRenderTypes();
+  nsSetMode('manual');
   document.getElementById('newsubj-modal').style.display='flex';
   setTimeout(()=>{const n=document.getElementById('ns-name');if(n)n.focus();},50);
 }
 function closeNewSubjectModal(){
   const m=document.getElementById('newsubj-modal'); if(m)m.style.display='none';
 }
-async function confirmNewSubject(){
+function nsSetMode(m){
+  nsMode=m;
+  document.getElementById('ns-mode-manual').classList.toggle('on',m==='manual');
+  document.getElementById('ns-mode-book').classList.toggle('on',m==='book');
+  document.getElementById('ns-manual').style.display=m==='manual'?'block':'none';
+  document.getElementById('ns-book').style.display=m==='book'?'block':'none';
+  const cb=document.getElementById('ns-confirm');
+  if(m==='book'){ renderBookList(); cb.textContent='이 문제집 불러오기'; cb.disabled=!selectedBookId; }
+  else { cb.textContent='추가'; cb.disabled=false; }
+}
+function nsRenderColors(){
+  const con=document.getElementById('ns-color-swatches'); if(!con)return; con.innerHTML='';
+  COLOR_PALETTE.forEach(cp=>{
+    con.appendChild(swatchBtn(cp.c, cp.id===nsColorId, ()=>{ nsColorId=cp.id; nsRenderColors(); }, cp.label));
+  });
+}
+function nsRenderPresets(){
+  const con=document.getElementById('ns-preset-row'); if(!con)return; con.innerHTML='';
+  COL_PRESETS.forEach(cp=>{
+    const b=document.createElement('button');b.type='button';b.className='ns-preset-btn';b.textContent=cp.label;
+    b.onclick=()=>{ nsTypes=JSON.parse(JSON.stringify(cp.cols)); nsRenderTypes(); };
+    con.appendChild(b);
+  });
+}
+function nsRenderTypes(){
+  const con=document.getElementById('ns-types'); if(!con)return; con.innerHTML='';
+  nsTypes.forEach((t,i)=>{
+    const row=document.createElement('div');row.className='ns-type';
+    const inp=document.createElement('input');inp.value=t.label;inp.placeholder='유형명';inp.className='ns-type-name';
+    inp.oninput=()=>{ nsTypes[i].label=inp.value; };
+    row.appendChild(inp);
+    const sw=document.createElement('div');sw.className='ns-type-sw';
+    TYPE_COLORS.forEach(tc=>{
+      sw.appendChild(swatchBtn('var('+tc.v+')', tc.id===t.cls, ()=>{ nsTypes[i].cls=tc.id; nsRenderTypes(); }, '', true));
+    });
+    row.appendChild(sw);
+    if(nsTypes.length>1){
+      const x=document.createElement('button');x.type='button';x.className='ns-type-del';x.textContent='✕';x.title='유형 삭제';
+      x.onclick=()=>{ nsTypes.splice(i,1); nsRenderTypes(); };
+      row.appendChild(x);
+    }
+    con.appendChild(row);
+  });
+}
+function nsAddType(){
+  const used=nsTypes.map(t=>t.key);
+  let key='col1'; for(let i=1;i<999;i++){ if(!used.includes('col'+i)){key='col'+i;break;} }
+  const usedCls=nsTypes.map(t=>t.cls);
+  const av=TYPE_COLORS.find(c=>!usedCls.includes(c.id))||TYPE_COLORS[0];
+  nsTypes.push({key,label:'새 유형',cls:av.id});
+  nsRenderTypes();
+}
+function nsConfirm(){
+  if(nsMode==='book'){ loadSelectedBook(); return; }
   const name=(document.getElementById('ns-name').value||'').trim();
   if(!name){ showToast('과목 이름을 입력하세요'); const n=document.getElementById('ns-name'); if(n)n.focus(); return; }
-  const colorId=document.getElementById('ns-color').value;
-  const presetIdx=parseInt(document.getElementById('ns-preset').value)||0;
-  const cols=JSON.parse(JSON.stringify((COL_PRESETS[presetIdx]||COL_PRESETS[0]).cols));
+  if(!nsTypes.length){ showToast('문제 유형을 하나 이상 추가하세요'); return; }
+  nsTypes.forEach((t,i)=>{ if(!t.label||!t.label.trim())t.label='유형'+(i+1); });
+  createSubjectNow(name, nsColorId, JSON.parse(JSON.stringify(nsTypes)));
+}
+async function createSubjectNow(name, colorId, cols){
   const used=SUBJECTS.map(s=>s.id); let id='subj1';
   for(let i=1;i<1000;i++){ if(!used.includes('subj'+i)){id='subj'+i;break;} }
   SUBJECTS.push({ id, name, color:colorId, dataKey:id+'Data', idbKey:'c'+id, cols });
@@ -513,7 +575,6 @@ async function confirmNewSubject(){
   updateSubjectCSS();
   await idbSet('subjects_config', SUBJECTS);
   await saveAllSubjData();
-  // 새 과목을 편집·학습 대상으로 선택
   curEdSubj=id; curRandSubj=id; curSubj=id;
   ensureCurSubjects();
   rebuildUI();
@@ -818,17 +879,9 @@ function bookProbCount(b){return b.chapters.reduce((t,ch)=>t+b.cols.reduce((s,c)
 
 let selectedBookId = null;
 
-function openBookModal(){
-  selectedBookId = null;
-  const s=document.getElementById('book-search'); if(s)s.value='';
-  const pv=document.getElementById('book-preview'); if(pv)pv.innerHTML='';
-  const btn=document.getElementById('book-load-btn'); if(btn)btn.disabled=true;
-  renderBookList();
-  document.getElementById('book-modal').style.display='flex';
-}
-function closeBookModal(){
-  const m=document.getElementById('book-modal'); if(m)m.style.display='none';
-}
+// 문제집 불러오기는 새 과목 추가 모달의 한 모드가 됐다 — 모달을 열고 book 모드로.
+function openBookModal(){ openNewSubjectModal(); nsSetMode('book'); }
+function closeBookModal(){ closeNewSubjectModal(); }
 window.openBookModal=openBookModal;
 window.closeBookModal=closeBookModal;
 
@@ -858,7 +911,7 @@ function selectBook(id){
   selectedBookId=id;
   renderBookList();
   renderBookPreview(id);
-  const btn=document.getElementById('book-load-btn'); if(btn)btn.disabled=false;
+  const btn=document.getElementById('ns-confirm'); if(btn)btn.disabled=false;
 }
 window.selectBook=selectBook;
 

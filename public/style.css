@@ -336,6 +336,39 @@ label.fbtn{cursor:pointer;}
 #newsubj-modal input:focus,#newsubj-modal select:focus{border-color:var(--accent);}
 #newsubj-modal input::placeholder{color:var(--text3);}
 .ns-note{font-size:11px;color:var(--text3);line-height:1.6;margin-top:14px;}
+/* 모드 토글 (직접 만들기 / 문제집) */
+.ns-modes{display:flex;gap:6px;margin-bottom:18px;background:var(--bg2);padding:4px;border-radius:var(--r2);}
+.ns-mode{flex:1;padding:8px 10px;font-size:13px;font-weight:600;font-family:inherit;border:none;border-radius:6px;
+  background:transparent;color:var(--text3);cursor:pointer;transition:all .12s;}
+.ns-mode:hover{color:var(--text2);}
+.ns-mode.on{background:var(--bg);color:var(--text);box-shadow:var(--shadow);}
+/* 색상 스와치 */
+.ns-swatches{display:flex;flex-wrap:wrap;gap:8px;}
+.sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);cursor:pointer;padding:0;transition:transform .1s,border-color .1s;}
+.sw:hover{transform:scale(1.12);}
+.sw.on{border-color:var(--text);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text);}
+.sw-sm{width:18px;height:18px;border-width:1px;}
+.sw-sm.on{box-shadow:0 0 0 1px var(--bg),0 0 0 3px var(--text);}
+/* 유형 편집기 */
+.ns-preset-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.ns-preset-btn{font-size:11px;padding:4px 10px;border:1px dashed var(--border2);border-radius:100px;
+  background:transparent;color:var(--text3);cursor:pointer;font-family:inherit;transition:all .12s;}
+.ns-preset-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);}
+.ns-types{display:flex;flex-direction:column;gap:8px;}
+.ns-type{display:flex;align-items:center;gap:10px;}
+.ns-type-name{width:110px!important;flex:none!important;font-size:13px!important;padding:7px 10px!important;}
+.ns-type-sw{display:flex;flex-wrap:wrap;gap:5px;flex:1;}
+.ns-type-del{border:none;background:transparent;color:var(--text3);font-size:13px;cursor:pointer;padding:0 4px;flex:none;}
+.ns-type-del:hover{color:var(--red);}
+.ns-type-add{margin-top:10px;font-size:12px;padding:6px 12px;border:1px dashed var(--border2);border-radius:var(--r2);
+  background:transparent;color:var(--text3);cursor:pointer;font-family:inherit;}
+.ns-type-add:hover{border-color:var(--accent);color:var(--accent);}
+/* 유형 색상 추가분 (갈색·청록·자주) — 칩/라벨/뱃지 */
+.chip.gib{border-color:var(--gib-border);color:var(--gib);background:var(--gib-bg);}
+.chip.jing{border-color:var(--jing-border);color:var(--jing);background:var(--jing-bg);}
+.chip.beol{border-color:var(--beol-border);color:var(--beol);background:var(--beol-bg);}
+.type-label.gib{color:var(--gib);}.type-label.jing{color:var(--jing);}.type-label.beol{color:var(--beol);}
+.tb-gib{background:var(--gib-bg);color:var(--gib);}.tb-jing{background:var(--jing-bg);color:var(--jing);}.tb-beol{background:var(--beol-bg);color:var(--beol);}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
 .modal-title{font-size:14px;font-weight:600;color:var(--text);}
