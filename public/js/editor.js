@@ -100,7 +100,7 @@ function renderEdGrid(){
         td.className='cell-prob';
         const ta=document.createElement('textarea');ta.value=row[c.key];
         ta.rows=Math.max(2,Math.ceil(((row[c.key]||'').split(',').length||1)/3));
-        ta.placeholder='예) 1(3), 5(1), 9(8)';ta.dataset.ri=ri;ta.dataset.ci=ci;
+        ta.placeholder='예) 1, 2, 3';ta.dataset.ri=ri;ta.dataset.ci=ci;
         ta.addEventListener('input',()=>{edRows[ri][c.key]=ta.value;ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});
         ta.addEventListener('paste',e=>{
           const raw=e.clipboardData.getData('text');
