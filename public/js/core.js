@@ -146,18 +146,31 @@ function updateEmptyStates(){
 window.updateEmptyStates=updateEmptyStates;
 
 // 사용 가능한 색상 팔레트
+// hex를 흰색 쪽으로 t(0~1)만큼 섞는다 — 팔레트 tint/border 자동 생성용
+function mixHex(hex, t){
+  const n=parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&255, b=n&255;
+  const m=v=>Math.round(v+(255-v)*t);
+  return '#'+((1<<24)+(m(r)<<16)+(m(g)<<8)+m(b)).toString(16).slice(1);
+}
+// 과목 색상 팔레트 — id는 CSS 변수명·저장값으로 쓰이니 기존 6종(fin/cost/tax/gib/jing/beol)은 유지.
+// bg(연한 배경)·bd(테두리)는 c에서 자동 생성(정규화 루프).
 const COLOR_PALETTE = [
-  {id:'fin',label:'빨강',c:'#d44c47',bg:'#fdf3f2',bd:'#f5c8c6'},
-  {id:'cost',label:'초록',c:'#448361',bg:'#f1f8f4',bd:'#b8d9c4'},
-  {id:'tax',label:'보라',c:'#9065b0',bg:'#f6f3fb',bd:'#d9c8eb'},
-  {id:'gib',label:'갈색',c:'#d08c3a',bg:'#fdf6ee',bd:'#e8cfa0'},
-  {id:'jing',label:'청록',c:'#3a8da0',bg:'#eef7f9',bd:'#a0d4e0'},
-  {id:'beol',label:'자주',c:'#8a6b8a',bg:'#f5f0f5',bd:'#d0b8d0'},
-  {id:'navy',label:'남색',c:'#3d5a80',bg:'#eef1f6',bd:'#a0b4cc'},
-  {id:'coral',label:'코랄',c:'#cf6953',bg:'#fdf0ed',bd:'#e8b4a8'},
-  {id:'olive',label:'올리브',c:'#7a8450',bg:'#f4f5ee',bd:'#c4ca9e'},
-  {id:'slate',label:'슬레이트',c:'#5e6b7a',bg:'#eff1f3',bd:'#b0b8c4'},
+  {id:'fin',label:'빨강',c:'#d44c47'},   {id:'coral',label:'코랄',c:'#e2664a'},
+  {id:'orange',label:'주황',c:'#e2822e'},{id:'gib',label:'호박',c:'#d08c3a'},
+  {id:'amber',label:'앰버',c:'#c99a2e'}, {id:'yellow',label:'노랑',c:'#b8992a'},
+  {id:'olive',label:'올리브',c:'#7a8450'},{id:'lime',label:'라임',c:'#6f9e34'},
+  {id:'cost',label:'초록',c:'#448361'},  {id:'emerald',label:'에메랄드',c:'#2f9e6a'},
+  {id:'teal',label:'틸',c:'#2f9c8f'},    {id:'jing',label:'청록',c:'#3a8da0'},
+  {id:'cyan',label:'시안',c:'#3592b5'},  {id:'sky',label:'하늘',c:'#4a90d9'},
+  {id:'navy',label:'남색',c:'#3d5a80'},  {id:'blue',label:'파랑',c:'#4263c4'},
+  {id:'indigo',label:'인디고',c:'#5b57c9'},{id:'violet',label:'바이올렛',c:'#7c5cd0'},
+  {id:'tax',label:'보라',c:'#9065b0'},   {id:'fuchsia',label:'자홍',c:'#b453c0'},
+  {id:'beol',label:'자주',c:'#8a6b8a'},  {id:'pink',label:'핑크',c:'#d95f9c'},
+  {id:'rose',label:'로즈',c:'#e0577c'},  {id:'brown',label:'브라운',c:'#9c6b4a'},
+  {id:'slate',label:'슬레이트',c:'#5e6b7a'},{id:'gray',label:'회색',c:'#6b7280'},
 ];
+// bg/bd 자동 채우기
+COLOR_PALETTE.forEach(cp=>{ if(!cp.bg)cp.bg=mixHex(cp.c,0.90); if(!cp.bd)cp.bd=mixHex(cp.c,0.55); });
 
 // 유형 프리셋
 const COL_PRESETS = [

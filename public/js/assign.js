@@ -253,15 +253,10 @@ function renderSubjGrid(reset){
     const inpNm = document.createElement('input');inpNm.value=row.name;inpNm.placeholder='과목 이름';
     inpNm.addEventListener('input',()=>{subjEditRows[ri].name=inpNm.value;});
     tdNm.appendChild(inpNm);tr.appendChild(tdNm);
-    // 색상 (스와치 팔레트)
+    // 색상 (팝오버 팔레트)
     const tdC = document.createElement('td');tdC.style.padding='4px 8px';
-    const cwrap = document.createElement('div');
-    cwrap.style.cssText='display:flex;flex-wrap:wrap;gap:4px;max-width:150px;';
-    COLOR_PALETTE.forEach(cp=>{
-      cwrap.appendChild(swatchBtn(cp.c, cp.id===row.color,
-        ()=>{ subjEditRows[ri].color=cp.id; renderSubjGrid(); }, cp.label, true));
-    });
-    tdC.appendChild(cwrap);tr.appendChild(tdC);
+    tdC.appendChild(colorTrigger(row.color, id=>{ subjEditRows[ri].color=id; renderSubjGrid(); }));
+    tr.appendChild(tdC);
     // 문제 유형 — 칩 형태로 자유롭게 편집
     const tdT = document.createElement('td');tdT.style.padding='6px 8px';
     tdT.appendChild(renderTypeChips(ri));
@@ -486,6 +481,43 @@ function swatchBtn(bg,selected,onclick,title,small){
   b.style.background=bg; if(title)b.title=title; b.onclick=onclick; return b;
 }
 
+// ── 색상 팝오버 (과목 색상 — 그리드 팔레트) ──────────
+// body에 붙여(포털) 모달/그리드 어디서 열어도 잘리지 않게 한다.
+let _colorPop=null;
+function closeColorPop(){
+  if(_colorPop){ _colorPop.remove(); _colorPop=null; }
+  document.removeEventListener('mousedown',_colorPopOutside,true);
+  window.removeEventListener('resize',closeColorPop);
+}
+function _colorPopOutside(e){
+  if(_colorPop && !_colorPop.contains(e.target) && !(_colorPop._trigger&&_colorPop._trigger.contains(e.target))) closeColorPop();
+}
+function openColorPop(trigger,currentId,onPick){
+  closeColorPop();
+  const pop=document.createElement('div');pop.className='color-pop';pop._trigger=trigger;
+  const hd=document.createElement('div');hd.className='color-pop-hd';hd.textContent='색상 선택';pop.appendChild(hd);
+  const grid=document.createElement('div');grid.className='color-pop-grid';
+  COLOR_PALETTE.forEach(cp=>{
+    grid.appendChild(swatchBtn(cp.c, cp.id===currentId, ()=>{ closeColorPop(); onPick(cp.id); }, cp.label));
+  });
+  pop.appendChild(grid);
+  document.body.appendChild(pop);
+  const r=trigger.getBoundingClientRect(), pw=pop.offsetWidth, ph=pop.offsetHeight;
+  let left=Math.min(r.left, window.innerWidth-8-pw); if(left<8)left=8;
+  let top=r.bottom+6; if(top+ph>window.innerHeight-8) top=Math.max(8, r.top-6-ph);
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+  _colorPop=pop;
+  setTimeout(()=>{ document.addEventListener('mousedown',_colorPopOutside,true); window.addEventListener('resize',closeColorPop); },0);
+}
+// 현재 색을 보여주는 트리거(누르면 팝오버 그리드)
+function colorTrigger(currentId,onPick){
+  const cp=COLOR_PALETTE.find(c=>c.id===currentId)||COLOR_PALETTE[0];
+  const b=document.createElement('button');b.type='button';b.className='color-trigger';b.title=cp.label;
+  b.innerHTML='<span class="ct-dot" style="background:'+cp.c+'"></span><span class="ct-chev">▾</span>';
+  b.onclick=e=>{ e.stopPropagation(); openColorPop(b,currentId,onPick); };
+  return b;
+}
+
 // ── 새 과목 추가 모달 (즉시 저장 · 문제집 불러오기 내장) ─────────────
 let nsMode='manual';        // 'manual' | 'book'
 let nsColorId=null;         // 선택한 과목 색상
@@ -519,9 +551,7 @@ function nsSetMode(m){
 }
 function nsRenderColors(){
   const con=document.getElementById('ns-color-swatches'); if(!con)return; con.innerHTML='';
-  COLOR_PALETTE.forEach(cp=>{
-    con.appendChild(swatchBtn(cp.c, cp.id===nsColorId, ()=>{ nsColorId=cp.id; nsRenderColors(); }, cp.label));
-  });
+  con.appendChild(colorTrigger(nsColorId, id=>{ nsColorId=id; nsRenderColors(); }));
 }
 function nsRenderPresets(){
   const con=document.getElementById('ns-preset-row'); if(!con)return; con.innerHTML='';
