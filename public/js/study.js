@@ -49,8 +49,38 @@ function makeProbUnit(subj,ci,type,num,cls){
     buildMaps();buildDG();renderDP(curDay);updateProgress();
   };
   act.appendChild(rb);
+  // 미루기(정규 일차·미완료) / 되돌리기(미뤄둔 문제 버킷)
+  if(curDay===POSTPONE_DAY){
+    const ub=document.createElement('button');ub.type='button';ub.className='pu-btn pu-unpostpone';ub.textContent='되돌리기';
+    ub.onclick=e=>{e.stopPropagation();unpostponeProblem(subj,ci,type,num);};
+    act.appendChild(ub);
+  } else if(curDay>=1){
+    const pb=document.createElement('button');pb.type='button';pb.className='pu-btn pu-postpone';pb.textContent='미루기';
+    pb.onclick=e=>{e.stopPropagation();postponeProblem(subj,ci,type,num);};
+    act.appendChild(pb);
+  }
   unit.appendChild(act);
   return unit;
+}
+// 미루기 — 문제를 '미뤄둔 문제' 버킷(맨 뒤)으로. 원래 일차는 p[3]에 보관(되돌리기용).
+async function postponeProblem(subj,ci,type,num){
+  const p=findProb(subj,ci,type,num); if(!p||!Array.isArray(p)||p[1]===POSTPONE_DAY)return;
+  p[3]=p[1]; p[1]=POSTPONE_DAY;
+  await saveAllSubjData();
+  buildMaps();buildDG();renderDP(curDay);updateProgress();
+  showToast('⏸ 미뤄둔 문제로 보냈어요');
+}
+// 되돌리기 — 미뤄둔 문제를 원래 일차로 복귀.
+async function unpostponeProblem(subj,ci,type,num){
+  const p=findProb(subj,ci,type,num); if(!p||!Array.isArray(p)||p[1]!==POSTPONE_DAY)return;
+  p[1]=(p.length>3&&p[3]>=1)?p[3]:Math.max(1,(MAXS[subj]||0)); if(p.length>3)p.length=3;
+  await saveAllSubjData();
+  buildMaps();buildDG();
+  if(!(getDM()[POSTPONE_DAY]||[]).length && curDay===POSTPONE_DAY){
+    curDay=null; const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
+  } else renderDP(curDay);
+  updateProgress();
+  showToast('↩ 되돌렸어요');
 }
 
 // ══════════════════════════════════════════
@@ -144,6 +174,13 @@ function buildDG(){
     }
     b.onclick=()=>selDay(d);g.appendChild(b);
   }
+  // 미뤄둔 문제 버킷 — 맨 뒤에 표시 (완료 버킷의 정반대)
+  const post=dm[POSTPONE_DAY]||[];
+  if(post.length){
+    const b=document.createElement('button');b.className='db postpone-bucket';b.id='dbP';
+    b.innerHTML=`<span>⏸ 미뤄둔 문제</span>`;
+    b.onclick=()=>selDay(POSTPONE_DAY);g.appendChild(b);
+  }
   updateDBtns();
 }
 function updateDBtns(){
@@ -168,6 +205,15 @@ function updateDBtns(){
     if(total>0&&dk===total)b.classList.add('full');
     else if(dk>0)b.classList.add('part');
   }
+  // 미뤄둔 문제 버킷 타일
+  const bP=document.getElementById('dbP');
+  if(bP){
+    const ps=dm[POSTPONE_DAY]||[];const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length;
+    bP.className='db postpone-bucket';
+    if(curDay===POSTPONE_DAY)bP.classList.add('sel');
+    if(ps.length>0&&dk===ps.length)bP.classList.add('full');
+    else if(dk>0)bP.classList.add('part');
+  }
 }
 function selDay(day){curDay=day;updateDBtns();const dp=document.getElementById('dpanel');dp.classList.add('on');renderDP(day);saveView();}
 
@@ -181,7 +227,7 @@ function renderDP(day){
   const allD=totalN>0&&dk===totalN;
   // 헤더
   const hdr=document.createElement('div');hdr.className='dpanel-hdr';
-  const titleEl=document.createElement('div');titleEl.className='dpanel-title';titleEl.textContent=day===0?'완료된 문제':day+'일차';
+  const titleEl=document.createElement('div');titleEl.className='dpanel-title';titleEl.textContent=day===0?'완료된 문제':day===POSTPONE_DAY?'미뤄둔 문제':day+'일차';
   const metaEl=document.createElement('div');metaEl.style.display='flex';metaEl.style.alignItems='center';metaEl.style.gap='10px';
   const subEl=document.createElement('div');subEl.className='dpanel-meta';subEl.id='dp-sub';subEl.textContent=totalN+'문제 · '+dk+'개 완료';
   const abtn=document.createElement('button');abtn.className='toggle-all-btn '+(allD?'ad':'nd');abtn.textContent=allD?'전체 해제':'전체 완료';abtn.id='all-btn';abtn.onclick=()=>toggleAll(day);

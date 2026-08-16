@@ -688,7 +688,7 @@ function openRescheduleModal(){
 
   const completedCount = seq.filter(p=>p.done).length;
   const undoneCount = seq.length - completedCount;
-  const origTotalDays = Math.max(0, ...allProbs.map(p=>p.day));
+  const origTotalDays = Math.max(0, ...allProbs.map(p=>p.day===POSTPONE_DAY?0:p.day));
 
   rescheduleData = {
     subjId: curSubj,

@@ -424,6 +424,8 @@ let MAPS={}, MAXS={}, adm={};
 // Legacy aliases (기존 코드 호환용 — buildMaps에서 갱신)
 let fdm={},cdm={},taxdm={},gibdm={},jingdm={},beoldm={},fmax=0,cmax=0,taxmax=0,gibmax=0,jingmax=0,beolmax=0;
 
+// 미뤄둔 문제 버킷의 일차 값(센티넬). 완료 버킷(일차 0)의 정반대 — 맨 뒤에 쌓인다.
+const POSTPONE_DAY = 9000;
 function buildMaps(){
   MAPS={};MAXS={};adm={};
   // 각 과목별로 dayMap 생성
@@ -437,7 +439,7 @@ function buildMaps(){
           const[num,day]=p;
           if(!dayMap[day])dayMap[day]=[];
           dayMap[day].push({ci,ch:ch.ch,subj:s.id,type:typeName,num});
-          if(day>max)max=day;
+          if(day!==POSTPONE_DAY && day>max)max=day;   // 미뤄둔 문제는 최대 일차에 안 셈
         });
       });
     });
@@ -446,9 +448,11 @@ function buildMaps(){
   });
   // 전체 맵
   const allMax=Math.max(0,...Object.values(MAXS));
-  // 완료된 문제 버킷(일차 0)도 합쳐 전체 뷰에서 보이게 한다
+  // 완료된 문제 버킷(일차 0)·미뤄둔 문제 버킷도 합쳐 전체 뷰에서 보이게 한다
   adm[0]=[];
   SUBJECTS.forEach(s=>{ if(MAPS[s.id]&&MAPS[s.id][0])adm[0].push(...MAPS[s.id][0]); });
+  adm[POSTPONE_DAY]=[];
+  SUBJECTS.forEach(s=>{ if(MAPS[s.id]&&MAPS[s.id][POSTPONE_DAY])adm[POSTPONE_DAY].push(...MAPS[s.id][POSTPONE_DAY]); });
   for(let d=1;d<=allMax;d++){
     adm[d]=[];
     SUBJECTS.forEach(s=>{

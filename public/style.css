@@ -191,13 +191,21 @@ select option{background:var(--bg);color:var(--text);}
 
 /* ── 다시 풀기(재수강) — 완료 시 칩 옆에 오답/다시풀기 버튼 ── */
 .prob-unit{display:inline-flex;align-items:center;gap:4px;}
-.pu-actions{display:none;gap:3px;align-items:center;}
-.prob-unit .chip.done ~ .pu-actions{display:inline-flex;}   /* 완료된 칩 옆에만 노출 */
+.pu-actions{display:inline-flex;gap:3px;align-items:center;}
+/* 오답·다시풀기: 완료된 칩에서만 노출 */
+.pu-wrong,.pu-retry{display:none;}
+.prob-unit .chip.done ~ .pu-actions .pu-wrong,
+.prob-unit .chip.done ~ .pu-actions .pu-retry{display:inline-flex;}
+/* 미루기: 미완료 칩에서만 (완료되면 숨김) */
+.prob-unit .chip.done ~ .pu-actions .pu-postpone{display:none;}
 .pu-btn{font-size:10px;font-weight:600;padding:3px 7px;border-radius:var(--r2);border:1px solid var(--border2);
   background:var(--bg);color:var(--text3);cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .12s;line-height:1;}
 .pu-btn:hover{border-color:var(--text3);color:var(--text2);}
 .pu-wrong.on{background:var(--fin-bg);border-color:var(--fin-border);color:var(--fin);}
 .pu-retry.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
+.pu-postpone{border-style:dashed;}
+.pu-postpone:hover{border-color:var(--gib);color:var(--gib);}
+.pu-unpostpone:hover{border-color:var(--accent);color:var(--accent);}
 .prob-unit.wrong .chip{box-shadow:0 0 0 2px var(--fin-border);opacity:1;}
 .prob-unit.wrong .chip.done{opacity:.5;}
 /* '다시 풀기' 별도 섹션 */
@@ -430,6 +438,9 @@ label.fbtn{cursor:pointer;}
 .db.done-bucket{width:auto;padding:0 14px;white-space:nowrap;font-size:11px;font-weight:600;
   border-color:var(--cost);color:var(--cost);}
 .db.done-bucket.full{background:var(--cost);border-color:var(--cost);color:#fff;}
+.db.postpone-bucket{width:auto;padding:0 14px;white-space:nowrap;font-size:11px;font-weight:600;
+  border-color:var(--gib);color:var(--gib);}
+.db.postpone-bucket.full{background:var(--gib);border-color:var(--gib);color:#fff;}
 .cf-opt-t{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
 .cf-opt-d{font-size:11px;color:var(--text3);line-height:1.5;}
 .cf-side{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.7;}
