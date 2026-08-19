@@ -20,7 +20,7 @@ function calToday(){
   calYear=t.getFullYear();calMonth=t.getMonth();calSelDate=todayStr(t);
   renderCalendar();saveView();
 }
-function subjColorVar(id){return SUBJECTS.find(s=>s.id===id)?('var(--'+id+')'):(SUBJ_COLOR[id]||'var(--text3)');}
+function subjColorVar(id){return SUBJECTS.find(s=>s.id===id)?subjVar(id):(SUBJ_COLOR[id]||'var(--text3)');}
 function subjDispName(id){const s=SUBJECTS.find(x=>x.id===id);return s?s.name:(SUBJ_NAME[id]||id);}
 function typeDispLabel(subj,type){
   const s=SUBJECTS.find(x=>x.id===subj);

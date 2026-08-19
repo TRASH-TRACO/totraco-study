@@ -126,9 +126,9 @@ function goSubj(s){
       if(id==='all'){el.classList.add('aa');}
       else{
         // 동적 색상 적용
-        el.style.color='var(--'+id+')';
-        el.style.background='var(--'+id+'-bg)';
-        el.style.borderColor='var(--'+id+'-border)';
+        el.style.color=subjVar(id);
+        el.style.background=subjVar(id,'bg');
+        el.style.borderColor=subjVar(id,'border');
       }
     }
   });
@@ -240,8 +240,8 @@ function renderDP(day){
     const sp=ps.filter(p=>p.subj===subj);if(!sp.length)return;
     if(curSubj==='all'){
       const sd=document.createElement('div');sd.className='subj-divider';
-      const dot=document.createElement('div');dot.className='subj-dot';dot.style.background=SUBJ_COLOR[subj]||'var(--text3)';
-      const nm=document.createElement('span');nm.style.cssText='font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3)';nm.textContent=SUBJ_NAME[subj];
+      const dot=document.createElement('div');dot.className='subj-dot';dot.style.background=subjColorVar(subj);
+      const nm=document.createElement('span');nm.style.cssText='font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3)';nm.textContent=subjDispName(subj);
       sd.appendChild(dot);sd.appendChild(nm);body.appendChild(sd);
     }
     // 세법: 부가가치세·법인세·소득세 섹션 구분
@@ -351,7 +351,7 @@ function renderChaps(){
     const data=DATA[s.id]||[];
     if(curSubj==='all'){
       const h=document.createElement('div');h.className='subj-hdr';
-      const dot=document.createElement('div');dot.className='subj-dot';dot.style.background='var(--'+s.id+')';
+      const dot=document.createElement('div');dot.className='subj-dot';dot.style.background=subjColorVar(s.id);
       const nm=document.createElement('span');nm.textContent=s.name;
       h.appendChild(dot);h.appendChild(nm);con.appendChild(h);
     }
@@ -393,7 +393,7 @@ function addChapRow(con,ch,ci,subj){
     });
   });
   const pct=tot>0?Math.round(dk/tot*100):0;
-  const barColor=subj==='fin'?'linear-gradient(90deg,var(--theory),var(--basic))':(SUBJ_COLOR[subj]||'var(--'+subj+')');
+  const barColor=subjColorVar(subj);
   const row=document.createElement('div');row.className='cr exp';
   const dispName=isTax?taxDisplayName(ch.ch):ch.ch;
   row.innerHTML=`<div class="ch-hdr"><div class="ch-nm">${escapeHtml(dispName)}</div><div class="ch-bw"><div class="ch-bl"><span>${dk}/${tot}</span><span>${pct}%</span></div><div class="ch-bt"><div class="ch-bf" id="fcb${subj}${ci}" style="width:${pct}%;background:${barColor}"></div></div></div><div class="ch-tog">▾</div></div>`;

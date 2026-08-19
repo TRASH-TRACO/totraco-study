@@ -245,7 +245,7 @@ function renderEdSubjTabs(){
     const btn=document.createElement('button');
     btn.className='ed-stab';btn.dataset.subj=s.id;
     // 선택 시 그 과목의 색을 그대로 쓴다 — 고정 액센트와 부딪히지 않게
-    btn.style.setProperty('--stab-c','var(--'+s.id+', var(--text2))');
+    btn.style.setProperty('--stab-c',subjVar(s.id,'','var(--text2)'));
     const dot=document.createElement('span');
     dot.className='stab-dot';
     btn.appendChild(dot);

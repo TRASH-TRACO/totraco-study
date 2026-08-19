@@ -14,6 +14,8 @@
   --jing:#3a8da0;--jing-bg:#eef7f9;--jing-border:#a0d4e0;
   --beol:#8a6b8a;--beol-bg:#f5f0f5;--beol-border:#d0b8d0;
   --theory:var(--emerald-600);--basic:#448361;--adv:#d44c47;
+  /* 완료 상태색 — 과목 색과 무관한 고정 시맨틱 토큰 (과목 팔레트 토큰을 재사용하지 않는다) */
+  --done:#448361;--done-bg:#f1f8f4;--done-border:#b8d9c4;
   --red:var(--red-500);--green:var(--emerald-600);
   --r:var(--radius);--r2:var(--radius-sm);
   --shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
@@ -31,6 +33,7 @@
     --footer-bg:rgba(15,23,42,.92);
     --fin-bg:rgba(212,76,71,.14);--fin-border:rgba(212,76,71,.35);
     --cost-bg:rgba(68,131,97,.14);--cost-border:rgba(68,131,97,.35);
+    --done-bg:rgba(68,131,97,.14);--done-border:rgba(68,131,97,.35);
     --tax-bg:rgba(144,101,176,.16);--tax-border:rgba(144,101,176,.38);
     --gib-bg:rgba(208,140,58,.14);--gib-border:rgba(208,140,58,.35);
     --jing-bg:rgba(58,141,160,.14);--jing-border:rgba(58,141,160,.35);
@@ -48,6 +51,7 @@
   --footer-bg:rgba(15,23,42,.92);
   --fin-bg:rgba(212,76,71,.14);--fin-border:rgba(212,76,71,.35);
   --cost-bg:rgba(68,131,97,.14);--cost-border:rgba(68,131,97,.35);
+  --done-bg:rgba(68,131,97,.14);--done-border:rgba(68,131,97,.35);
   --tax-bg:rgba(144,101,176,.16);--tax-border:rgba(144,101,176,.38);
   --gib-bg:rgba(208,140,58,.14);--gib-border:rgba(208,140,58,.35);
   --jing-bg:rgba(58,141,160,.14);--jing-border:rgba(58,141,160,.35);
@@ -130,7 +134,7 @@ select option{background:var(--bg);color:var(--text);}
 .db{width:48px;height:40px;border-radius:var(--r2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;font-weight:500;cursor:pointer;background:var(--bg);color:var(--text2);transition:all .12s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;user-select:none;}
 .db:hover{border-color:var(--border2);background:var(--bg3);color:var(--text);}
 .db.sel{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
-.db.full{background:var(--cost-bg);border-color:var(--cost-border);color:var(--cost);}
+.db.full{background:var(--done-bg);border-color:var(--done-border);color:var(--done);}
 .db.part{border-color:var(--accent);color:var(--accent);}
 /* 선택된 일차는 part/full 여부와 무관하게 항상 초록 배경+흰 글씨 (안 그러면 초록 글씨가 초록 배경에 묻혀 며칠차인지 안 보임) */
 .db.sel,.db.sel.part,.db.sel.full{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
@@ -138,7 +142,7 @@ select option{background:var(--bg);color:var(--text);}
 .db.tax-mode .db-day{font-size:11px;font-weight:600;}
 .db.tax-mode .db-th{color:var(--theory);font-size:9px;white-space:nowrap;}
 .db.tax-mode .db-ca{color:var(--tax);font-size:9px;white-space:nowrap;}
-.db.tax-mode.full .db-th,.db.tax-mode.full .db-ca{color:var(--cost);}
+.db.tax-mode.full .db-th,.db.tax-mode.full .db-ca{color:var(--done);}
 .db.tax-mode.sel .db-th,.db.tax-mode.sel .db-ca,
 .db.tax-mode.sel.full .db-th,.db.tax-mode.sel.full .db-ca{color:rgba(255,255,255,.7);}
 .dbadge{display:none;font-size:9px;font-weight:600;}
@@ -152,8 +156,8 @@ select option{background:var(--bg);color:var(--text);}
 .dpanel-meta{font-size:12px;color:var(--text3);font-family:var(--font-mono);}
 .dpanel-tip{font-size:11px;color:var(--text3);padding:6px 16px;border-bottom:1px solid var(--border);background:var(--bg2);}
 .toggle-all-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:11px;font-weight:500;border-radius:var(--r2);cursor:pointer;transition:all .15s;border:1px solid;user-select:none;}
-.toggle-all-btn.nd{color:var(--cost);border-color:var(--cost-border);background:var(--cost-bg);}
-.toggle-all-btn.nd:hover{background:var(--cost-border);}
+.toggle-all-btn.nd{color:var(--done);border-color:var(--done-border);background:var(--done-bg);}
+.toggle-all-btn.nd:hover{background:var(--done-border);}
 .toggle-all-btn.ad{color:var(--red);border-color:var(--fin-border);background:var(--fin-bg);}
 .toggle-all-btn.ad:hover{background:var(--fin-border);}
 
@@ -186,7 +190,7 @@ select option{background:var(--bg);color:var(--text);}
 .chip:hover{filter:brightness(.95);transform:translateY(-1px);box-shadow:var(--shadow);}
 .chip.done{opacity:.35;text-decoration:line-through;transform:none;box-shadow:none;}
 .cst{position:absolute;top:-5px;right:-5px;width:12px;height:12px;border-radius:50%;font-size:7px;display:none;align-items:center;justify-content:center;font-weight:700;}
-.chip.done .cst{display:flex;background:var(--green);color:#fff;}
+.chip.done .cst{display:flex;background:var(--done);color:#fff;}
 .chip-day{font-size:8px;font-weight:400;opacity:.55;margin-left:1px;vertical-align:super;}
 
 /* ── 다시 풀기(재수강) — 완료 시 칩 옆에 오답/다시풀기 버튼 ── */
@@ -436,8 +440,8 @@ label.fbtn{cursor:pointer;}
 
 /* 완료된 문제 버킷 타일 (남은 문제 조정) — 내용에 맞춰 한 줄로 */
 .db.done-bucket{width:auto;padding:0 14px;white-space:nowrap;font-size:11px;font-weight:600;
-  border-color:var(--cost);color:var(--cost);}
-.db.done-bucket.full{background:var(--cost);border-color:var(--cost);color:#fff;}
+  border-color:var(--done);color:var(--done);}
+.db.done-bucket.full{background:var(--done);border-color:var(--done);color:#fff;}
 .db.postpone-bucket{width:auto;padding:0 14px;white-space:nowrap;font-size:11px;font-weight:600;
   border-color:var(--gib);color:var(--gib);}
 .db.postpone-bucket.full{background:var(--gib);border-color:var(--gib);color:#fff;}

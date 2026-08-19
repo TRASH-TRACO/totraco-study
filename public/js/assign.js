@@ -667,7 +667,7 @@ function updateSubjectCSS(){
   SUBJECTS.forEach(s=>{
     const cp = COLOR_PALETTE.find(c=>c.id===s.color);
     if(cp){
-      css+=`  --${s.id}:${cp.c};--${s.id}-bg:${cp.bg};--${s.id}-border:${cp.bd};\n`;
+      css+=`  ${subjVarName(s.id)}:${cp.c};${subjVarName(s.id,'bg')}:${cp.bg};${subjVarName(s.id,'border')}:${cp.bd};\n`;
     }
   });
   css+='}';

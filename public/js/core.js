@@ -172,6 +172,13 @@ const COLOR_PALETTE = [
 // bg/bd 자동 채우기
 COLOR_PALETTE.forEach(cp=>{ if(!cp.bg)cp.bg=mixHex(cp.c,0.90); if(!cp.bd)cp.bd=mixHex(cp.c,0.55); });
 
+// 과목 색 CSS 변수 이름 — 반드시 --subj- 접두사를 붙인다.
+// 과목 id는 팔레트 색 id(fin/cost/tax/gib/jing/beol)와 겹칠 수 있어서(문제집 불러오기는 색 id를
+// 그대로 과목 id로 쓴다) 접두사가 없으면 updateSubjectCSS()가 style.css의 전역 토큰(--cost 등)을
+// 덮어써 버린다. 그러면 그 토큰을 쓰는 완료 타일·유형 칩 색이 과목 색을 따라가 버린다.
+function subjVarName(id,suffix){ return '--subj-'+id+(suffix?'-'+suffix:''); }
+function subjVar(id,suffix,fallback){ return 'var('+subjVarName(id,suffix)+(fallback?','+fallback:'')+')'; }
+
 // 유형 프리셋
 const COL_PRESETS = [
   {label:'이론만',cols:[{key:'t',label:'이론',cls:'th'}]},
@@ -391,8 +398,8 @@ function renderProgressCards(){
   subjs.forEach(s=>{
     const card=document.createElement('div');card.className='prog-card';
     card.innerHTML='<div class="prog-card-label">'+escapeHtml(s.name)+'</div>'
-      +'<div class="prog-card-pct" id="lbl-'+s.id+'" style="color:var(--'+s.id+')">0%</div>'
-      +'<div class="prog-track"><div class="prog-fill" id="bar-'+s.id+'" style="width:0%;background:var(--'+s.id+')"></div></div>';
+      +'<div class="prog-card-pct" id="lbl-'+s.id+'" style="color:'+subjVar(s.id)+'">0%</div>'
+      +'<div class="prog-track"><div class="prog-fill" id="bar-'+s.id+'" style="width:0%;background:'+subjVar(s.id)+'"></div></div>';
     con.appendChild(card);
   });
 }
