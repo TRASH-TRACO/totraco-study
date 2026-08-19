@@ -788,7 +788,13 @@ function updateReschedulePreview(){
       `<div style="font-size:10px;color:var(--text3);text-align:right;min-width:44px;">${count}문제</div>`+
     `</div>`;
 
-  let html = `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)</div>`;
+  // 대사(점검) — 전체 = 완료 + 남은, 빠진 문제 없는지 미리 확인
+  const placed = bucket.length + Object.values(dayGroups).reduce((a,arr)=>a+arr.length,0);
+  const total = rescheduleData.seq.length;
+  const missing = total - placed;
+  let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:${missing===0?'var(--cost)':'var(--red)'};">`+
+    `${missing===0?'✅':'⚠️'} 전체 ${total}문제 = 완료 ${bucket.length} + 남은 ${total-bucket.length} · 누락 ${missing}</div>`;
+  html += `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)</div>`;
   html += '<div style="display:flex;flex-direction:column;gap:4px;">';
   if(bucket.length){
     const bs=[...bucket].sort((a,b)=>a.day-b.day||a.ci-b.ci||a.num-b.num);
@@ -870,9 +876,17 @@ async function applyReschedule(){
   updateProgress();
   curDay=null;
   const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
+  renderAssignInfo();   // 회독 배정 칸의 대사 배지 갱신
 
+  // 적용 직후 자가 점검 — 완료는 완료 묶음, 남은 건 일차에, 빠진 문제 없는지 대사
+  const audit=assignmentAudit(subjId);
   closeRescheduleModal();
-  showToast(`✅ 완료 ${bucketN}문제 모으기 · 남은 ${undoneN}문제 재배치 (총 ${result.totalDays}일)`);
+  if(audit.ok){
+    showToast(`✅ 완료 ${bucketN} 모으기 · 남은 ${undoneN} 재배치 (${result.totalDays}일) · 전체 ${audit.total} 누락 0`);
+  }else{
+    showToast(`⚠️ 재조정 점검 실패 — 확인 필요${audit.doneBucketUndone?` · 완료묶음에 미완료 ${audit.doneBucketUndone}`:''}`);
+    console.warn('[reschedule] 누락/이상 감지', audit);
+  }
 }
 
 // ══════════════════════════════════════════
