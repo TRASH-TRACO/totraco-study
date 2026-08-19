@@ -531,7 +531,9 @@ label.fbtn{cursor:pointer;}
 
 /* ── 회독 배정 ── */
 .assign-box{border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;background:var(--bg);}
-.assign-desc{font-size:13px;color:var(--text2);margin-bottom:14px;}
+.assign-desc{font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.7;}
+.audit-ok{display:inline-block;margin-top:4px;font-size:12px;font-weight:700;color:var(--cost);}
+.audit-warn{display:inline-block;margin-top:4px;font-size:12px;font-weight:700;color:var(--red);}
 .assign-row{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;}
 .assign-field{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:600;color:var(--text3);}
 .assign-field input{width:80px;height:32px;padding:0 10px;text-align:center;

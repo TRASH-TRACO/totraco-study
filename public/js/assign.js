@@ -132,9 +132,40 @@ async function runAssign(mode){
   buildEdRows();if(curNav==='setup'&&curEdMode==='grid')renderEdGrid();
   refreshOnboarding();updateEmptyStates();renderAssignInfo();applyEdSection();
   if(window.CloudSync&&window.CloudSync.schedulePush)window.CloudSync.schedulePush();
-  showToast(`${total}문제를 ${days}일에 배정했어요`);
+  // 배정 직후 자가 점검 — 모든 문제가 일차(1..N)에 들어갔는지 대사한다
+  const audit=assignmentAudit(subj.id);
+  if(audit.onDays===total && audit.ok){
+    showToast(`✅ ${total}문제 모두 ${days}일에 배정 (누락 0)`);
+  }else{
+    showToast(`⚠️ 배정 점검 실패 — 전체 ${total} 중 일차 ${audit.onDays} (누락 ${total-audit.onDays})`);
+    console.warn('[assign] 누락 감지', audit);
+  }
 }
 window.runAssign=runAssign;
+
+// ── 배정 대사(점검) ──────────────────────────
+// 전체 문제가 모두 어딘가에 들어가 있는지 확인한다:
+//   일차 배정(1..N) + 완료 묶음(일차 0) + 미뤄둠(POSTPONE_DAY) = 전체
+// 누락(이상한 일차값)·완료 묶음에 섞인 미완료 문제를 잡아낸다. ok면 누락 0.
+function assignmentAudit(subjId){
+  const subj=SUBJECTS.find(s=>s.id===subjId);
+  const data=subj?(DATA[subjId]||[]):[];
+  let total=0,onDays=0,doneBucket=0,doneBucketUndone=0,postponed=0,orphan=0;
+  data.forEach((ch,ci)=>(subj?subj.cols:[]).forEach(c=>{
+    (ch[c.key]||[]).forEach(p=>{
+      total++;
+      const d=Array.isArray(p)?p[1]:0;
+      const done=dn(subjId,ci,colKeyToType(subjId,c.key),Array.isArray(p)?p[0]:p);
+      if(d===POSTPONE_DAY)postponed++;
+      else if(d===0){ doneBucket++; if(!done)doneBucketUndone++; }   // 완료 묶음. 미완료가 여기 있으면 이상(누락 징후)
+      else if(d>=1)onDays++;
+      else orphan++;   // 음수 등 이상 일차값
+    });
+  }));
+  const accounted=onDays+doneBucket+postponed+orphan;   // 모든 문제는 셋 중 하나 (합계는 항상 total)
+  return {total,onDays,doneBucket,doneBucketUndone,postponed,orphan,accounted,
+    ok: orphan===0 && doneBucketUndone===0 && accounted===total};
+}
 
 /** 배정 섹션 상단 요약 + 일차별 분포 미리보기 */
 function renderAssignInfo(){
@@ -143,16 +174,23 @@ function renderAssignInfo(){
   if(!sum) return;
   const subj=SUBJECTS.find(s=>s.id===curEdSubj);
   const data=subj?(DATA[subj.id]||[]):[];
-  let total=0;const perDay={};
-  data.forEach(ch=>(subj?subj.cols:[]).forEach(c=>(ch[c.key]||[]).forEach(p=>{
-    total++;const d=Array.isArray(p)?p[1]:0;if(d>=1)perDay[d]=(perDay[d]||0)+1;
-  })));
-  const assigned=Object.values(perDay).reduce((a,b)=>a+b,0);
+  const audit=subj?assignmentAudit(subj.id):{total:0,onDays:0,doneBucket:0,doneBucketUndone:0,postponed:0,orphan:0,ok:true};
+  const total=audit.total;
+  const nDays=(function(){const s=new Set();data.forEach(ch=>(subj?subj.cols:[]).forEach(c=>(ch[c.key]||[]).forEach(p=>{const d=Array.isArray(p)?p[1]:0;if(d>=1&&d!==POSTPONE_DAY)s.add(d);})));return s.size;})();
 
-  sum.textContent = !subj ? '과목을 먼저 등록해주세요.'
-    : total===0 ? '이 과목에 등록된 문제가 없습니다. 위에서 문제를 먼저 저장하세요.'
-    : assigned===0 ? `${subj.name} · 문제 ${total}개 — 아직 일차가 배정되지 않았습니다.`
-    : `${subj.name} · 문제 ${total}개 중 ${assigned}개가 ${Object.keys(perDay).length}일에 배정돼 있습니다.`;
+  if(!subj){ sum.innerHTML='과목을 먼저 등록해주세요.'; }
+  else if(total===0){ sum.innerHTML='이 과목에 등록된 문제가 없습니다. 위에서 문제를 먼저 저장하세요.'; }
+  else if(audit.onDays===0 && !audit.doneBucket && !audit.postponed){
+    sum.innerHTML=`${escapeHtml(subj.name)} · 문제 ${total}개 — 아직 일차가 배정되지 않았습니다.`;
+  } else {
+    const parts=[`${nDays}일에 배정 <b>${audit.onDays}</b>`];
+    if(audit.doneBucket)parts.push(`완료 묶음 ${audit.doneBucket}`);
+    if(audit.postponed)parts.push(`미뤄둠 ${audit.postponed}`);
+    const badge = audit.ok
+      ? `<span class="audit-ok">✅ 전체 ${total}문제 모두 확인 · 누락 0</span>`
+      : `<span class="audit-warn">⚠️ 확인 필요${audit.orphan?` · 사라진 문제 ${audit.orphan}`:''}${audit.doneBucketUndone?` · 완료묶음에 미완료 ${audit.doneBucketUndone}`:''}</span>`;
+    sum.innerHTML=`${escapeHtml(subj.name)} · 전체 <b>${total}</b>문제 = ${parts.join(' · ')}<br>${badge}`;
+  }
 
   // 일차별로 어떤 장의 몇 번 문제가 들어갔는지 미리 보여준다
   const box=document.getElementById('assign-preview');
