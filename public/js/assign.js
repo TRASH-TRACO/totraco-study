@@ -404,20 +404,15 @@ async function saveSubjects(){
   // 저장 직전: DOM의 모든 input/select 값을 subjEditRows에 강제 동기화 (이벤트 미발생 케이스 대비)
   document.querySelectorAll('#subj-grid-wrap tbody tr').forEach((tr,ri)=>{
     if(!subjEditRows[ri])return;
-    // 과목 이름 (ID는 폼에서 제거 — 내부에서 자동 관리, subjEditRows[ri].id 유지)
+    // 과목 이름만 DOM에서 동기화. 색상/유형색은 스와치 클릭 때 subjEditRows에 이미 반영됨(select 아님).
     const inps=tr.querySelectorAll('input');
     if(inps[0])subjEditRows[ri].name=inps[0].value;
-    // 색상
-    const sels=tr.querySelectorAll('select');
-    if(sels[0])subjEditRows[ri].color=sels[0].value;
-    // 유형 칩들 — 유형명 input과 색상 select
+    // 유형명(라벨) input만 동기화
     const chips=tr.querySelectorAll('td:nth-child(4) > div > div'); // tdT(문제 유형) 안의 chip div
     chips.forEach((chip,ci)=>{
       if(!subjEditRows[ri].cols[ci])return;
       const lblIn=chip.querySelector('input');
       if(lblIn)subjEditRows[ri].cols[ci].label=lblIn.value;
-      const clsSel=chip.querySelector('select');
-      if(clsSel)subjEditRows[ri].cols[ci].cls=clsSel.value;
     });
   });
   // 검증
