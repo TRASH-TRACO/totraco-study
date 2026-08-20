@@ -150,7 +150,10 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
     </div>
     <div class="modal-body">
     <div class="onboard" id="onboard" style="display:none"></div>
-    <button class="tut-replay" onclick="closeSetup();startTutorial()">⚡ 빠른 튜토리얼 다시 보기</button>
+    <div class="tut-replay-row">
+      <button class="tut-replay" onclick="closeSetup();startTutorial()">⚡ 전체 튜토리얼</button>
+      <button class="tut-replay" onclick="startSetupTutorial()">📋 과목 등록 방법</button>
+    </div>
 
   <!-- 과목 관리 탭 -->
   <div id="nav-subj" class="setup-sec">
@@ -162,7 +165,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
       </div>
       <div class="ss-wrap" id="subj-grid-wrap"></div>
       <div class="setup-add-row">
-        <button class="add-row-btn" onclick="openNewSubjectModal()">＋ 새 과목 추가 · 문제집 불러오기</button>
+        <button class="add-row-btn" id="btn-new-subject" onclick="openNewSubjectModal()">＋ 새 과목 추가 · 문제집 불러오기</button>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="rbtn pri" onclick="saveSubjects()">저장 및 적용</button>
@@ -264,8 +267,10 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
     <button class="tut-x" onclick="tutEnd(false)" aria-label="튜토리얼 닫기">×</button>
     <div class="tut-title" id="tut-title"></div>
     <div class="tut-body" id="tut-body"></div>
+    <div class="tut-hint" id="tut-hint" style="display:none"></div>
     <div class="tut-foot">
       <span class="tut-step" id="tut-step"></span>
+      <button class="tut-skip" id="tut-skip" onclick="tutNext()" style="display:none">건너뛰기</button>
       <button class="tut-next" id="tut-next" onclick="tutNext()">다음</button>
     </div>
   </div>

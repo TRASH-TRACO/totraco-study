@@ -661,6 +661,9 @@ label.fbtn{cursor:pointer;}
    구멍은 거대한 box-shadow로 주변을 덮는 방식이라 별도 마스크 없이 어디든 붙는다.
    z-index는 모달(1000)보다 위 · 로그인 오버레이(2000)보다 아래. */
 .tut{position:fixed;inset:0;z-index:1500;}
+/* 직접 해보는 단계 — 클릭이 실제 화면에 닿아야 하므로 오버레이를 통과시킨다(말풍선만 받는다) */
+.tut.pass{pointer-events:none;}
+.tut.pass .tut-card{pointer-events:auto;}
 .tut-hole{position:absolute;border-radius:10px;pointer-events:none;
   /* 안쪽 링으로 대상을 또렷하게 + 바깥은 거대한 그림자로 화면을 덮는다.
      다크모드에선 막만으론 대비가 약해서 링이 있어야 어디를 보라는 건지 바로 보인다. */
@@ -681,11 +684,19 @@ label.fbtn{cursor:pointer;}
 .tut-next{border:none;background:var(--accent-solid);color:#fff;font-size:12px;font-weight:600;
   padding:6px 14px;border-radius:var(--r2);cursor:pointer;font-family:inherit;}
 .tut-next:hover{filter:brightness(1.08);}
+.tut-skip{border:none;background:transparent;color:var(--text3);font-size:11px;cursor:pointer;
+  font-family:inherit;text-decoration:underline;padding:6px 2px;}
+.tut-skip:hover{color:var(--text2);}
+/* 직접 해보라는 안내 — 조작을 기다리는 동안 은은하게 깜빡인다 */
+.tut-hint{margin-top:12px;padding:7px 10px;border-radius:var(--r2);background:var(--accent-bg);
+  color:var(--accent);font-size:11.5px;font-weight:600;text-align:center;animation:tutPulse 1.6s ease-in-out infinite;}
+@keyframes tutPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
 
 /* 빈 화면 안내의 버튼 묶음 */
 .empty-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
 /* 과목 설정 모달의 튜토리얼 재실행 링크 */
-.tut-replay{display:block;width:100%;margin-bottom:14px;padding:9px 12px;border:1px dashed var(--border2);
+.tut-replay-row{display:flex;gap:8px;margin-bottom:14px;}
+.tut-replay{flex:1;padding:9px 12px;border:1px dashed var(--border2);
   border-radius:var(--r2);background:var(--bg2);color:var(--text2);font-size:12px;font-weight:500;
   cursor:pointer;font-family:inherit;transition:all .12s;}
 .tut-replay:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);}
