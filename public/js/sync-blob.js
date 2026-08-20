@@ -60,7 +60,7 @@ async function restoreVersion(id){
   try{
     await createVersion(AUTO_LABEL);  // 되돌리기 전 현재 상태 자동 저장 (실수 방지)
     const data = validateBlob(JSON.parse(JSON.stringify(v.blob)));
-    await applyBlob(data);
+    await applyBlob(data,{replaceHistory:true});   // 되돌리기는 이력까지 그 시점으로
     await renderVersionList();
     showToast('✅ 버전 복원 완료');
   }catch(err){ alert('복원 실패: '+err.message); }
@@ -130,7 +130,13 @@ function validateBlob(data){
 
 // 덩어리를 현재 상태에 적용하고 UI 전체를 재구성 (버전 복원 · 클라우드 다운로드 공용)
 // 호출 전에 validateBlob()으로 검증되어 있어야 합니다.
-async function applyBlob(data){
+//
+// opts.replaceHistory — 이력(풀이 기록·하루 기록·재수강 완료 표식)을 병합하지 않고 통째로 교체한다.
+//   클라우드 다운로드는 기본값(병합): 다른 기기가 빈 기록을 올려도 내 이력이 사라지면 안 된다.
+//   버전 복원은 true: "그 시점으로 되돌린다"가 목적이라 그 뒤에 쌓인 기록도 같이 되돌아가야 한다.
+//   (병합만 하면 진도는 되돌아가는데 학습 캘린더엔 완료 취소된 문제가 그대로 남는다)
+async function applyBlob(data,opts){
+  const replaceHistory=!!(opts&&opts.replaceHistory);
   const hasSubjects=data.subjects&&Array.isArray(data.subjects)&&data.subjects.length;
 
   // 0) 앱 제목 복원
@@ -175,17 +181,17 @@ async function applyBlob(data){
   // 2) 진도 복원
   S=data.progress||{};
 
-  // 2-1) 풀이 날짜 기록 복원 — 이력은 절대 줄어들지 않게 "합집합"으로 병합.
-  //      (다른 기기가 빈 기록을 올려도, 내려받을 때 어제의 풀이 날짜가 사라지지 않도록)
-  if(data.log&&typeof data.log==='object')LOG=mergeLogInto(LOG,data.log);
-  // 2-2) 하루 한 줄 기록 복원 — 빈 값이 로컬 기록을 지우지 못하게 병합
-  if(data.dayNotes&&typeof data.dayNotes==='object')DAYNOTES=mergeNotesInto(DAYNOTES,data.dayNotes);
+  // 2-1) 풀이 날짜 기록 복원 — 동기화는 이력이 줄어들지 않게 "합집합"으로 병합,
+  //      버전 복원은 스냅샷 그대로 교체(그 뒤에 완료한 기록도 캘린더에서 같이 사라져야 한다).
+  if(data.log&&typeof data.log==='object')LOG=replaceHistory?data.log:mergeLogInto(LOG,data.log);
+  // 2-2) 하루 한 줄 기록 복원 — 동기화는 빈 값이 로컬 기록을 지우지 못하게 병합, 복원은 교체
+  if(data.dayNotes&&typeof data.dayNotes==='object')DAYNOTES=replaceHistory?data.dayNotes:mergeNotesInto(DAYNOTES,data.dayNotes);
   // 2-3) 재수강 복원 — 회차 단위라 최신 것으로 교체(진도 S와 동일 성격)
   if(Array.isArray(data.retries))RETRIES=data.retries;
   if(data.wrong&&typeof data.wrong==='object')WRONG=data.wrong;
   if(data.retryBase&&typeof data.retryBase==='object')RETRY_BASE=data.retryBase;
-  // 재수강 완료 표식은 이력 → 합집합(빈 값이 덮어쓰지 못하게)
-  if(data.retryDone&&typeof data.retryDone==='object')RETRY_DONE={...RETRY_DONE,...data.retryDone};
+  // 재수강 완료 표식도 이력 → 동기화는 합집합(빈 값이 덮어쓰지 못하게), 복원은 교체
+  if(data.retryDone&&typeof data.retryDone==='object')RETRY_DONE=replaceHistory?data.retryDone:{...RETRY_DONE,...data.retryDone};
 
   // 3) 데이터 복원 — SUBJECTS 기준으로 dataKey 매핑
   SUBJECTS.forEach(s=>{
