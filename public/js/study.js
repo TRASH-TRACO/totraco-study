@@ -178,7 +178,7 @@ function buildDG(){
   const post=dm[POSTPONE_DAY]||[];
   if(post.length){
     const b=document.createElement('button');b.className='db postpone-bucket';b.id='dbP';
-    b.innerHTML=`<span>⏸ 미뤄둔 문제</span>`;
+    b.innerHTML=`<span><i class="db-pause"></i> 미뤄둔 문제</span>`;
     b.onclick=()=>selDay(POSTPONE_DAY);g.appendChild(b);
   }
   updateDBtns();

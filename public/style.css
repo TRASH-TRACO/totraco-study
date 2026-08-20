@@ -438,13 +438,13 @@ label.fbtn{cursor:pointer;}
 .cf-opt:hover{border-color:var(--text3);background:var(--bg2);}
 .cf-opt.lo-danger:hover{border-color:var(--red);background:var(--fin-bg);}
 
-/* 완료된 문제 버킷 타일 (남은 문제 조정) — 내용에 맞춰 한 줄로 */
-.db.done-bucket{width:auto;padding:0 14px;white-space:nowrap;font-size:11px;font-weight:600;
-  border-color:var(--done);color:var(--done);}
-.db.done-bucket.full{background:var(--done);border-color:var(--done);color:#fff;}
-.db.postpone-bucket{width:auto;padding:0 14px;white-space:nowrap;font-size:11px;font-weight:600;
-  border-color:var(--gib);color:var(--gib);}
-.db.postpone-bucket.full{background:var(--gib);border-color:var(--gib);color:#fff;}
+/* 완료된 문제 · 미뤄둔 문제 버킷 타일 — 일반 일차 타일과 같은 버튼으로 통일한다.
+   색은 .db / .db.part / .db.full / .db.sel 에 전부 맡기고 여기선 레이아웃만 손댄다.
+   (예전엔 여기서 border-color·color를 직접 지정했는데, 이 규칙이 .db.sel보다 뒤에 있고
+    특이도가 같아서 선택 상태를 덮어써 초록 배경 위에 초록/주황 글씨가 남았다.) */
+.db.done-bucket,.db.postpone-bucket{width:auto;padding:0 14px;white-space:nowrap;font-size:11px;font-weight:600;}
+/* 일시정지 마커 — 이모지 대신 currentColor를 따르는 도형이라 선택/완료 상태에서도 안 묻힌다 */
+.db-pause{display:inline-block;width:7px;height:9px;border-left:2.5px solid currentColor;border-right:2.5px solid currentColor;vertical-align:-1px;}
 .cf-opt-t{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
 .cf-opt-d{font-size:11px;color:var(--text3);line-height:1.5;}
 .cf-side{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.7;}
