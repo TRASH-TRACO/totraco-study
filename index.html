@@ -76,8 +76,11 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
     <!-- 등록된 문제가 없을 때 -->
     <div class="empty-state" id="study-empty" style="display:none">
       <div class="empty-title">아직 등록된 문제가 없어요</div>
-      <p class="empty-desc">과목을 만들고 문제를 등록하면 여기에 회독 진도가 표시됩니다.</p>
-      <button class="rbtn pri" onclick="openSetup()">과목 설정으로 가기</button>
+      <p class="empty-desc">처음이신가요? 1분이면 사용법을 익힐 수 있어요.</p>
+      <div class="empty-btns">
+        <button class="rbtn pri" onclick="startTutorial()">⚡ 빠른 튜토리얼</button>
+        <button class="rbtn sec" onclick="openSetup()">과목 설정으로 가기</button>
+      </div>
     </div>
 
     <div id="study-body">
@@ -147,6 +150,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
     </div>
     <div class="modal-body">
     <div class="onboard" id="onboard" style="display:none"></div>
+    <button class="tut-replay" onclick="closeSetup();startTutorial()">⚡ 빠른 튜토리얼 다시 보기</button>
 
   <!-- 과목 관리 탭 -->
   <div id="nav-subj" class="setup-sec">
@@ -249,6 +253,21 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
     <button class="fbtn" onclick="openVersionModal()">버전 관리</button>
     <button class="fbtn gr" onclick="newRound()">전체 다음 회독</button>
     <span id="footer-reset-btns"></span>
+  </div>
+</div>
+
+<!-- 빠른 튜토리얼 — 실제 화면 위에 스포트라이트 + 말풍선 -->
+<div class="tut" id="tut" style="display:none">
+  <div class="tut-hole" id="tut-hole"></div>
+  <div class="tut-arrow" id="tut-arrow" style="display:none"></div>
+  <div class="tut-card" id="tut-card">
+    <button class="tut-x" onclick="tutEnd(false)" aria-label="튜토리얼 닫기">×</button>
+    <div class="tut-title" id="tut-title"></div>
+    <div class="tut-body" id="tut-body"></div>
+    <div class="tut-foot">
+      <span class="tut-step" id="tut-step"></span>
+      <button class="tut-next" id="tut-next" onclick="tutNext()">다음</button>
+    </div>
   </div>
 </div>
 
@@ -450,6 +469,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
 <script src="/js/account.js"></script>
 <script src="/js/calendar.js"></script>
 <script src="/js/wrongnote.js"></script>
+<script src="/js/tutorial.js"></script>
 <script src="/js/boot.js"></script>
 <script type="module" src="/src/sync.js"></script>
 </body>
