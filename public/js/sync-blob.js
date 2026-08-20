@@ -224,6 +224,9 @@ async function applyBlob(data,opts){
   const setupM=document.getElementById('nav-setup');
   if(setupM&&setupM.style.display!=='none'){ renderSubjGrid(true);renderEd();renderAssignInfo();applyEdSection(); }
   document.getElementById('hdr-sub-names').textContent=SUBJECTS.map(s=>s.name).join(' · ');
+  // 동기화로 데이터가 들어왔으면 빈 화면 안내·온보딩도 최신 상태로
+  updateEmptyStates();
+  refreshOnboarding();
 }
 
 // ══════════════════════════════════════════

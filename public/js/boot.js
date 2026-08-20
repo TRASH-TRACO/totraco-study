@@ -60,10 +60,14 @@ async function init(){
   applyEntryGate();
   refreshOnboarding();
   restoreView();     // 뷰 토글·선택 일자·활성 탭을 DOM에 반영
+  updateEmptyStates();   // 문제가 없으면 학습 탭에 안내(+과목 설정 버튼)를 띄운다
   // 모든 렌더가 끝났으니 앱을 드러낸다 (깜빡임 방지용 booting 해제)
   document.documentElement.classList.remove('booting');
-  // 아직 아무것도 없으면 과목 설정 모달을 띄워 온보딩 (앱이 보인 뒤에)
-  if(!hasAnyProblems()) openSetup();
+  // 과목 설정 모달은 첫 진입에 자동으로 띄우지 않는다.
+  //  - 진입 게이트(.gate, z-index 200)보다 모달(z-index 1000)이 위라 로그인 선택 화면을 통째로 가렸다.
+  //  - 로그인 사용자는 부팅 시점에 아직 클라우드 데이터를 못 받아 hasAnyProblems()가 false라,
+  //    데이터가 있는데도 모달이 먼저 떴다.
+  // 문제가 없을 땐 학습 탭의 빈 화면 안내('과목 설정으로 가기')가 같은 역할을 한다.
 }
 // 클라우드 동기화 모듈이 최초 로드 완료를 기다릴 수 있도록 promise를 노출
 // init이 실패로 끝나더라도 앱이 계속 숨겨지지 않도록 booting은 반드시 해제한다.
