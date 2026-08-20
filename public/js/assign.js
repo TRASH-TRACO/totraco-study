@@ -824,6 +824,10 @@ async function applyReschedule(){
 
   if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${result.totalDays}일)\n(완료 체크는 그대로 유지돼요)`))return;
 
+  // 재배치 전 "현재 진행 위치"(첫 미완료 일차) — 재수강을 같은 간격으로 옮길 때 쓴다.
+  // DATA/MAPS를 손대기 전에 구해야 한다.
+  const frontBefore=frontDayOf(subjId);
+
   // 조정 전 원래 배치를 스냅샷(최초 1회) — 초기화 시 원래 순서 복원용
   if(!PLAN_SNAPSHOT[subjId]){
     const snap={};
@@ -847,16 +851,20 @@ async function applyReschedule(){
     });
   }));
 
-  // 재수강(다시풀기)은 제거하지 않고 유지 — 새 일차에 맞춰 (문제의 새 일차 + 7)로 다시 앵커링하고,
-  // 재조정된 깔끔한 일차를 base로 캐스케이드를 다시 적용한다. (예전엔 제거해서 다시풀기 문제가 사라졌음)
+  // 재수강(다시풀기)은 제거하지 않고 유지하되, 새 계획에 맞춰 같이 당겨준다.
+  // 재수강의 원본 문제는 항상 완료 상태(완료한 칩에서만 다시풀기를 걸 수 있다)라
+  // 재배치에서 무조건 「완료된 문제」(일차 0)로 빠진다. 그래서 원본의 새 일차로는
+  // 앵커링할 수 없다 — 예전 코드는 그 값이 늘 0이라 사실상 1+7=8일차에 못박혀 있었고,
+  // 앞 일차가 완료로 빠져 계획이 당겨져도 재수강만 8일차에 남아 붕 떴다.
+  // 대신 "현재 진행 위치에서 며칠 뒤"라는 원래 간격을 유지한 채 새 계획(1..N) 안으로 옮긴다.
   const sdefR=SUBJECTS.find(s=>s.id===subjId);
   const subjRetries=RETRIES.filter(r=>r.subj===subjId);
   delete RETRY_BASE[subjId];
   if(subjRetries.length && sdefR){
+    const newLastDay=Math.max(1,result.totalDays);
     subjRetries.forEach(r=>{
-      const col=sdefR.cols.find(c=>colKeyToType(subjId,c.key)===r.type);
-      const nd=col?map[`${r.ci}|${col.key}|${r.num}`]:undefined;
-      r.day=((nd&&nd>=1)?nd:1)+RETRY_OFFSET;
+      const ahead=Math.max(0,r.day-frontBefore);   // 진행 위치로부터의 간격(이미 지난 건 0 → 1일차)
+      r.day=Math.min(1+ahead,newLastDay);          // 새 계획을 벗어나지 않게 클램프
     });
     const base={};
     (DATA[subjId]||[]).forEach(ch=>sdefR.cols.forEach(c=>{
