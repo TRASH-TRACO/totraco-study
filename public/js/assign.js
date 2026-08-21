@@ -711,9 +711,17 @@ function openRescheduleModal(){
 
   if(!allProbs.length){showToast('문제가 없어요');return;}
 
+  // 미뤄둔 문제는 재배치 대상이 아니다 — 「미뤄둔 문제」에 그대로 두고 순서도 건드리지 않는다.
+  //  (예전엔 이것들도 seq에 섞였는데, 일차값이 POSTPONE_DAY(9000)라 정렬에서 맨 뒤로 가
+  //   미완료로 취급돼 마지막 일차에 몰려 배정됐다. 버킷은 비고 미룬 의미가 사라졌다.)
+  const postponed = allProbs.filter(p => p.day === POSTPONE_DAY);
+  const target    = allProbs.filter(p => p.day !== POSTPONE_DAY);
+
+  if(!target.length){showToast('미뤄둔 문제만 있어요 — 조정할 게 없습니다');return;}
+
   // 2. 원래 순서(회독 순서) = 일차 → 장 → 번호. 이 순서는 절대 바꾸지 않는다.
   //    (완료 문제를 앞으로 옮기지 않음 → 다음 회독에도 같은 문제가 비슷한 시기에 배치됨)
-  const seq = [...allProbs].sort((a,b) => {
+  const seq = [...target].sort((a,b) => {
     if(a.day !== b.day) return a.day - b.day;
     if(a.ci !== b.ci) return a.ci - b.ci;
     return a.num - b.num;
@@ -721,12 +729,13 @@ function openRescheduleModal(){
 
   const completedCount = seq.filter(p=>p.done).length;
   const undoneCount = seq.length - completedCount;
-  const origTotalDays = Math.max(0, ...allProbs.map(p=>p.day===POSTPONE_DAY?0:p.day));
+  const origTotalDays = Math.max(0, ...target.map(p=>p.day));
 
   rescheduleData = {
     subjId: curSubj,
     subjName: subjDef.name,
-    seq,                 // 순서 고정된 전체 문제
+    seq,                 // 순서 고정된 재배치 대상(미뤄둔 문제 제외)
+    postponed,           // 손대지 않고 그대로 두는 것들
     completedCount,
     undoneCount,
     origTotalDays
@@ -736,7 +745,8 @@ function openRescheduleModal(){
   document.getElementById('reschedule-info').innerHTML =
     `<b>${subjDef.name}</b> · 총 ${allProbs.length}문제 (기존 ${origTotalDays}일 계획)<br>` +
     `✓ 완료: ${completedCount}문제 → 「완료된 문제」로 모음<br>` +
-    `🔄 남은 문제: ${undoneCount}문제 → 1일차부터 하루 정한 개수만큼 배정`;
+    `🔄 남은 문제: ${undoneCount}문제 → 1일차부터 하루 정한 개수만큼 배정` +
+    (postponed.length ? `<br>⏸ 미뤄둔 문제: ${postponed.length}문제 → 그대로 둠 (순서 유지)` : '');
 
   // 기본값: 미완료 문제를 원래 진행하던 페이스에 맞춰 추정
   const distinctUndoneDays = new Set(seq.filter(p=>!p.done).map(p=>p.day)).size;
@@ -791,9 +801,11 @@ function updateReschedulePreview(){
   // 대사(점검) — 전체 = 완료 + 남은, 빠진 문제 없는지 미리 확인
   const placed = bucket.length + Object.values(dayGroups).reduce((a,arr)=>a+arr.length,0);
   const total = rescheduleData.seq.length;
+  const held = (rescheduleData.postponed||[]).length;   // 미뤄둠 — 재배치 대상이 아니다
   const missing = total - placed;
   let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:${missing===0?'var(--cost)':'var(--red)'};">`+
-    `${missing===0?'✅':'⚠️'} 전체 ${total}문제 = 완료 ${bucket.length} + 남은 ${total-bucket.length} · 누락 ${missing}</div>`;
+    `${missing===0?'✅':'⚠️'} 조정 대상 ${total}문제 = 완료 ${bucket.length} + 남은 ${total-bucket.length} · 누락 ${missing}`+
+    (held?` <span style="font-weight:500;color:var(--text3);">(미뤄둔 ${held}문제는 그대로)</span>`:'')+`</div>`;
   html += `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)</div>`;
   html += '<div style="display:flex;flex-direction:column;gap:4px;">';
   if(bucket.length){
@@ -803,6 +815,10 @@ function updateReschedulePreview(){
   for(let d=1; d<=totalDays; d++){
     const probs=(dayGroups[d]||[]).slice().sort((a,b)=>a.ci-b.ci||a.num-b.num);
     html += row(d+'일','accent',probs,probs.length);
+  }
+  if(held){
+    const hs=(rescheduleData.postponed||[]).slice().sort((a,b)=>a.ci-b.ci||a.num-b.num);
+    html += row('⏸ 미뤄둔 문제 (그대로)','text3',hs,hs.length);
   }
   html += '</div>';
   html += '<div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.5;">전체 또는 이 과목을 미완료로 초기화하면, 완료 묶음이 원래 순서대로 되돌아옵니다.</div>';
@@ -822,7 +838,9 @@ async function applyReschedule(){
   const undoneN = rescheduleData.undoneCount;
   if(!bucketN && !undoneN){showToast('조정할 문제가 없어요');return;}
 
-  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${result.totalDays}일)\n(완료 체크는 그대로 유지돼요)`))return;
+  const heldN = (rescheduleData.postponed||[]).length;
+  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${result.totalDays}일)`+
+     (heldN?`\n• 미뤄둔 ${heldN}문제 → 「미뤄둔 문제」에 그대로 (순서 유지)`:'')+`\n(완료 체크는 그대로 유지돼요)`))return;
 
   // 재배치 전 "현재 진행 위치"(첫 미완료 일차) — 재수강을 같은 간격으로 옮길 때 쓴다.
   // DATA/MAPS를 손대기 전에 구해야 한다.
@@ -890,7 +908,7 @@ async function applyReschedule(){
   const audit=assignmentAudit(subjId);
   closeRescheduleModal();
   if(audit.ok){
-    showToast(`✅ 완료 ${bucketN} 모으기 · 남은 ${undoneN} 재배치 (${result.totalDays}일) · 전체 ${audit.total} 누락 0`);
+    showToast(`✅ 완료 ${bucketN} 모으기 · 남은 ${undoneN} 재배치 (${result.totalDays}일)`+(heldN?` · 미뤄둠 ${heldN} 유지`:'')+` · 전체 ${audit.total} 누락 0`);
   }else{
     showToast(`⚠️ 재조정 점검 실패 — 확인 필요${audit.doneBucketUndone?` · 완료묶음에 미완료 ${audit.doneBucketUndone}`:''}`);
     console.warn('[reschedule] 누락/이상 감지', audit);
