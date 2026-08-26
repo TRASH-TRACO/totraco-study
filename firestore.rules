@@ -1,6 +1,7 @@
 // Firebase 콘솔 → Firestore Database → 규칙 탭에 붙여넣고 "게시"
 //
-// 각 사용자는 자기 UID 문서 하나(users/{uid})만 읽고 쓸 수 있습니다.
+// 각 사용자는 자기 UID 문서 하나(users/{uid})와
+// 그 아래 일기장 월 문서(users/{uid}/diary/{monthKey})만 읽고 쓸 수 있습니다.
 // 그 외 모든 경로는 기본 거부.
 
 rules_version = '2';
@@ -9,6 +10,11 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // 일기장 — 월별 문서 (YYYY-MM). 문서 하나에 그 달의 일기·경로가 들어간다.
+      match /diary/{monthKey} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
   }
 }
