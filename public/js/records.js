@@ -167,9 +167,26 @@ function toggleWrong(subj,ci,type,num){
   saveRetries();
 }
 
-// 재수강 예약 여부
-function isRetryScheduled(subj,ci,type,num){
+// ── 물음(부분) 단위 재수강 ────────────────────
+// 한 문제에서 특정 물음만 다시 풀고 싶을 때가 있다. RETRIES는 DATA와 분리된 별도 저장소이고
+// 항목마다 고유 rid를 가지므로, 물음 정보(parts)를 여기에만 얹으면 문제 데이터·진도 키·
+// 회독 배정은 손대지 않아도 된다. parts가 비면 지금까지처럼 '문제 전체' 예약이다.
+function normParts(parts){ return (parts||'').trim(); }
+/** 재수강 표시 라벨 — '3번' 또는 '3번 (2)' */
+function retryLabel(r){ return r.num+'번'+(normParts(r.parts)?' '+normParts(r.parts):''); }
+
+// 재수강 예약 여부 — parts를 주면 그 물음만, 안 주면 '문제 전체' 예약만 본다
+function isRetryScheduled(subj,ci,type,num,parts){
+  const pt=normParts(parts);
+  return RETRIES.some(r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num&&normParts(r.parts)===pt);
+}
+/** 이 문제에 걸린 재수강이 하나라도 있는가 (물음 예약 포함) */
+function hasAnyRetry(subj,ci,type,num){
   return RETRIES.some(r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num);
+}
+/** 이 문제에 걸린 재수강들 (물음 예약 포함) */
+function retriesForProblem(subj,ci,type,num){
+  return RETRIES.filter(r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num);
 }
 // 과목의 정규 일차 스냅샷(재수강 삽입 전) — 최초 1회만
 function snapshotRetryBase(subj){
@@ -230,16 +247,33 @@ function frontDayOf(subj){
   }
   return Math.max(1,max);
 }
-function scheduleRetry(subj,ci,type,num,fromDay){
-  if(isRetryScheduled(subj,ci,type,num))return;
+function scheduleRetry(subj,ci,type,num,fromDay,parts){
+  const pt=normParts(parts);
+  if(isRetryScheduled(subj,ci,type,num,pt))return;   // 같은 물음(또는 전체)이 이미 있으면 중복 예약 안 함
   if(!(fromDay>=1))fromDay=frontDayOf(subj);   // 완료 버킷(일차 0)이면 현재 진행 위치 기준으로
   snapshotRetryBase(subj);
-  RETRIES.push({rid:newRid(),subj,ci,type,num,pid:pidOf(subj,ci,type,num),day:fromDay+RETRY_OFFSET,done:false});
+  const r={rid:newRid(),subj,ci,type,num,pid:pidOf(subj,ci,type,num),day:fromDay+RETRY_OFFSET,done:false};
+  if(pt)r.parts=pt;
+  RETRIES.push(r);
   applyRetrySchedule(subj);
 }
-function unscheduleRetry(subj,ci,type,num){
+/** parts를 주면 그 물음 예약만, 안 주면 '문제 전체' 예약만 해제한다. */
+function unscheduleRetry(subj,ci,type,num,parts){
+  const pt=normParts(parts);
+  removeRetries(subj, r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num&&normParts(r.parts)===pt);
+}
+/** 이 문제에 걸린 재수강을 물음 예약까지 전부 해제 (완료 해제 시 사용) */
+function unscheduleAllRetries(subj,ci,type,num){
+  removeRetries(subj, r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num);
+}
+/** 재수강 항목 하나만 rid로 해제 — '다시 풀기' 목록에서 개별 취소용 */
+function unscheduleRetryByRid(rid){
+  const r=RETRIES.find(x=>x.rid===rid); if(!r)return;
+  removeRetries(r.subj, x=>x.rid===rid);
+}
+function removeRetries(subj,pred){
   const before=RETRIES.length;
-  RETRIES=RETRIES.filter(r=>!(r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num));
+  RETRIES=RETRIES.filter(r=>!pred(r));
   if(RETRIES.length===before)return;
   applyRetrySchedule(subj);
   if(!RETRIES.some(r=>r.subj===subj))delete RETRY_BASE[subj];   // 다 지웠으면 스냅샷 정리(이미 base로 복원됨)
@@ -279,7 +313,7 @@ function clearRetryAndWrong(subj,ci,type,num){
   let changed=false;
   const pid=pidOf(subj,ci,type,num);
   if(pid&&WRONG[pid]){ delete WRONG[pid]; changed=true; }
-  if(isRetryScheduled(subj,ci,type,num)){ unscheduleRetry(subj,ci,type,num); changed=true; }
+  if(hasAnyRetry(subj,ci,type,num)){ unscheduleAllRetries(subj,ci,type,num); changed=true; }
   return changed;
 }
 /** LOG를 날짜별로 뒤집어 { 'YYYY-MM-DD': [ {pid,subj,ci,type,num,ch} ] } 로 만든다. */

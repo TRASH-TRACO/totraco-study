@@ -28,6 +28,7 @@ function makeWrongItem(it){
   rb.className='pu-btn pu-retry'+(isRetryScheduled(it.subj,it.ci,it.type,it.num)?' on':'');
   rb.textContent=isRetryScheduled(it.subj,it.ci,it.type,it.num)?'예약됨':'다시풀기';
   rb.onclick=async()=>{
+    // 여기선 '문제 전체' 예약만 토글한다(물음 단위는 일차 패널의 '물음＋'에서)
     if(isRetryScheduled(it.subj,it.ci,it.type,it.num))unscheduleRetry(it.subj,it.ci,it.type,it.num);
     else{ const p=findProb(it.subj,it.ci,it.type,it.num); scheduleRetry(it.subj,it.ci,it.type,it.num,p?p[1]:0); }
     await saveRetries();await saveAllSubjData();buildMaps();buildDG();updateProgress();renderWrongNote();

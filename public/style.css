@@ -661,3 +661,13 @@ label.fbtn{cursor:pointer;}
 .prob-unit .chip.done ~ .pu-actions .pu-last:not(:empty){display:inline;}
 /* 오답노트는 자리가 넉넉하니 글씨로 보여준다 */
 .wrong-last{flex-basis:100%;font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;}
+
+/* 물음만 다시풀기 — 완료된 문제에서만 노출(오답·다시풀기와 같은 조건) */
+.pu-part{display:none;}
+.prob-unit .chip.done ~ .pu-actions .pu-part{display:inline-flex;}
+.pu-part:hover{border-color:var(--accent);color:var(--accent);}
+/* '다시 풀기' 목록의 개별 취소 — 물음 예약이 여러 개일 때 건별로 지운다 */
+.retry-item{display:inline-flex;align-items:center;gap:2px;}
+.retry-x{border:none;background:transparent;color:var(--text3);font-size:14px;line-height:1;
+  cursor:pointer;padding:2px 4px;border-radius:var(--r2);font-family:inherit;}
+.retry-x:hover{background:var(--bg3);color:var(--red);}

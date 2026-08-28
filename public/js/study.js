@@ -61,6 +61,20 @@ function makeProbUnit(subj,ci,type,num,cls){
     buildMaps();buildDG();renderDP(curDay);updateProgress();
   };
   act.appendChild(rb);
+  // 물음만 다시풀기 — 한 문제에서 특정 물음만 따로 예약한다(같은 문제에 여러 개 가능)
+  const pb2=document.createElement('button');pb2.type='button';
+  pb2.className='pu-btn pu-part';pb2.textContent='물음＋';pb2.title='특정 물음만 다시 풀기';
+  pb2.onclick=async e=>{
+    e.stopPropagation();
+    const parts=(prompt('어느 물음만 다시 풀까요?\n예) (2)  또는  (2), (4)')||'').trim();
+    if(!parts)return;
+    if(isRetryScheduled(subj,ci,type,num,parts)){ showToast('이미 예약된 물음이에요'); return; }
+    scheduleRetry(subj,ci,type,num,curDay,parts);
+    await saveRetries();await saveAllSubjData();
+    buildMaps();buildDG();renderDP(curDay);updateProgress();
+    showToast('🔁 '+num+'번 '+parts+' 다시풀기 예약');
+  };
+  act.appendChild(pb2);
   // 미루기(정규 일차·미완료) / 되돌리기(미뤄둔 문제 버킷)
   if(curDay===POSTPONE_DAY){
     const ub=document.createElement('button');ub.type='button';ub.className='pu-btn pu-unpostpone';ub.textContent='되돌리기';
@@ -298,7 +312,7 @@ function renderRetrySection(dp,day){
     const chName=(DATA[r.subj]&&DATA[r.subj][r.ci]&&DATA[r.subj][r.ci].ch)||'';
     const dispCh=r.subj==='tax'?taxDisplayName(chName):chName;
     const subjTag=curSubj==='all'?(subjDispName(r.subj)+' · '):'';
-    chip.innerHTML=escapeHtml(subjTag+dispCh)+' '+r.num+'번';
+    chip.innerHTML=escapeHtml(subjTag+dispCh)+' '+escapeHtml(retryLabel(r));
     const cst=document.createElement('div');cst.className='cst';cst.textContent='✓';chip.appendChild(cst);
     chip.addEventListener('click',()=>{
       toggleRetryDone(r.rid);
@@ -307,7 +321,18 @@ function renderRetrySection(dp,day){
       if(cntEl)cntEl.textContent=cur.filter(x=>x.done).length+' / '+cur.length;
       refreshDPMeta(day);updateDBtns();
     });
-    row.appendChild(chip);
+    // 개별 해제 — 물음 예약이 여러 개면 문제 쪽 '예약됨' 버튼으로는 특정 건만 못 지운다
+    const xb=document.createElement('button');xb.type='button';xb.className='retry-x';
+    xb.textContent='×';xb.title='이 다시풀기 예약 취소';
+    xb.onclick=async e=>{
+      e.stopPropagation();
+      unscheduleRetryByRid(r.rid);
+      await saveRetries();await saveAllSubjData();
+      buildMaps();buildDG();renderDP(curDay);updateProgress();
+    };
+    const item=document.createElement('div');item.className='retry-item';
+    item.appendChild(chip);item.appendChild(xb);
+    row.appendChild(item);
   });
   sec.appendChild(row);dp.appendChild(sec);
 }
