@@ -7,6 +7,7 @@ function makeChip(subj,ci,type,num,day,cls){
   if(dn(subj,ci,type,num))el.classList.add('done');
   el.dataset.subj=subj;el.dataset.ci=ci;el.dataset.type=type;el.dataset.num=num;
   el.innerHTML=num+'번'+(day?'<sup class="chip-day">'+day+'일</sup>':'');
+  setChipTitle(el,subj,ci,type,num);
   const cst=document.createElement('div');cst.className='cst';
   cst.textContent='✓';
   el.appendChild(cst);
@@ -21,10 +22,21 @@ function makeChip(subj,ci,type,num,day,cls){
   });
   return el;
 }
+/** 칩 툴팁 — 마지막으로 푼 날짜. 데스크톱 hover용이고, 모바일에선 아래 pu-last가 대신 보여준다. */
+function setChipTitle(el,subj,ci,type,num){
+  const label=lastSolvedLabel(subj,ci,type,num);
+  if(label) el.title='최근 푼 날짜: '+label;
+  else el.removeAttribute('title');
+}
 function refreshChip(el,subj,ci,type,num){
   el.classList.toggle('done',dn(subj,ci,type,num));
   const cst=el.querySelector('.cst');
   if(cst){cst.style.display=dn(subj,ci,type,num)?'flex':'none';}
+  setChipTitle(el,subj,ci,type,num);
+  // 같은 묶음의 '최근 푼 날짜' 표시도 함께 갱신
+  const unit=el.closest('.prob-unit');
+  const last=unit&&unit.querySelector('.pu-last');
+  if(last){ const l=lastSolvedLabel(subj,ci,type,num); last.textContent=l?'최근 '+l:''; }
 }
 // 일차 패널용 — 칩 + (완료 시 노출되는) [오답][다시풀기] 버튼 묶음.
 // 버튼 노출은 CSS 형제 선택자(.chip.done ~ .pu-actions)로 처리해 완료 토글에 자동 반응한다.
@@ -59,6 +71,11 @@ function makeProbUnit(subj,ci,type,num,cls){
     pb.onclick=e=>{e.stopPropagation();postponeProblem(subj,ci,type,num);};
     act.appendChild(pb);
   }
+  // 최근 푼 날짜 — 완료된 문제에서만 보인다(오답·다시풀기 버튼과 같은 조건, CSS로 처리)
+  const lastEl=document.createElement('span');lastEl.className='pu-last';
+  const lastLabel=lastSolvedLabel(subj,ci,type,num);
+  lastEl.textContent=lastLabel?'최근 '+lastLabel:'';
+  act.appendChild(lastEl);
   unit.appendChild(act);
   return unit;
 }
@@ -277,6 +294,7 @@ function renderRetrySection(dp,day){
   rs.slice().sort((a,b)=>a.ci-b.ci||a.num-b.num).forEach(r=>{
     const chip=document.createElement('div');
     chip.className='chip retry-chip '+(CC[r.type]||'si')+(r.done?' done':'');
+    setChipTitle(chip,r.subj,r.ci,r.type,r.num);
     const chName=(DATA[r.subj]&&DATA[r.subj][r.ci]&&DATA[r.subj][r.ci].ch)||'';
     const dispCh=r.subj==='tax'?taxDisplayName(chName):chName;
     const subjTag=curSubj==='all'?(subjDispName(r.subj)+' · '):'';

@@ -48,6 +48,25 @@ function findProb(subj,ci,type,num){
 }
 function pidOf(subj,ci,type,num){const p=findProb(subj,ci,type,num);return p&&Array.isArray(p)?p[2]:null;}
 
+/** 이 문제를 마지막으로 푼 날짜(YYYY-MM-DD). 기록이 없으면 null.
+ *  LOG[pid].dates는 push 순서라 정렬을 보장하지 않으니(동기화 병합도 있음) 최대값을 고른다. */
+function lastSolvedDate(pid){
+  const e = pid && LOG[pid];
+  if(!e || !Array.isArray(e.dates) || !e.dates.length) return null;
+  return e.dates.reduce((a,b)=> (a && a > b) ? a : b);
+}
+/** '2026-08-28' → '2026. 08. 28' */
+function fmtSolvedDate(ds){
+  if(!ds) return '';
+  const [y,m,d] = ds.split('-');
+  return `${y}. ${m}. ${d}`;
+}
+/** 문제 위치로 바로 구하는 편의 함수 — 없으면 빈 문자열 */
+function lastSolvedLabel(subj,ci,type,num){
+  const ds = lastSolvedDate(pidOf(subj,ci,type,num));
+  return ds ? fmtSolvedDate(ds) : '';
+}
+
 /** 완료 토글 시 풀이 날짜를 기록/해제한다. done=true면 오늘 날짜 추가, false면 오늘 기록 제거. */
 function recordSolve(subj,ci,type,num,done){
   const p=findProb(subj,ci,type,num);

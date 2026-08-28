@@ -114,7 +114,9 @@ function renderCalPanel(ds,byDate){
         const tl=typeDispLabel(it.subj,it.type);
         const pre=(it.type!=='single'&&tl)?escapeHtml(tl)+' ':'';
         const rmark=it.retry?'<span class="cal-chip-re">🔁</span> ':'';
-        html+=`<span class="cal-chip${it.retry?' retry':''}" style="border-color:${subjColorVar(it.subj)}">${rmark}${pre}${it.num}번</span>`;
+        const lastL=fmtSolvedDate(lastSolvedDate(it.pid));
+        const tip=lastL?` title="최근 푼 날짜: ${lastL}"`:'';
+        html+=`<span class="cal-chip${it.retry?' retry':''}"${tip} style="border-color:${subjColorVar(it.subj)}">${rmark}${pre}${it.num}번</span>`;
       });
       html+=`</div></div>`;
     });

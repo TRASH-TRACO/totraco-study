@@ -20,6 +20,8 @@ function makeWrongItem(it){
   const chip=document.createElement('span');chip.className='chip '+(it.cls||CC[it.type]||'si');
   const tl=typeDispLabel(it.subj,it.type);
   chip.textContent=(it.type!=='single'&&tl?tl+' ':'')+it.num+'번';
+  const lastLabel=fmtSolvedDate(lastSolvedDate(it.pid));
+  if(lastLabel) chip.title='최근 푼 날짜: '+lastLabel;
   wrap.appendChild(chip);
   // 다시풀기 (문제의 현재 일차 기준 +7; 완료 버킷이면 현재 진행 위치 기준)
   const rb=document.createElement('button');rb.type='button';
@@ -35,6 +37,12 @@ function makeWrongItem(it){
   const xb=document.createElement('button');xb.type='button';xb.className='pu-btn';xb.textContent='해제';
   xb.onclick=()=>{ toggleWrong(it.subj,it.ci,it.type,it.num); renderWrongNote(); };
   wrap.appendChild(xb);
+  // 마지막으로 푼 날짜 — 다시 풀지 정할 때 제일 궁금한 정보라 여기선 글씨로 보여준다
+  if(lastLabel){
+    const last=document.createElement('span');last.className='wrong-last';
+    last.textContent='최근 푼 날짜: '+lastLabel;
+    wrap.appendChild(last);
+  }
   return wrap;
 }
 

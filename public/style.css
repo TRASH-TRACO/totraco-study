@@ -651,7 +651,13 @@ label.fbtn{cursor:pointer;}
 .wrong-hdr{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
 .wrong-cnt{font-size:12px;font-weight:600;color:var(--fin);font-family:var(--font-mono);margin-left:6px;}
 .wrong-items{display:flex;flex-wrap:wrap;gap:8px;flex:1;}
-.wrong-item{display:inline-flex;align-items:center;gap:4px;background:var(--bg);
+.wrong-item{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;background:var(--bg);
   border:1px solid var(--border);border-radius:var(--r2);padding:4px 6px;}
 .wrong-item .chip{cursor:default;}
 .wrong-item .chip:hover{filter:none;transform:none;box-shadow:none;}
+
+/* 최근 푼 날짜 — 일차 패널은 완료된 문제에서만(오답·다시풀기 버튼과 같은 조건) */
+.pu-last{display:none;font-size:10px;color:var(--text3);font-family:var(--font-mono);white-space:nowrap;margin-left:2px;}
+.prob-unit .chip.done ~ .pu-actions .pu-last:not(:empty){display:inline;}
+/* 오답노트는 자리가 넉넉하니 글씨로 보여준다 */
+.wrong-last{flex-basis:100%;font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:2px;}
