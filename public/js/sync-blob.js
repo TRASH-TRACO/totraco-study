@@ -187,9 +187,16 @@ async function applyBlob(data,opts){
   // 2-2) 하루 한 줄 기록 복원 — 동기화는 빈 값이 로컬 기록을 지우지 못하게 병합, 복원은 교체
   if(data.dayNotes&&typeof data.dayNotes==='object')DAYNOTES=replaceHistory?data.dayNotes:mergeNotesInto(DAYNOTES,data.dayNotes);
   // 2-3) 재수강 복원 — 회차 단위라 최신 것으로 교체(진도 S와 동일 성격)
-  if(Array.isArray(data.retries))RETRIES=data.retries;
+  //      RETRY_BASE는 RETRIES와 반드시 짝을 이뤄야 한다. 예전엔 blob에 retryBase가 없으면
+  //      로컬 값을 그대로 뒀는데, 그러면 새로 들어온 문제 데이터와 안 맞는 옛 스냅샷이 남아
+  //      나중에 재수강을 해제할 때 엉뚱한 일차로 '복원'된다. 함께 교체한다.
+  if(Array.isArray(data.retries)){
+    RETRIES=data.retries;
+    RETRY_BASE=(data.retryBase&&typeof data.retryBase==='object')?data.retryBase:{};
+  }else if(data.retryBase&&typeof data.retryBase==='object'){
+    RETRY_BASE=data.retryBase;
+  }
   if(data.wrong&&typeof data.wrong==='object')WRONG=data.wrong;
-  if(data.retryBase&&typeof data.retryBase==='object')RETRY_BASE=data.retryBase;
   // 재수강 완료 표식도 이력 → 동기화는 합집합(빈 값이 덮어쓰지 못하게), 복원은 교체
   if(data.retryDone&&typeof data.retryDone==='object')RETRY_DONE=replaceHistory?data.retryDone:{...RETRY_DONE,...data.retryDone};
 
@@ -200,6 +207,8 @@ async function applyBlob(data,opts){
       // DEFAULTS는 유지 (data.json 기준)
     }
   });
+  // 재수강은 없는데 밀린 일차만 남은 잔재가 있으면 정리한다
+  healRetryDays();
   syncLegacy();
   ensurePids();  // 예전 백업엔 pid가 없을 수 있으니 보강
 

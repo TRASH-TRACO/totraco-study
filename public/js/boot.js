@@ -51,6 +51,8 @@ async function init(){
   await loadRetries();
   await loadRetryDone();
   if(ensurePids()) await saveAllSubjData();  // 기존 문제에 고유 ID 채우기(최초 1회 마이그레이션)
+  // 재수강이 사라졌는데 그게 밀어놓은 일차만 남은 잔재를 정리한다
+  if(healRetryDays()){ await saveAllSubjData(); await saveRetries(); }
   buildMaps();
   loadSavedView();   // 마지막으로 보던 화면을 렌더 전에 전역으로 복원
   const now=new Date();document.getElementById('today-date').textContent=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}`;

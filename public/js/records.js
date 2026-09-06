@@ -266,6 +266,33 @@ function unscheduleRetry(subj,ci,type,num,parts){
 function unscheduleAllRetries(subj,ci,type,num){
   removeRetries(subj, r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num);
 }
+/**
+ * 재수강 잔재 치유 — 재수강이 하나도 없는데 RETRY_BASE만 남은 과목의 일차를 되돌린다.
+ *
+ * applyRetrySchedule은 재수강을 끼워넣으며 DATA의 일차 번호를 실제로 밀어버리고,
+ * 되돌리는 유일한 수단이 RETRY_BASE(끼워넣기 전 스냅샷)다. 정상 경로로 해제하면 복원되지만,
+ * 재수강만 사라지고 복원이 일어나지 않으면(동기화로 빈 retries를 받거나 옛 백업을 복원하는 등)
+ * 밀린 일차가 영구히 남는다 — 재수강은 없는데 중간 일차가 비고 꼬리에 1문제짜리 일차가 생긴다.
+ * 부팅과 blob 적용 직후에 한 번씩 훑어 그 잔재를 정리한다.
+ * (재수강이 남아 있으면 밀린 상태가 정상이므로 건드리지 않는다.)
+ */
+function healRetryDays(){
+  let changed=false;
+  Object.keys(RETRY_BASE).forEach(subj=>{
+    if(RETRIES.some(r=>r.subj===subj))return;          // 아직 재수강이 있으면 지금 배치가 정상
+    const base=RETRY_BASE[subj], sdef=SUBJECTS.find(s=>s.id===subj), data=DATA[subj];
+    if(base&&sdef&&data){
+      data.forEach(ch=>sdef.cols.forEach(col=>{
+        (ch[col.key]||[]).forEach(p=>{
+          if(Array.isArray(p)&&p[2]&&base[p[2]]!==undefined&&p[1]!==base[p[2]]){ p[1]=base[p[2]]; changed=true; }
+        });
+      }));
+    }
+    delete RETRY_BASE[subj];
+  });
+  return changed;
+}
+
 /** 재수강 항목 하나만 rid로 해제 — '다시 풀기' 목록에서 개별 취소용 */
 function unscheduleRetryByRid(rid){
   const r=RETRIES.find(x=>x.rid===rid); if(!r)return;
