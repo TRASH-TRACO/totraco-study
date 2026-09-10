@@ -212,12 +212,15 @@ select option{background:var(--bg);color:var(--text);}
 .pu-unpostpone:hover{border-color:var(--accent);color:var(--accent);}
 .prob-unit.wrong .chip{box-shadow:0 0 0 2px var(--fin-border);opacity:1;}
 .prob-unit.wrong .chip.done{opacity:.5;}
-/* '다시 풀기' 별도 섹션 */
-.retry-sec{border-top:1px dashed var(--border2);padding:12px 16px;background:var(--bg2);}
-.retry-sec-hdr{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+/* '다시 풀기' 섹션 — 칩 모양은 정규 문제와 같고, 위쪽 구분선으로만 구분한다 */
+.retry-sec{padding:0 0 4px;}
+.retry-sec-hdr{display:flex;align-items:center;gap:8px;padding:12px 16px 8px;border-top:1px dashed var(--border2);
+  font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--accent);}
+.retry-sec-line{flex:1;height:1px;background:var(--border2);}
 .retry-sec-cnt{font-size:11px;font-weight:500;color:var(--text3);font-family:var(--font-mono);}
-.retry-row{display:flex;flex-wrap:wrap;gap:5px;}
-.retry-chip{border-style:dashed !important;white-space:nowrap;}
+.retry-body{padding:0 16px 12px;}
+.retry-body .ch-block:last-child{border-bottom:none;}
+.chip-part{font-size:8px;font-weight:400;opacity:.7;margin-left:1px;vertical-align:super;}
 /* 일차 타일에 재수강 표시 점 */
 .db.has-retry{position:relative;}
 .db.has-retry::after{content:'';position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;background:var(--accent);}
@@ -667,7 +670,6 @@ label.fbtn{cursor:pointer;}
 .prob-unit .chip.done ~ .pu-actions .pu-part{display:inline-flex;}
 .pu-part:hover{border-color:var(--accent);color:var(--accent);}
 /* '다시 풀기' 목록의 개별 취소 — 물음 예약이 여러 개일 때 건별로 지운다 */
-.retry-item{display:inline-flex;align-items:center;gap:2px;}
 .retry-x{border:none;background:transparent;color:var(--text3);font-size:14px;line-height:1;
   cursor:pointer;padding:2px 4px;border-radius:var(--r2);font-family:inherit;}
 .retry-x:hover{background:var(--bg3);color:var(--red);}

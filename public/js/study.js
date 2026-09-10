@@ -296,45 +296,113 @@ function renderDP(day){
   if(body.childNodes.length)dp.appendChild(body);   // 재수강만 있는 일차는 빈 본문 생략
   renderRetrySection(dp,day);
 }
-// 일차 패널의 '다시 풀기' 별도 섹션 — 정규 문제와 구분해서 보여준다. 자체 완료 토글.
+// 일차 패널의 '다시 풀기' 섹션 — 정규 문제와 같은 배치(장 → 유형 → 번호)로 그린다.
+// 예전엔 '장이름 1번' 한 줄짜리 칩이라 유형(기본/응용…)이 안 보였다. 구분은 위쪽 '다시 풀기'
+// 구분선이 맡고, 칩 모양·완료 토글 동작은 정규 문제와 동일하다(완료 상태는 별개로 관리).
 function renderRetrySection(dp,day){
   const rs=retriesForDay(day);
   if(!rs.length)return;
   const sec=document.createElement('div');sec.className='retry-sec';
   const hd=document.createElement('div');hd.className='retry-sec-hdr';
-  hd.innerHTML='🔁 다시 풀기 <span class="retry-sec-cnt" id="retry-cnt">'+rs.filter(r=>r.done).length+' / '+rs.length+'</span>';
+  hd.innerHTML='<span class="retry-sec-lbl">🔁 다시 풀기</span>'
+    +'<span class="retry-sec-cnt" id="retry-cnt">'+rs.filter(r=>r.done).length+' / '+rs.length+'</span>'
+    +'<span class="retry-sec-line"></span>';
   sec.appendChild(hd);
-  const row=document.createElement('div');row.className='retry-row';
-  rs.slice().sort((a,b)=>a.ci-b.ci||a.num-b.num).forEach(r=>{
-    const chip=document.createElement('div');
-    chip.className='chip retry-chip '+(CC[r.type]||'si')+(r.done?' done':'');
-    setChipTitle(chip,r.subj,r.ci,r.type,r.num);
-    const chName=(DATA[r.subj]&&DATA[r.subj][r.ci]&&DATA[r.subj][r.ci].ch)||'';
-    const dispCh=r.subj==='tax'?taxDisplayName(chName):chName;
-    const subjTag=curSubj==='all'?(subjDispName(r.subj)+' · '):'';
-    chip.innerHTML=escapeHtml(subjTag+dispCh)+' '+escapeHtml(retryLabel(r));
-    const cst=document.createElement('div');cst.className='cst';cst.textContent='✓';chip.appendChild(cst);
-    chip.addEventListener('click',()=>{
-      toggleRetryDone(r.rid);
-      chip.classList.toggle('done',r.done);
-      const cntEl=document.getElementById('retry-cnt');const cur=retriesForDay(day);
-      if(cntEl)cntEl.textContent=cur.filter(x=>x.done).length+' / '+cur.length;
-      refreshDPMeta(day);updateDBtns();
-    });
-    // 개별 해제 — 물음 예약이 여러 개면 문제 쪽 '예약됨' 버튼으로는 특정 건만 못 지운다
-    const xb=document.createElement('button');xb.type='button';xb.className='retry-x';
-    xb.textContent='×';xb.title='이 다시풀기 예약 취소';
-    xb.onclick=async e=>{
-      e.stopPropagation();
-      unscheduleRetryByRid(r.rid);
-      await saveRetries();await saveAllSubjData();
-      buildMaps();buildDG();renderDP(curDay);updateProgress();
-    };
-    const item=document.createElement('div');item.className='retry-item';
-    item.appendChild(chip);item.appendChild(xb);
-    row.appendChild(item);
+  const body=document.createElement('div');body.className='retry-body';
+  const subjs=curSubj==='all'?SUBJECTS.map(s=>s.id):[curSubj];
+  subjs.forEach(subj=>{
+    const sr=rs.filter(r=>r.subj===subj);if(!sr.length)return;
+    if(curSubj==='all'){
+      const sd=document.createElement('div');sd.className='subj-divider';
+      const dot=document.createElement('div');dot.className='subj-dot';dot.style.background=subjColorVar(subj);
+      const nm=document.createElement('span');nm.style.cssText='font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3)';nm.textContent=subjDispName(subj);
+      sd.appendChild(dot);sd.appendChild(nm);body.appendChild(sd);
+    }
+    // 세법: 부가가치세·법인세·소득세 섹션 구분 (정규 문제와 같은 방식)
+    if(subj==='tax'){
+      const taxGroupDefs=[{prefix:'부-',label:'부가가치세'},{prefix:'법-',label:'법인세'},{prefix:'소-',label:'소득세'}];
+      taxGroupDefs.forEach(({prefix,label})=>{
+        const gsr=sr.filter(r=>{const ch=TAXD[r.ci]?.ch||'';return ch.startsWith(prefix);});
+        if(!gsr.length)return;
+        const gh=document.createElement('div');
+        gh.style.cssText='display:flex;align-items:center;gap:6px;padding:10px 0 6px;font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--tax);';
+        const dot=document.createElement('div');dot.style.cssText='width:5px;height:5px;border-radius:50%;background:var(--tax);opacity:.6;';
+        const nm2=document.createElement('span');nm2.textContent=label;
+        const line=document.createElement('div');line.style.cssText='flex:1;height:1px;background:var(--tax-border);';
+        gh.appendChild(dot);gh.appendChild(nm2);gh.appendChild(line);body.appendChild(gh);
+        renderRetryChunks(body,gsr,subj,day);
+      });
+      const rest=sr.filter(r=>!/^(부|법|소)-/.test(TAXD[r.ci]?.ch||''));
+      if(rest.length)renderRetryChunks(body,rest,subj,day);
+      return;
+    }
+    renderRetryChunks(body,sr,subj,day);
   });
-  sec.appendChild(row);dp.appendChild(sec);
+  sec.appendChild(body);dp.appendChild(sec);
+}
+// 다시 풀기 칩 묶음 — renderDPChunks와 같은 장/유형 구조. 한 문제에 물음별 예약이 여럿일 수 있어
+// 번호가 아니라 예약(rid) 단위로 칩을 만든다.
+function renderRetryChunks(body,sr,subj,day){
+  const byCI={},order=[];
+  sr.forEach(r=>{
+    if(!byCI[r.ci]){byCI[r.ci]={ci:r.ci,ch:(DATA[subj]&&DATA[subj][r.ci]&&DATA[subj][r.ci].ch)||'',g:{}};order.push(r.ci);}
+    const g=byCI[r.ci].g;if(!g[r.type])g[r.type]=[];g[r.type].push(r);
+  });
+  const subjDef=SUBJECTS.find(x=>x.id===subj);
+  const typeDefs=subjDef?subjDef.cols.map(c=>({type:colKeyToType(subj,c.key),label:c.label||c.key,cls:c.cls})):[{type:'theory',label:'이론',cls:'th'}];
+  [...new Set(order)].sort((a,b)=>a-b).forEach(ci=>{
+    const info=byCI[ci];
+    const dispCh=subj==='tax'?taxDisplayName(info.ch):info.ch;
+    const block=document.createElement('div');block.className='ch-block';
+    const inner=document.createElement('div');inner.className='ch-block-inner';
+    const nm=document.createElement('div');nm.className='ch-name';
+    const nmT=document.createElement('span');nmT.className='ch-name-text';nmT.textContent=dispCh;nm.appendChild(nmT);inner.appendChild(nm);
+    const groups=document.createElement('div');groups.className='ch-groups';
+    // 과목 정의가 바뀐 뒤 남은 예약(정의에 없는 유형)도 빠뜨리지 않고 뒤에 붙인다
+    const known=typeDefs.map(t=>t.type);
+    const defs=typeDefs.concat(Object.keys(info.g).filter(t=>known.indexOf(t)<0).map(t=>({type:t,label:t,cls:CC[t]})));
+    defs.forEach(({type:tp,label:lblText,cls})=>{
+      const items=info.g[tp];if(!items||!items.length)return;
+      const grp=document.createElement('div');grp.className='ch-group';
+      if(tp!=='single'){const lbl=document.createElement('div');lbl.className='type-label '+(cls||CC[tp]||'');lbl.textContent=lblText;grp.appendChild(lbl);}
+      const row=document.createElement('div');row.className='chip-row';
+      items.slice().sort((a,b)=>a.num-b.num||normParts(a.parts).localeCompare(normParts(b.parts)))
+        .forEach(r=>row.appendChild(makeRetryUnit(r,day,cls)));
+      grp.appendChild(row);groups.appendChild(grp);
+    });
+    inner.appendChild(groups);block.appendChild(inner);body.appendChild(block);
+  });
+}
+// 다시 풀기 칩 하나 — 정규 칩과 같은 모양(번호 + 물음). 옆의 ×는 예약만 취소한다.
+function makeRetryUnit(r,day,cls){
+  const unit=document.createElement('div');unit.className='prob-unit retry-unit';
+  const chip=document.createElement('div');
+  chip.className='chip retry-chip '+(cls||CC[r.type]||'si')+(r.done?' done':'');
+  chip.dataset.subj=r.subj;chip.dataset.ci=r.ci;chip.dataset.type=r.type;chip.dataset.num=r.num;
+  setChipTitle(chip,r.subj,r.ci,r.type,r.num);
+  const parts=normParts(r.parts);
+  chip.innerHTML=r.num+'번'+(parts?'<sup class="chip-part">'+escapeHtml(parts)+'</sup>':'');
+  const cst=document.createElement('div');cst.className='cst';cst.textContent='✓';chip.appendChild(cst);
+  chip.addEventListener('click',()=>{
+    toggleRetryDone(r.rid);
+    chip.classList.toggle('done',r.done);
+    const cntEl=document.getElementById('retry-cnt');const cur=retriesForDay(day);
+    if(cntEl)cntEl.textContent=cur.filter(x=>x.done).length+' / '+cur.length;
+    refreshDPMeta(day);updateDBtns();
+  });
+  unit.appendChild(chip);
+  // 개별 해제 — 물음 예약이 여러 개면 문제 쪽 '예약됨' 버튼으로는 특정 건만 못 지운다
+  const act=document.createElement('div');act.className='pu-actions';
+  const xb=document.createElement('button');xb.type='button';xb.className='retry-x';
+  xb.textContent='×';xb.title=retryLabel(r)+' 다시풀기 예약 취소';
+  xb.onclick=async e=>{
+    e.stopPropagation();
+    unscheduleRetryByRid(r.rid);
+    await saveRetries();await saveAllSubjData();
+    buildMaps();buildDG();renderDP(curDay);updateProgress();
+  };
+  act.appendChild(xb);unit.appendChild(act);
+  return unit;
 }
 function renderDPChunks(body,sp,subj){
     const byCI={},order=[];
