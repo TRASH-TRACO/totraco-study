@@ -175,10 +175,11 @@ function normParts(parts){ return (parts||'').trim(); }
 /** 재수강 표시 라벨 — '3번' 또는 '3번 (2)' */
 function retryLabel(r){ return r.num+'번'+(normParts(r.parts)?' '+normParts(r.parts):''); }
 
-// 재수강 예약 여부 — parts를 주면 그 물음만, 안 주면 '문제 전체' 예약만 본다
+// 재수강 예약 여부 — parts를 주면 그 물음만, 안 주면 '문제 전체' 예약만 본다.
+// 이미 푼(done) 예약은 '지난 기록'이라 치지 않는다 → 예약분을 풀고 또 틀리면 다시 예약할 수 있다.
 function isRetryScheduled(subj,ci,type,num,parts){
   const pt=normParts(parts);
-  return RETRIES.some(r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num&&normParts(r.parts)===pt);
+  return RETRIES.some(r=>!r.done&&r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num&&normParts(r.parts)===pt);
 }
 /** 이 문제에 걸린 재수강이 하나라도 있는가 (물음 예약 포함) */
 function hasAnyRetry(subj,ci,type,num){
@@ -247,9 +248,11 @@ function frontDayOf(subj){
   }
   return Math.max(1,max);
 }
+// 예약분을 풀고 또 틀렸을 때 한 번 더 예약할 수 있다. 이미 푼 예약은 그 일차에 기록으로 남고,
+// 새 예약이 별도 항목(rid)으로 하나 더 생긴다. 아직 안 푼 같은 예약이 있으면 중복으로 안 만든다.
 function scheduleRetry(subj,ci,type,num,fromDay,parts){
   const pt=normParts(parts);
-  if(isRetryScheduled(subj,ci,type,num,pt))return;   // 같은 물음(또는 전체)이 이미 있으면 중복 예약 안 함
+  if(isRetryScheduled(subj,ci,type,num,pt))return;   // 아직 안 푼 같은 예약이 있으면 중복 예약 안 함
   if(!(fromDay>=1))fromDay=frontDayOf(subj);   // 완료 버킷(일차 0)이면 현재 진행 위치 기준으로
   snapshotRetryBase(subj);
   const r={rid:newRid(),subj,ci,type,num,pid:pidOf(subj,ci,type,num),day:fromDay+RETRY_OFFSET,done:false};
@@ -257,10 +260,11 @@ function scheduleRetry(subj,ci,type,num,fromDay,parts){
   RETRIES.push(r);
   applyRetrySchedule(subj);
 }
-/** parts를 주면 그 물음 예약만, 안 주면 '문제 전체' 예약만 해제한다. */
+/** parts를 주면 그 물음 예약만, 안 주면 '문제 전체' 예약만 해제한다.
+ *  이미 푼 예약(지난 기록)은 남긴다 — 지우려면 '다시 풀기' 목록의 ×를 쓴다. */
 function unscheduleRetry(subj,ci,type,num,parts){
   const pt=normParts(parts);
-  removeRetries(subj, r=>r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num&&normParts(r.parts)===pt);
+  removeRetries(subj, r=>!r.done&&r.subj===subj&&r.ci===ci&&r.type===type&&r.num===num&&normParts(r.parts)===pt);
 }
 /** 이 문제에 걸린 재수강을 물음 예약까지 전부 해제 (완료 해제 시 사용) */
 function unscheduleAllRetries(subj,ci,type,num){

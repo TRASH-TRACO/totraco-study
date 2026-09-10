@@ -373,9 +373,12 @@ function renderRetryChunks(body,sr,subj,day){
     inner.appendChild(groups);block.appendChild(inner);body.appendChild(block);
   });
 }
-// 다시 풀기 칩 하나 — 정규 칩과 같은 모양(번호 + 물음). 옆의 ×는 예약만 취소한다.
+// 다시 풀기 칩 하나 — 정규 칩과 같은 모양(번호 + 물음)에 같은 버튼 묶음.
+// 예약분을 풀고 또 틀렸으면 [다시풀기]로 한 번 더 예약한다(이 칩은 그 일차의 기록으로 남는다).
+// ×는 이 예약 항목만 지운다.
 function makeRetryUnit(r,day,cls){
   const unit=document.createElement('div');unit.className='prob-unit retry-unit';
+  if(isWrong(r.subj,r.ci,r.type,r.num))unit.classList.add('wrong');
   const chip=document.createElement('div');
   chip.className='chip retry-chip '+(cls||CC[r.type]||'si')+(r.done?' done':'');
   chip.dataset.subj=r.subj;chip.dataset.ci=r.ci;chip.dataset.type=r.type;chip.dataset.num=r.num;
@@ -388,13 +391,51 @@ function makeRetryUnit(r,day,cls){
     chip.classList.toggle('done',r.done);
     const cntEl=document.getElementById('retry-cnt');const cur=retriesForDay(day);
     if(cntEl)cntEl.textContent=cur.filter(x=>x.done).length+' / '+cur.length;
-    refreshDPMeta(day);updateDBtns();
+    refreshRetryBtn();refreshDPMeta(day);updateDBtns();
   });
   unit.appendChild(chip);
-  // 개별 해제 — 물음 예약이 여러 개면 문제 쪽 '예약됨' 버튼으로는 특정 건만 못 지운다
   const act=document.createElement('div');act.className='pu-actions';
+  // 오답 — 정규 문제와 같은 표시(문제 단위)
+  const wb=document.createElement('button');wb.type='button';
+  wb.className='pu-btn pu-wrong'+(isWrong(r.subj,r.ci,r.type,r.num)?' on':'');wb.textContent='오답';
+  wb.onclick=e=>{e.stopPropagation();toggleWrong(r.subj,r.ci,r.type,r.num);const on=isWrong(r.subj,r.ci,r.type,r.num);wb.classList.toggle('on',on);unit.classList.toggle('wrong',on);};
+  act.appendChild(wb);
+  // 다시풀기 — 예약분을 풀고 또 틀렸을 때 같은 조건(물음 포함)으로 한 번 더 예약한다
+  const rb=document.createElement('button');rb.type='button';rb.className='pu-btn pu-retry';
+  // 이 항목 자신은 빼고 본다 — 자기 예약 때문에 늘 '예약됨'으로 보이면 다시 예약할 수가 없다
+  const pending=()=>RETRIES.some(x=>x.rid!==r.rid&&!x.done&&x.subj===r.subj&&x.ci===r.ci&&x.type===r.type&&x.num===r.num&&normParts(x.parts)===parts);
+  function refreshRetryBtn(){
+    const on=pending();
+    rb.classList.toggle('on',on);
+    rb.textContent=on?'예약됨':'다시풀기';
+    rb.title=on?'예약 취소':'또 틀렸으면 '+RETRY_OFFSET+'일 뒤에 한 번 더';
+  }
+  refreshRetryBtn();
+  rb.onclick=async e=>{
+    e.stopPropagation();
+    if(pending())unscheduleRetry(r.subj,r.ci,r.type,r.num,parts);
+    else{ scheduleRetry(r.subj,r.ci,r.type,r.num,day,parts); showToast('🔁 '+(day+RETRY_OFFSET)+'일차에 다시 예약'); }
+    await saveRetries();await saveAllSubjData();
+    buildMaps();buildDG();renderDP(curDay);updateProgress();
+  };
+  act.appendChild(rb);
+  // 물음만 다시풀기 — 이번엔 특정 물음만 또 틀렸을 때
+  const pb=document.createElement('button');pb.type='button';
+  pb.className='pu-btn pu-part';pb.textContent='물음＋';pb.title='특정 물음만 다시 풀기';
+  pb.onclick=async e=>{
+    e.stopPropagation();
+    const v=(prompt('어느 물음만 다시 풀까요?\n예) (2)  또는  (2), (4)',parts)||'').trim();
+    if(!v)return;
+    if(isRetryScheduled(r.subj,r.ci,r.type,r.num,v)){ showToast('이미 예약된 물음이에요'); return; }
+    scheduleRetry(r.subj,r.ci,r.type,r.num,day,v);
+    await saveRetries();await saveAllSubjData();
+    buildMaps();buildDG();renderDP(curDay);updateProgress();
+    showToast('🔁 '+r.num+'번 '+v+' 다시풀기 예약');
+  };
+  act.appendChild(pb);
+  // 개별 해제 — 물음 예약이 여러 개면 문제 쪽 '예약됨' 버튼으로는 특정 건만 못 지운다
   const xb=document.createElement('button');xb.type='button';xb.className='retry-x';
-  xb.textContent='×';xb.title=retryLabel(r)+' 다시풀기 예약 취소';
+  xb.textContent='×';xb.title=retryLabel(r)+' 예약 지우기';
   xb.onclick=async e=>{
     e.stopPropagation();
     unscheduleRetryByRid(r.rid);
