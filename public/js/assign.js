@@ -690,6 +690,80 @@ function copyFallback(text,label){
 // 남은 문제 조정 (Reschedule)
 // ══════════════════════════════════════════
 let rescheduleData = null;
+// 남은 문제를 어떤 순서로 다시 깔까 — 'keep' 원래 회독 순서 / 'shuffle' 랜덤(같은 장 분산)
+let rsMode = 'keep';
+let rsSeed = 0;        // 섞기 시드 — 미리보기와 실제 적용이 같은 배치를 쓰도록 고정한다
+
+// 시드 고정 난수(mulberry32) — 같은 시드 + 같은 하루 문제 수면 언제 계산해도 같은 배치가 나온다.
+// (Math.random을 쓰면 미리보기를 그릴 때와 '변경하기'를 누를 때 배치가 갈라진다)
+function rsRandom(seed){
+  let t=seed>>>0;
+  return function(){
+    t=(t+0x6D2B79F5)>>>0;
+    let r=Math.imul(t^(t>>>15),1|t);
+    r=(r+Math.imul(r^(r>>>7),61|r))^r;
+    return ((r^(r>>>14))>>>0)/4294967296;
+  };
+}
+function rsNewSeed(){ rsSeed=(Math.floor(Math.random()*0xFFFFFFFF)>>>0)||1; }
+
+function rsSetMode(m){
+  rsMode=(m==='shuffle')?'shuffle':'keep';
+  document.getElementById('rs-mode-keep').classList.toggle('on',rsMode==='keep');
+  document.getElementById('rs-mode-shuffle').classList.toggle('on',rsMode==='shuffle');
+  document.getElementById('rs-reshuffle').style.display=rsMode==='shuffle'?'inline-flex':'none';
+  document.getElementById('rs-mode-desc').textContent = rsMode==='shuffle'
+    ? '남은 문제를 무작위로 다시 깝니다 — 같은 장이 한 일차에 몰리지 않게 흩어요. (완료한 문제는 그대로 「완료된 문제」로)'
+    : '남은 문제를 지금 회독 순서(일차 → 장 → 번호) 그대로 1일차부터 다시 깝니다.';
+  if(rsMode==='shuffle'&&!rsSeed)rsNewSeed();
+  updateReschedulePreview();
+}
+function rsReshuffle(){ rsNewSeed(); updateReschedulePreview(); }
+
+// 랜덤 배치 — 같은 장이 한 일차에 몰리지 않게 흩어 담는다(회독 배정의 랜덤 모드와 같은 점수 방식).
+// 인접 일차(±1..3)에 같은 장이 있으면 페널티를 줘서 한 장이 연달아 나오는 것도 누른다.
+function rsShuffleGroups(undone,pd,seed){
+  const rnd=rsRandom(seed);
+  const days=Math.max(1,Math.ceil(undone.length/pd));
+  const buckets=[];
+  for(let d=0;d<days;d++)buckets.push({day:d+1,cap:Math.min(pd,undone.length-d*pd),items:[],chCounts:{}});
+  const byCh={};
+  undone.forEach(p=>{ (byCh[p.ci]=byCh[p.ci]||[]).push(p); });
+  Object.values(byCh).forEach(arr=>{
+    for(let i=arr.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  });
+  const score=(b,ci,idx)=>{
+    if(b.items.length>=b.cap)return Infinity;
+    let s=(b.chCounts[ci]||0)*1000;
+    [[1,300],[2,80],[3,20]].forEach(([off,pen])=>{
+      const pv=buckets[idx-off],nx=buckets[idx+off];
+      if(pv&&pv.chCounts[ci])s+=pen*pv.chCounts[ci];
+      if(nx&&nx.chCounts[ci])s+=pen*nx.chCounts[ci];
+    });
+    return s+b.items.length*2;
+  };
+  const queues=Object.entries(byCh)
+    .sort((a,b)=>b[1].length-a[1].length||(+a[0])-(+b[0]))   // 많은 장부터 (분산 효과 ↑)
+    .map(([ci,arr])=>({ci:+ci,queue:arr}));
+  while(queues.some(q=>q.queue.length)){
+    for(const q of queues){
+      if(!q.queue.length)continue;
+      const prob=q.queue.shift();
+      let best=Infinity,cands=[];
+      buckets.forEach((b,idx)=>{
+        const sc=score(b,q.ci,idx);
+        if(sc<best){best=sc;cands=[idx];}else if(sc===best)cands.push(idx);
+      });
+      if(!cands.length){ buckets[buckets.length-1].items.push(prob); continue; }   // 안전망: 빠뜨리지 않는다
+      const pick=buckets[cands[Math.floor(rnd()*cands.length)]];
+      pick.items.push(prob);
+      pick.chCounts[q.ci]=(pick.chCounts[q.ci]||0)+1;
+    }
+  }
+  const dayGroups={};
+  buckets.forEach(b=>{ if(b.items.length)dayGroups[b.day]=b.items; });
+  return {dayGroups,totalDays:Math.max(0,...Object.keys(dayGroups).map(Number))};
+}
 
 function openRescheduleModal(){
   if(curSubj==='all'){showToast('과목을 먼저 선택해주세요');return;}
@@ -753,8 +827,9 @@ function openRescheduleModal(){
   const defaultPerDay = Math.max(1, Math.round(undoneCount / Math.max(1, distinctUndoneDays)));
   document.getElementById('reschedule-per-day').value = defaultPerDay;
 
+  rsMode='keep'; rsSeed=0;          // 열 때마다 '원래 순서 유지'로 시작 (섞기는 명시적으로 고른다)
   document.getElementById('reschedule-modal').style.display='flex';
-  updateReschedulePreview();
+  rsSetMode('keep');                // 토글·설명 동기화 + 미리보기 그리기
 }
 
 function closeRescheduleModal(){
@@ -763,7 +838,9 @@ function closeRescheduleModal(){
 }
 
 // 새 배치 계산
-// 완료 문제 → "완료된 문제" 버킷(일차 0). 미완료 문제 → 원래 순서대로 1일차부터 perDay씩.
+// 완료 문제 → "완료된 문제" 버킷(일차 0). 미완료 문제 → 1일차부터 perDay씩.
+//  - 'keep'    원래 회독 순서(일차 → 장 → 번호) 그대로
+//  - 'shuffle' 같은 장이 몰리지 않게 무작위로 다시 깔기 (시드 고정 → 미리보기와 적용이 같다)
 function computeReschedule(perDay){
   if(!rescheduleData)return null;
   const pd = Math.max(1, perDay|0);
@@ -771,6 +848,10 @@ function computeReschedule(perDay){
   const bucket = seq.filter(p=>p.done);        // 완료 → 버킷
   const undone = seq.filter(p=>!p.done);       // 미완료 → 1일차부터
 
+  if(rsMode==='shuffle'&&undone.length){
+    const sh=rsShuffleGroups(undone,pd,rsSeed||1);
+    return { bucket, dayGroups:sh.dayGroups, totalDays:sh.totalDays };
+  }
   const dayGroups = {};
   let day=1, inDay=0;
   undone.forEach(p=>{
@@ -866,7 +947,7 @@ function updateReschedulePreview(){
     `${missing===0?'✅':'⚠️'} 조정 대상 ${total}문제 = 완료 ${bucket.length} + 남은 ${total-bucket.length} · 누락 ${missing}`+
     (held?` <span style="font-weight:500;color:var(--text3);">(미뤄둔 ${held}문제는 그대로)</span>`:'')+`</div>`;
   const retryN = (sim.retries||[]).length;
-  html += `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)`+
+  html += `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 ${rsMode==='shuffle'?'🎲 무작위로 섞어서 ':''}1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)`+
     (retryN?` · 다시 풀기 ${retryN}개도 같이 당겨서 끼워넣은 결과예요`:'')+`</div>`;
   html += '<div style="display:flex;flex-direction:column;gap:4px;">';
   if(bucket.length){
@@ -903,7 +984,7 @@ async function applyReschedule(){
 
   const heldN = (rescheduleData.postponed||[]).length;
   const retryN=(result.retries||[]).length;
-  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${finalDays}일)`+
+  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → ${rsMode==='shuffle'?'🎲 무작위로 섞어서 ':''}1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${finalDays}일)`+
      (retryN?`\n• 다시 풀기 ${retryN}개 → 같이 당겨서 끼워넣음`:'')+
      (heldN?`\n• 미뤄둔 ${heldN}문제 → 「미뤄둔 문제」에 그대로 (순서 유지)`:'')+`\n(완료 체크는 그대로 유지돼요)`))return;
 
@@ -941,7 +1022,7 @@ async function applyReschedule(){
   const audit=assignmentAudit(subjId);
   closeRescheduleModal();
   if(audit.ok){
-    showToast(`✅ 완료 ${bucketN} 모으기 · 남은 ${undoneN} 재배치 (${finalDays}일)`+(heldN?` · 미뤄둠 ${heldN} 유지`:'')+` · 전체 ${audit.total} 누락 0`);
+    showToast(`✅ 완료 ${bucketN} 모으기 · 남은 ${undoneN} ${rsMode==='shuffle'?'랜덤 ':''}재배치 (${finalDays}일)`+(heldN?` · 미뤄둠 ${heldN} 유지`:'')+` · 전체 ${audit.total} 누락 0`);
   }else{
     showToast(`⚠️ 재조정 점검 실패 — 확인 필요${audit.doneBucketUndone?` · 완료묶음에 미완료 ${audit.doneBucketUndone}`:''}`);
     console.warn('[reschedule] 누락/이상 감지', audit);
