@@ -202,8 +202,13 @@ function snapshotRetryBase(subj){
 // base에서 정규 일차를 되돌린 뒤, 예약된 재수강을 일차 오름차순으로 삽입한다.
 // 삽입한 일차의 마지막 문제를 다음 일차로 밀고, 그 일차의 마지막도 또 다음으로 …
 // 끝까지 한 칸씩 연쇄 이동(맨 끝은 새 일차 생성). → 각 일차의 문항 수가 유지된다.
-function applyRetrySchedule(subj){
-  const base=RETRY_BASE[subj]; const data=DATA[subj]; const sdef=SUBJECTS.find(s=>s.id===subj);
+// ctx를 주면 그 사본(data/base/retries)에 대고 계산한다 — '남은 문제 조정' 미리보기가
+// 실제 적용과 똑같은 결과를 미리 보여주기 위해 쓴다. 안 주면 실제 데이터에 적용한다.
+function applyRetrySchedule(subj,ctx){
+  const base=(ctx&&ctx.base)||RETRY_BASE[subj];
+  const data=(ctx&&ctx.data)||DATA[subj];
+  const allRetries=(ctx&&ctx.retries)||RETRIES;
+  const sdef=SUBJECTS.find(s=>s.id===subj);
   if(!base||!data||!sdef)return;
   // 1) 정규 일차를 base로 복원
   data.forEach(ch=>sdef.cols.forEach(col=>{
@@ -220,7 +225,7 @@ function applyRetrySchedule(subj){
   }
   function curMax(){ let m=0; data.forEach(ch=>sdef.cols.forEach(col=>(ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[1]>m)m=p[1]; }))); return m; }
   // 2) 재수강을 일차 오름차순으로 각각 삽입 + 끝까지 연쇄 이동
-  const rs=RETRIES.filter(r=>r.subj===subj).sort((a,b)=>a.day-b.day||(a.rid<b.rid?-1:1));
+  const rs=allRetries.filter(r=>r.subj===subj).sort((a,b)=>a.day-b.day||(a.rid<b.rid?-1:1));
   rs.forEach(r=>{
     const T=r.day;
     const first=dayRegs(T,null);

@@ -781,14 +781,73 @@ function computeReschedule(perDay){
   return { bucket, dayGroups, totalDays: undone.length?day:0 };
 }
 
+// 미리보기와 실제 적용이 갈라지지 않게, 최종 배치는 여기 한 곳에서만 계산한다.
+// computeReschedule은 '순수 재배치'까지만 본다. 실제로는 그 뒤에 재수강(다시풀기)이
+// 끼어들면서 각 일차의 마지막 문제가 뒤로 한 칸씩 밀린다 — 그 결과까지 함께 계산한다.
+function simulateReschedule(perDay){
+  const plan=computeReschedule(perDay);
+  if(!plan||!rescheduleData)return null;
+  const subjId=rescheduleData.subjId;
+  const sdef=SUBJECTS.find(s=>s.id===subjId);
+  const data=JSON.parse(JSON.stringify(DATA[subjId]||[]));
+  // 새 일차 적용 (완료=0 버킷, 미완료=1..N, 미뤄둔 문제는 그대로)
+  const map={};
+  plan.bucket.forEach(p=>{ map[`${p.ci}|${p.colKey}|${p.num}`]=0; });
+  Object.entries(plan.dayGroups).forEach(([d,arr])=>arr.forEach(p=>{ map[`${p.ci}|${p.colKey}|${p.num}`]=+d; }));
+  data.forEach((ch,ci)=>Object.keys(ch).forEach(col=>{
+    if(col==='ch'||!Array.isArray(ch[col]))return;
+    ch[col]=ch[col].map(pair=>{
+      const nd=map[`${ci}|${col}|${pair[0]}`];
+      return nd!==undefined ? [pair[0],nd,pair[2]] : pair;
+    });
+  }));
+  // 재수강 — '현재 진행 위치에서 며칠 뒤'라는 간격을 유지한 채 새 계획(1..N) 안으로 옮긴다.
+  const retries=RETRIES.filter(r=>r.subj===subjId).map(r=>({...r}));
+  let retryBase=null;
+  if(retries.length&&sdef){
+    const frontBefore=frontDayOf(subjId);   // DATA를 건드리기 전 값이어야 한다(미리보기 시점 = 그대로)
+    const newLastDay=Math.max(1,plan.totalDays);
+    retries.forEach(r=>{
+      const ahead=Math.max(0,r.day-frontBefore);   // 이미 지난 건 0 → 1일차
+      r.day=Math.min(1+ahead,newLastDay);          // 새 계획을 벗어나지 않게 클램프
+    });
+    retryBase={};
+    data.forEach(ch=>sdef.cols.forEach(c=>{
+      (ch[c.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[2])retryBase[p[2]]=p[1]; });
+    }));
+    applyRetrySchedule(subjId,{data,base:retryBase,retries});
+  }
+  return {...plan, data, retries, retryBase};
+}
+// 시뮬레이션 결과를 화면에 뿌릴 모양으로 — {버킷, 일차별 항목, 마지막 일차}
+function rescheduleLayout(sim){
+  const sdef=SUBJECTS.find(s=>s.id===rescheduleData.subjId);
+  const days={},bucket=[];
+  (sim.data||[]).forEach((ch,ci)=>(sdef?sdef.cols:[]).forEach(c=>{
+    (ch[c.key]||[]).forEach(p=>{
+      if(!Array.isArray(p)||p[1]===POSTPONE_DAY)return;   // 미뤄둔 문제는 따로 보여준다
+      const it={ci,ch:ch.ch,num:p[0]};
+      if(p[1]===0)bucket.push(it); else (days[p[1]]=days[p[1]]||[]).push(it);
+    });
+  }));
+  (sim.retries||[]).forEach(r=>{
+    const ch=(sim.data[r.ci]&&sim.data[r.ci].ch)||'';
+    (days[r.day]=days[r.day]||[]).push({ci:r.ci,ch,num:r.num,retry:true,parts:normParts(r.parts)});
+  });
+  const max=Math.max(0,...Object.keys(days).map(Number));
+  return {days,bucket,max};
+}
 function updateReschedulePreview(){
   const perDay = parseInt(document.getElementById('reschedule-per-day').value) || 1;
-  const result = computeReschedule(perDay);
-  if(!result){document.getElementById('reschedule-preview').innerHTML = '';return;}
-  const {bucket, dayGroups, totalDays} = result;
+  const sim = simulateReschedule(perDay);
+  if(!sim){document.getElementById('reschedule-preview').innerHTML = '';return;}
+  const {bucket} = sim;
+  const layout = rescheduleLayout(sim);     // 재수강 삽입까지 반영된 '진짜' 결과
+  const totalDays = layout.max;
 
   const chip = p => {
     const txt = `${escapeHtml(p.ch)}-${p.num}`;
+    if(p.retry) return `<span style="color:var(--accent);">🔁 ${txt}${p.parts?' '+escapeHtml(p.parts):''}</span>`;
     return p.done ? `<span style="color:var(--cost);text-decoration:line-through;opacity:.6;">${txt}</span>` : txt;
   };
   const row = (label, color, probs, count) =>
@@ -799,21 +858,24 @@ function updateReschedulePreview(){
     `</div>`;
 
   // 대사(점검) — 전체 = 완료 + 남은, 빠진 문제 없는지 미리 확인
-  const placed = bucket.length + Object.values(dayGroups).reduce((a,arr)=>a+arr.length,0);
+  const placed = bucket.length + Object.values(layout.days).reduce((a,arr)=>a+arr.filter(x=>!x.retry).length,0);
   const total = rescheduleData.seq.length;
   const held = (rescheduleData.postponed||[]).length;   // 미뤄둠 — 재배치 대상이 아니다
   const missing = total - placed;
   let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:${missing===0?'var(--cost)':'var(--red)'};">`+
     `${missing===0?'✅':'⚠️'} 조정 대상 ${total}문제 = 완료 ${bucket.length} + 남은 ${total-bucket.length} · 누락 ${missing}`+
     (held?` <span style="font-weight:500;color:var(--text3);">(미뤄둔 ${held}문제는 그대로)</span>`:'')+`</div>`;
-  html += `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)</div>`;
+  const retryN = (sim.retries||[]).length;
+  html += `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)`+
+    (retryN?` · 다시 풀기 ${retryN}개도 같이 당겨서 끼워넣은 결과예요`:'')+`</div>`;
   html += '<div style="display:flex;flex-direction:column;gap:4px;">';
   if(bucket.length){
     const bs=[...bucket].sort((a,b)=>a.day-b.day||a.ci-b.ci||a.num-b.num);
     html += row('✓ 완료된 문제','cost',bs,bucket.length);
   }
   for(let d=1; d<=totalDays; d++){
-    const probs=(dayGroups[d]||[]).slice().sort((a,b)=>a.ci-b.ci||a.num-b.num);
+    // 정규 문제 먼저, 다시 풀기는 뒤에 — 일차 패널에 보이는 순서와 같게
+    const probs=(layout.days[d]||[]).slice().sort((a,b)=>(a.retry?1:0)-(b.retry?1:0)||a.ci-b.ci||a.num-b.num);
     html += row(d+'일','accent',probs,probs.length);
   }
   if(held){
@@ -827,8 +889,9 @@ function updateReschedulePreview(){
 
 async function applyReschedule(){
   const perDay = parseInt(document.getElementById('reschedule-per-day').value) || 1;
-  const result = computeReschedule(perDay);
+  const result = simulateReschedule(perDay);   // 미리보기와 같은 계산 — 결과가 갈라지지 않게
   if(!result){showToast('계산 실패');return;}
+  const finalDays = rescheduleLayout(result).max;
 
   const subjId = rescheduleData.subjId;
   const data = DATA[subjId];
@@ -839,12 +902,10 @@ async function applyReschedule(){
   if(!bucketN && !undoneN){showToast('조정할 문제가 없어요');return;}
 
   const heldN = (rescheduleData.postponed||[]).length;
-  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${result.totalDays}일)`+
+  const retryN=(result.retries||[]).length;
+  if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → 1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${finalDays}일)`+
+     (retryN?`\n• 다시 풀기 ${retryN}개 → 같이 당겨서 끼워넣음`:'')+
      (heldN?`\n• 미뤄둔 ${heldN}문제 → 「미뤄둔 문제」에 그대로 (순서 유지)`:'')+`\n(완료 체크는 그대로 유지돼요)`))return;
-
-  // 재배치 전 "현재 진행 위치"(첫 미완료 일차) — 재수강을 같은 간격으로 옮길 때 쓴다.
-  // DATA/MAPS를 손대기 전에 구해야 한다.
-  const frontBefore=frontDayOf(subjId);
 
   // 조정 전 원래 배치를 스냅샷(최초 1회) — 초기화 시 원래 순서 복원용
   if(!PLAN_SNAPSHOT[subjId]){
@@ -856,41 +917,13 @@ async function applyReschedule(){
     PLAN_SNAPSHOT[subjId]=snap;
   }
 
-  // 키 → 새 일차 (완료=0 버킷, 미완료=1..N)
-  const map={};
-  result.bucket.forEach(p=>{ map[`${p.ci}|${p.colKey}|${p.num}`]=0; });
-  Object.entries(result.dayGroups).forEach(([d,arr])=>arr.forEach(p=>{ map[`${p.ci}|${p.colKey}|${p.num}`]=+d; }));
-
-  data.forEach((ch,ci)=>Object.keys(ch).forEach(col=>{
-    if(col==='ch'||!Array.isArray(ch[col]))return;
-    ch[col]=ch[col].map(pair=>{
-      const nd=map[`${ci}|${col}|${pair[0]}`];
-      return nd!==undefined ? [pair[0],nd,pair[2]] : pair;
-    });
-  }));
-
-  // 재수강(다시풀기)은 제거하지 않고 유지하되, 새 계획에 맞춰 같이 당겨준다.
-  // 재수강의 원본 문제는 항상 완료 상태(완료한 칩에서만 다시풀기를 걸 수 있다)라
-  // 재배치에서 무조건 「완료된 문제」(일차 0)로 빠진다. 그래서 원본의 새 일차로는
-  // 앵커링할 수 없다 — 예전 코드는 그 값이 늘 0이라 사실상 1+7=8일차에 못박혀 있었고,
-  // 앞 일차가 완료로 빠져 계획이 당겨져도 재수강만 8일차에 남아 붕 떴다.
-  // 대신 "현재 진행 위치에서 며칠 뒤"라는 원래 간격을 유지한 채 새 계획(1..N) 안으로 옮긴다.
-  const sdefR=SUBJECTS.find(s=>s.id===subjId);
-  const subjRetries=RETRIES.filter(r=>r.subj===subjId);
-  delete RETRY_BASE[subjId];
-  if(subjRetries.length && sdefR){
-    const newLastDay=Math.max(1,result.totalDays);
-    subjRetries.forEach(r=>{
-      const ahead=Math.max(0,r.day-frontBefore);   // 진행 위치로부터의 간격(이미 지난 건 0 → 1일차)
-      r.day=Math.min(1+ahead,newLastDay);          // 새 계획을 벗어나지 않게 클램프
-    });
-    const base={};
-    (DATA[subjId]||[]).forEach(ch=>sdefR.cols.forEach(c=>{
-      (ch[c.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[2])base[p[2]]=p[1]; });
-    }));
-    RETRY_BASE[subjId]=base;
-    applyRetrySchedule(subjId);
-  }
+  // 계산 결과를 그대로 반영한다 — 미리보기가 보여준 배치와 100% 같다.
+  // (재수강 삽입으로 각 일차의 마지막 문제가 밀리는 것까지 simulateReschedule이 끝내 둔 상태)
+  DATA[subjId]=result.data;
+  const newRetryDay={};
+  (result.retries||[]).forEach(r=>{ newRetryDay[r.rid]=r.day; });
+  RETRIES.forEach(r=>{ if(newRetryDay[r.rid]!==undefined)r.day=newRetryDay[r.rid]; });
+  if(result.retryBase)RETRY_BASE[subjId]=result.retryBase; else delete RETRY_BASE[subjId];
   await saveRetries();
 
   syncLegacy();
@@ -908,7 +941,7 @@ async function applyReschedule(){
   const audit=assignmentAudit(subjId);
   closeRescheduleModal();
   if(audit.ok){
-    showToast(`✅ 완료 ${bucketN} 모으기 · 남은 ${undoneN} 재배치 (${result.totalDays}일)`+(heldN?` · 미뤄둠 ${heldN} 유지`:'')+` · 전체 ${audit.total} 누락 0`);
+    showToast(`✅ 완료 ${bucketN} 모으기 · 남은 ${undoneN} 재배치 (${finalDays}일)`+(heldN?` · 미뤄둠 ${heldN} 유지`:'')+` · 전체 ${audit.total} 누락 0`);
   }else{
     showToast(`⚠️ 재조정 점검 실패 — 확인 필요${audit.doneBucketUndone?` · 완료묶음에 미완료 ${audit.doneBucketUndone}`:''}`);
     console.warn('[reschedule] 누락/이상 감지', audit);
