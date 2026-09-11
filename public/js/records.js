@@ -199,9 +199,13 @@ function snapshotRetryBase(subj){
   }));
   RETRY_BASE[subj]=base;
 }
-// base에서 정규 일차를 되돌린 뒤, 예약된 재수강을 일차 오름차순으로 삽입한다.
-// 삽입한 일차의 마지막 문제를 다음 일차로 밀고, 그 일차의 마지막도 또 다음으로 …
-// 끝까지 한 칸씩 연쇄 이동(맨 끝은 새 일차 생성). → 각 일차의 문항 수가 유지된다.
+// base에서 정규 일차를 되돌린 뒤, 예약된 재수강을 끼워 넣고 정규 문제를 다시 흘려 담는다.
+// 각 일차의 정원(=base의 그 일차 문항 수)은 그대로 두고, 재수강이 차지한 자리만큼
+// 정규 문제가 뒤로 밀려 다음 일차의 빈자리를 채운다. 계획 끝을 넘어간 문제는
+// '보통 정원'(base에서 가장 흔한 문항 수)만큼 묶어서 꼬리 일차에 담는다.
+//  (예전엔 재수강 하나마다 '마지막 문제를 다음 일차로' 한 칸씩 연쇄 이동시켰다. 그러면
+//   밀려난 문제가 매번 자기만의 새 일차에 혼자 안착해서, 재수강 N개면 1문제짜리 일차가
+//   N개 생겼다 — 하루 2문제로 조정해도 꼬리에 1문제씩 들어가는 일차가 줄줄이 남았다.)
 // ctx를 주면 그 사본(data/base/retries)에 대고 계산한다 — '남은 문제 조정' 미리보기가
 // 실제 적용과 똑같은 결과를 미리 보여주기 위해 쓴다. 안 주면 실제 데이터에 적용한다.
 function applyRetrySchedule(subj,ctx){
@@ -210,38 +214,40 @@ function applyRetrySchedule(subj,ctx){
   const allRetries=(ctx&&ctx.retries)||RETRIES;
   const sdef=SUBJECTS.find(s=>s.id===subj);
   if(!base||!data||!sdef)return;
-  // 1) 정규 일차를 base로 복원
-  data.forEach(ch=>sdef.cols.forEach(col=>{
-    (ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&base[p[2]]!==undefined)p[1]=base[p[2]]; });
+  // 1) 정규 일차를 base로 복원 — 미뤄둔 문제(POSTPONE_DAY)는 계획 밖이라 건드리지 않는다.
+  //    재배치 대상은 일차 1 이상인 정규 문제뿐(완료 묶음=0은 그대로 둔다).
+  const regs=[];
+  data.forEach((ch,ci)=>sdef.cols.forEach(col=>{
+    (ch[col.key]||[]).forEach(p=>{
+      if(!Array.isArray(p)||p[1]===POSTPONE_DAY)return;
+      const bd=base[p[2]];
+      if(bd!==undefined&&bd!==POSTPONE_DAY)p[1]=bd;
+      if(p[1]>=1&&p[1]!==POSTPONE_DAY)regs.push({p,ci,num:p[0]});
+    });
   }));
-  // 헬퍼: 일차 d의 정규 문제들(ci,num 순), exclPid 제외
-  function dayRegs(d,exclPid){
-    const out=[];
-    data.forEach((ch,ci)=>sdef.cols.forEach(col=>{
-      (ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[1]===d&&p[2]!==exclPid)out.push({p,key:ci*100000+p[0]}); });
-    }));
-    out.sort((a,b)=>a.key-b.key);
-    return out.map(x=>x.p);
+  if(!regs.length)return;
+  // 2) 일차별 정원 = 되돌린 상태(=base)의 그 일차 문항 수
+  const cap={};
+  regs.forEach(r=>{ cap[r.p[1]]=(cap[r.p[1]]||0)+1; });
+  const lastDay=Math.max(...Object.keys(cap).map(Number));
+  // 계획을 넘어가는 꼬리 일차의 정원 — 가장 흔한 정원(같은 빈도면 큰 쪽)
+  const tailCap=(()=>{
+    const freq={};
+    Object.values(cap).forEach(n=>{ freq[n]=(freq[n]||0)+1; });
+    let best=1,bestF=0;
+    Object.keys(freq).forEach(k=>{ const n=+k,f=freq[k]; if(f>bestF||(f===bestF&&n>best)){best=n;bestF=f;} });
+    return Math.max(1,best);
+  })();
+  // 3) 재수강이 먼저 자리를 차지하고, 정규 문제는 원래 순서대로 남은 자리에 차례로 담는다.
+  const retryAt={};
+  allRetries.forEach(r=>{ if(r.subj===subj)retryAt[r.day]=(retryAt[r.day]||0)+1; });
+  regs.sort((a,b)=>a.p[1]-b.p[1]||a.ci-b.ci||a.num-b.num);
+  let i=0;
+  for(let d=1;i<regs.length;d++){
+    // base에 없던 빈 일차(정원 0)는 그대로 비워 둔다 — 원래 계획의 빈 칸을 지킨다.
+    let slots=(d<=lastDay?(cap[d]||0):tailCap)-(retryAt[d]||0);
+    while(slots>0&&i<regs.length){ regs[i++].p[1]=d; slots--; }
   }
-  function curMax(){ let m=0; data.forEach(ch=>sdef.cols.forEach(col=>(ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[1]>m)m=p[1]; }))); return m; }
-  // 2) 재수강을 일차 오름차순으로 각각 삽입 + 끝까지 연쇄 이동
-  const rs=allRetries.filter(r=>r.subj===subj).sort((a,b)=>a.day-b.day||(a.rid<b.rid?-1:1));
-  rs.forEach(r=>{
-    const T=r.day;
-    const first=dayRegs(T,null);
-    if(!first.length)return;              // T에 정규 문제가 없으면 밀 것 없음
-    let carry=first[first.length-1];      // T의 마지막을 밀어냄
-    carry[1]=T+1;
-    const maxD=curMax();
-    let d=T+1;
-    while(d<=maxD){
-      const regs=dayRegs(d,carry[2]);     // 이 일차의 원래 문제들(방금 밀려온 carry 제외)
-      if(!regs.length)break;              // 원래 비어있던 칸 → carry 안착, 연쇄 종료
-      const last=regs[regs.length-1];
-      last[1]=d+1;                        // 이 일차의 마지막을 다음 일차로
-      carry=last; d++;
-    }
-  });
 }
 // 완료 버킷 등 실제 일차가 없는 경우, "현재 진행 위치"(첫 미완료 일차)를 기준일차로 삼는다.
 function frontDayOf(subj){
@@ -298,6 +304,23 @@ function healRetryDays(){
       }));
     }
     delete RETRY_BASE[subj];
+  });
+  return changed;
+}
+
+/**
+ * 옛 방식으로 벌어진 배치 바로잡기 — 재수강마다 '마지막 문제 한 칸씩 밀기'로 저장된 계획은
+ * 재수강 N개면 1문제짜리 꼬리 일차가 N개 남아 있다. applyRetrySchedule은 base에서 매번
+ * 새로 쌓으므로, 한 번 더 돌리면 지금 규칙(정원만큼 묶어 담기)으로 수렴한다.
+ * 이미 지금 규칙으로 짜인 계획이면 결과가 같아서 아무것도 바뀌지 않는다(멱등).
+ */
+function repackRetryDays(){
+  let changed=false;
+  Object.keys(RETRY_BASE).forEach(subj=>{
+    if(!RETRIES.some(r=>r.subj===subj))return;      // 재수강이 없는 과목은 healRetryDays가 처리
+    const before=JSON.stringify(DATA[subj]||null);
+    applyRetrySchedule(subj);
+    if(JSON.stringify(DATA[subj]||null)!==before)changed=true;
   });
   return changed;
 }

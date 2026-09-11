@@ -211,6 +211,7 @@ async function applyBlob(data,opts){
   healRetryDays();
   syncLegacy();
   ensurePids();  // 예전 백업엔 pid가 없을 수 있으니 보강
+  repackRetryDays();   // 옛 방식으로 벌어진 1문제짜리 꼬리 일차를 현재 규칙으로 다시 묶는다
 
   // 4) 저장
   await saveState();

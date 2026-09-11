@@ -53,6 +53,8 @@ async function init(){
   if(ensurePids()) await saveAllSubjData();  // 기존 문제에 고유 ID 채우기(최초 1회 마이그레이션)
   // 재수강이 사라졌는데 그게 밀어놓은 일차만 남은 잔재를 정리한다
   if(healRetryDays()){ await saveAllSubjData(); await saveRetries(); }
+  // 옛 삽입 방식으로 꼬리에 1문제짜리 일차가 줄줄이 남은 계획을 현재 규칙으로 다시 묶는다
+  if(repackRetryDays()) await saveAllSubjData();
   buildMaps();
   loadSavedView();   // 마지막으로 보던 화면을 렌더 전에 전역으로 복원
   const now=new Date();document.getElementById('today-date').textContent=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}`;

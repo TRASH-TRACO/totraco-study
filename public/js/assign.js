@@ -783,7 +783,7 @@ function computeReschedule(perDay){
 
 // 미리보기와 실제 적용이 갈라지지 않게, 최종 배치는 여기 한 곳에서만 계산한다.
 // computeReschedule은 '순수 재배치'까지만 본다. 실제로는 그 뒤에 재수강(다시풀기)이
-// 끼어들면서 각 일차의 마지막 문제가 뒤로 한 칸씩 밀린다 — 그 결과까지 함께 계산한다.
+// 끼어들면서 그만큼 정규 문제가 뒤로 밀린다 — 그 결과까지 함께 계산한다.
 function simulateReschedule(perDay){
   const plan=computeReschedule(perDay);
   if(!plan||!rescheduleData)return null;
