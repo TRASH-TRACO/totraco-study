@@ -889,6 +889,9 @@ function simulateReschedule(perDay){
     const frontBefore=frontDayOf(subjId);   // DATA를 건드리기 전 값이어야 한다(미리보기 시점 = 그대로)
     const newLastDay=Math.max(1,plan.totalDays);
     retries.forEach(r=>{
+      // 이미 푼 예약은 지난 기록이다 — 완료 문제와 똑같이 「완료된 문제」(일차 0)로 보낸다.
+      // (안 그러면 1일차에 눌러앉아 새 계획의 자리를 잡아먹는다)
+      if(r.done){ r.day=0; return; }
       const ahead=Math.max(0,r.day-frontBefore);   // 이미 지난 건 0 → 1일차
       r.day=Math.min(1+ahead,newLastDay);          // 새 계획을 벗어나지 않게 클램프
     });
@@ -913,7 +916,9 @@ function rescheduleLayout(sim){
   }));
   (sim.retries||[]).forEach(r=>{
     const ch=(sim.data[r.ci]&&sim.data[r.ci].ch)||'';
-    (days[r.day]=days[r.day]||[]).push({ci:r.ci,ch,num:r.num,retry:true,parts:normParts(r.parts)});
+    const it={ci:r.ci,ch,num:r.num,retry:true,parts:normParts(r.parts)};
+    if(r.day<1)bucket.push(it);                    // 이미 푼 예약 → 「완료된 문제」로
+    else (days[r.day]=days[r.day]||[]).push(it);
   });
   const max=Math.max(0,...Object.keys(days).map(Number));
   return {days,bucket,max};
@@ -946,13 +951,17 @@ function updateReschedulePreview(){
   let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:${missing===0?'var(--cost)':'var(--red)'};">`+
     `${missing===0?'✅':'⚠️'} 조정 대상 ${total}문제 = 완료 ${bucket.length} + 남은 ${total-bucket.length} · 누락 ${missing}`+
     (held?` <span style="font-weight:500;color:var(--text3);">(미뤄둔 ${held}문제는 그대로)</span>`:'')+`</div>`;
-  const retryN = (sim.retries||[]).length;
+  const retryN = (sim.retries||[]).filter(r=>r.day>=1).length;
+  const retryDoneN = (sim.retries||[]).filter(r=>r.day<1).length;
   html += `<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">미리보기 — 완료 ${bucket.length}문제는 「완료된 문제」로, 남은 문제는 ${rsMode==='shuffle'?'🎲 무작위로 섞어서 ':''}1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${totalDays}일)`+
-    (retryN?` · 다시 풀기 ${retryN}개도 같이 당겨서 끼워넣은 결과예요`:'')+`</div>`;
+    (retryN?` · 다시 풀기 ${retryN}개도 같이 당겨서 끼워넣은 결과예요`:'')+
+    (retryDoneN?` · 이미 푼 다시 풀기 ${retryDoneN}개는 「완료된 문제」로`:'')+`</div>`;
   html += '<div style="display:flex;flex-direction:column;gap:4px;">';
-  if(bucket.length){
-    const bs=[...bucket].sort((a,b)=>a.day-b.day||a.ci-b.ci||a.num-b.num);
-    html += row('✓ 완료된 문제','cost',bs,bucket.length);
+  // 이미 푼 다시 풀기도 「완료된 문제」에 같이 들어간다
+  const bucketRetries=(layout.bucket||[]).filter(x=>x.retry).sort((a,b)=>a.ci-b.ci||a.num-b.num);
+  if(bucket.length||bucketRetries.length){
+    const bs=[...bucket].sort((a,b)=>a.day-b.day||a.ci-b.ci||a.num-b.num).concat(bucketRetries);
+    html += row('✓ 완료된 문제','cost',bs,bs.length);
   }
   for(let d=1; d<=totalDays; d++){
     // 정규 문제 먼저, 다시 풀기는 뒤에 — 일차 패널에 보이는 순서와 같게
@@ -983,9 +992,11 @@ async function applyReschedule(){
   if(!bucketN && !undoneN){showToast('조정할 문제가 없어요');return;}
 
   const heldN = (rescheduleData.postponed||[]).length;
-  const retryN=(result.retries||[]).length;
+  const retryN=(result.retries||[]).filter(r=>r.day>=1).length;
+  const retryDoneN=(result.retries||[]).filter(r=>r.day<1).length;
   if(!confirm(`정말 변경할까요?\n${rescheduleData.subjName}\n• 완료 ${bucketN}문제 → 「완료된 문제」로 모으기\n• 남은 ${undoneN}문제 → ${rsMode==='shuffle'?'🎲 무작위로 섞어서 ':''}1일차부터 하루 ${Math.max(1,perDay)}개씩 (총 ${finalDays}일)`+
      (retryN?`\n• 다시 풀기 ${retryN}개 → 같이 당겨서 끼워넣음`:'')+
+     (retryDoneN?`\n• 이미 푼 다시 풀기 ${retryDoneN}개 → 「완료된 문제」로`:'')+
      (heldN?`\n• 미뤄둔 ${heldN}문제 → 「미뤄둔 문제」에 그대로 (순서 유지)`:'')+`\n(완료 체크는 그대로 유지돼요)`))return;
 
   // 조정 전 원래 배치를 스냅샷(최초 1회) — 초기화 시 원래 순서 복원용

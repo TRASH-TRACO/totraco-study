@@ -189,7 +189,7 @@ function buildDG(){
   const max=getMax(),isTax=curSubj==='tax',dm=getDM();
   // 완료된 문제 버킷(일차 0) — 남은 문제 조정으로 완료 문제를 몰아둔 경우 맨 앞에 표시
   const bucket=dm[0]||[];
-  if(bucket.length){
+  if(bucket.length||retriesForDay(0).length){
     const b=document.createElement('button');b.className='db done-bucket';b.id='db0';
     b.innerHTML=`<span>✓ 완료된 문제</span>`;
     b.onclick=()=>selDay(0);g.appendChild(b);
