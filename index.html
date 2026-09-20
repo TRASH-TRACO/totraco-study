@@ -189,9 +189,19 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
           <button class="ed-mtab on" id="emt-grid" onclick="goEdMode('grid')">그리드</button>
           <button class="ed-mtab" id="emt-paste" onclick="goEdMode('paste')">붙여넣기</button>
         </div>
-        <div class="ed-hint" id="ed-hint">셀 클릭해서 수정 · 행번호 hover → 행 삽입</div>
+        <div class="ed-hint" id="ed-hint">셀 클릭 → 선택 · Enter/더블클릭 → 편집</div>
       </div>
       <div id="ed-grid-area">
+        <div class="ss-bar">
+          <span class="ss-ref" id="ss-ref">A1</span>
+          <span class="ss-mode" id="ss-mode">선택</span>
+          <input class="ss-fx" id="ss-fx" onkeydown="ssFxKey(event)" onblur="ssFxCommit()" placeholder="셀 값 — Enter로 적용">
+        </div>
+        <div class="ss-keys">
+          <b>Enter·F2</b> 편집 · <b>Esc</b> 취소 · <b>방향키</b> 이동(<b>Shift</b> 범위) ·
+          <b>Ctrl+C/X/V</b> 복사·잘라내기·붙여넣기 · <b>Del</b> 지우기 · <b>Ctrl+D</b> 아래로 채우기 · <b>Ctrl+Z</b> 되돌리기
+        </div>
+        <div class="ss-keys-m">탭 → 셀 선택 · 한 번 더 탭 → 편집 · 위 입력칸에서 바로 고칠 수도 있어요</div>
         <div class="ss-wrap" id="ss-wrap"></div>
         <button class="add-row-btn" onclick="addEdRow()">＋ 새 행 추가</button>
       </div>

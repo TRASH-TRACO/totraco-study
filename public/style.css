@@ -297,16 +297,41 @@ label.fbtn{cursor:pointer;}
 .ss-table td:last-child{border-right:none;}
 .ss-table tr:last-child td{border-bottom:none;}
 .ss-table tr:hover td{background:var(--bg2);}
-.ss-table tr.sel-row td{background:var(--accent-bg);}
 .row-num{font-family:var(--font-mono);font-size:11px;color:var(--text3);background:var(--bg2);text-align:center;padding:8px 6px;border-right:1px solid var(--border);min-width:36px;cursor:pointer;user-select:none;position:relative;}
 .row-num:hover{background:var(--bg3);}
 .ins-btn{opacity:0;position:absolute;left:50%;transform:translateX(-50%);bottom:-9px;z-index:5;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:1px 6px;font-size:9px;cursor:pointer;white-space:nowrap;transition:opacity .12s;font-family:inherit;font-weight:600;}
 .row-num:hover .ins-btn,.ins-btn:hover{opacity:1;}
-.cell-ch input{width:100%;min-width:80px;padding:8px 10px;border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--text);outline:none;}
-.cell-ch input:focus{background:var(--accent-bg);}
-.cell-prob textarea{width:100%;min-width:200px;min-height:42px;padding:7px 10px;border:none;background:transparent;font-family:var(--font-mono);font-size:11px;color:var(--text);resize:vertical;outline:none;line-height:1.6;}
-.cell-prob textarea:focus{background:var(--accent-bg);}
-.cell-prob textarea::placeholder{color:var(--text3);}
+/* ── 스프레드시트: 선택 모드 / 편집 모드 ── */
+.ss-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.ss-ref{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--text2);background:var(--bg2);
+  border:1px solid var(--border);border-radius:var(--r2);padding:5px 9px;min-width:54px;text-align:center;}
+.ss-mode{font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--text3);background:var(--bg2);
+  border:1px solid var(--border);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+.ss-mode.editing{color:var(--accent);border-color:var(--accent);background:var(--accent-bg);}
+.ss-fx{flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r2);
+  background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:11px;outline:none;}
+.ss-fx:focus{border-color:var(--accent);}
+.ss-keys{font-size:10px;color:var(--text3);line-height:1.7;margin-bottom:6px;}
+.ss-keys b{color:var(--text2);font-weight:600;font-family:var(--font-mono);}
+.ss-keys-m{display:none;font-size:10px;color:var(--text3);line-height:1.7;margin-bottom:6px;}
+@media(max-width:640px){ .ss-keys{display:none;} .ss-keys-m{display:block;} .ss-fx{min-width:120px;} }
+.ss-wrap:focus{outline:none;}
+.ss-wrap.focused{border-color:var(--accent);}
+.ss-table th[data-ci],.ss-table th.th-num{cursor:pointer;user-select:none;}
+.ss-table th.hl{background:var(--accent-bg);color:var(--accent);}
+.ss-table td.row-num.hl{background:var(--accent-bg);color:var(--accent);}
+.ss-cell{cursor:cell;user-select:none;position:relative;}
+.ss-table tr:hover td.ss-cell{background:transparent;}
+.ss-cell.sel{background:var(--accent-bg);}
+.ss-cell.active{box-shadow:inset 0 0 0 2px var(--accent);background:var(--bg);}
+.ss-cell.editing{box-shadow:inset 0 0 0 2px var(--accent);background:var(--bg);padding:0;}
+.ss-val{padding:8px 10px;min-height:36px;font-family:var(--font-mono);font-size:11px;line-height:1.6;
+  color:var(--text);white-space:pre-wrap;word-break:break-word;}
+.ss-val.ch{font-family:inherit;font-size:12px;white-space:nowrap;}
+.ss-val.ph{color:var(--text3);opacity:.6;}
+.ss-input{width:100%;padding:7px 10px;border:none;background:var(--bg);font-family:var(--font-mono);font-size:11px;
+  color:var(--text);outline:none;line-height:1.6;resize:none;display:block;}
+.ss-input.ch{font-family:inherit;font-size:12px;}
 .row-del{background:none;border:none;color:var(--text3);cursor:pointer;padding:8px;font-size:13px;transition:all .12s;display:block;width:100%;text-align:center;}
 .row-del:hover{color:var(--red);background:var(--fin-bg);}
 .add-row-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;border:1px dashed var(--border2);border-top:none;border-radius:0 0 var(--r) var(--r);background:var(--bg2);color:var(--text3);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit;}

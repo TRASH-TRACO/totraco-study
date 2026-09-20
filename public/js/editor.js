@@ -33,6 +33,12 @@ function textToProbs(str){
 function buildEdRows(){
   const data=getCurData(),cols=getEdCols(curEdSubj);
   edRows=data.map(row=>{const r={};cols.forEach(c=>{r[c.key]=c.type==='ch'?row[c.key]||'':probsToText(row[c.key]||[]);});return r;});
+  ssResetState();   // 과목이 바뀌면 선택·되돌리기 이력도 새로
+}
+/** 그리드 상태 초기화 — 다른 데이터로 갈아탈 때 선택과 되돌리기 이력을 리셋한다. */
+function ssResetState(){
+  ssSel={r:0,c:0,r2:0,c2:0};ssEdit=null;ssDrag=false;
+  ssUndo.length=0;ssRedo.length=0;
 }
 function edRowsToData(){
   const cols=getEdCols(curEdSubj);
@@ -53,88 +59,400 @@ function edRowsToData(){
   });
 }
 
-// 그리드 붙여넣기
+// ══════════════════════════════════════════
+// 스프레드시트 그리드
+// ══════════════════════════════════════════
+// 실제 스프레드시트처럼 '선택 모드'와 '편집 모드'를 나눈다.
+//  선택 모드 — 셀/범위 선택, 방향키 이동, Ctrl+C/X/V, Del, Ctrl+Z, Ctrl+D
+//  편집 모드 — Enter·F2·더블탭(또는 값을 바로 입력)로 진입, Esc 취소, Enter/Tab 확정 후 이동
+// 값 모델은 edRows[행][열키] = 문자열 하나뿐이라 셀 단위로 그대로 다룬다.
+let ssSel={r:0,c:0,r2:0,c2:0};   // 앵커(r,c) + 포커스(r2,c2)
+let ssEdit=null;                 // 편집 중인 {r,c}
+let ssDrag=false;
+let ssUndo=[],ssRedo=[];
+const SS_UNDO_MAX=60;
+
+function ssCols(){return getEdCols(curEdSubj);}
+function ssMaxR(){return Math.max(0,edRows.length-1);}
+function ssMaxC(){return Math.max(0,ssCols().length-1);}
+function ssCellEl(r,c){return document.querySelector(`#ss-wrap td[data-ri="${r}"][data-ci="${c}"]`);}
+function ssRange(){const s=ssSel;return{r1:Math.min(s.r,s.r2),r2:Math.max(s.r,s.r2),c1:Math.min(s.c,s.c2),c2:Math.max(s.c,s.c2)};}
+function ssColName(ci){return String.fromCharCode(65+ci);}
+function ssRefText(){
+  const s=ssSel,one=(s.r===s.r2&&s.c===s.c2);
+  const a=ssColName(s.c)+(s.r+1);
+  return one?a:`${a}:${ssColName(s.c2)}${s.r2+1}`;
+}
+function ssVal(r,c){const col=ssCols()[c];return(col&&edRows[r]&&edRows[r][col.key])||'';}
+function ssSetVal(r,c,v){
+  const col=ssCols()[c]; if(!col||!edRows[r])return false;
+  const nv=(v==null?'':String(v)).trim();
+  if(edRows[r][col.key]===nv)return false;
+  edRows[r][col.key]=nv; return true;
+}
+function ssBlankRow(){const r={};ssCols().forEach(c=>r[c.key]=c.type==='ch'?'':'');return r;}
+
+// ── 되돌리기 ──────────────────────────────
+function ssSnap(){ ssUndo.push(JSON.stringify(edRows)); if(ssUndo.length>SS_UNDO_MAX)ssUndo.shift(); ssRedo.length=0; }
+function ssUndoStep(){
+  if(!ssUndo.length){showToast('되돌릴 게 없어요');return;}
+  ssRedo.push(JSON.stringify(edRows));
+  edRows=JSON.parse(ssUndo.pop());
+  renderEdGrid();showToast('↩ 되돌렸어요');
+}
+function ssRedoStep(){
+  if(!ssRedo.length){showToast('다시 실행할 게 없어요');return;}
+  ssUndo.push(JSON.stringify(edRows));
+  edRows=JSON.parse(ssRedo.pop());
+  renderEdGrid();showToast('↪ 다시 실행');
+}
+
+// ── 선택 ──────────────────────────────────
+function ssSelect(r,c,extend){
+  const R=ssMaxR(),C=ssMaxC();
+  r=Math.min(Math.max(0,r),R); c=Math.min(Math.max(0,c),C);
+  if(extend){ ssSel.r2=r; ssSel.c2=c; }
+  else ssSel={r,c,r2:r,c2:c};
+  ssPaint();ssScrollIntoView();
+}
+function ssMove(dr,dc,extend){
+  const s=ssSel;
+  if(extend)ssSelect(s.r2+dr,s.c2+dc,true);
+  else{
+    let r=s.r+dr,c=s.c+dc;
+    const C=ssMaxC();
+    if(c>C){c=0;r++;} if(c<0){c=C;r--;}      // Tab 이동은 행을 넘나든다
+    ssSelect(r,c,false);
+  }
+}
+function ssScrollIntoView(){
+  const td=ssCellEl(ssSel.r2,ssSel.c2)||ssCellEl(ssSel.r,ssSel.c);
+  if(td&&td.scrollIntoView)td.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+function ssPaint(){
+  const wrap=document.getElementById('ss-wrap'); if(!wrap)return;
+  const rg=ssRange();
+  wrap.querySelectorAll('td.ss-cell').forEach(td=>{
+    const r=+td.dataset.ri,c=+td.dataset.ci;
+    const inRange=r>=rg.r1&&r<=rg.r2&&c>=rg.c1&&c<=rg.c2;
+    td.classList.toggle('sel',inRange);
+    td.classList.toggle('active',r===ssSel.r&&c===ssSel.c);
+  });
+  wrap.querySelectorAll('td.row-num').forEach(td=>{
+    const r=+td.dataset.ri;
+    td.classList.toggle('hl',r>=rg.r1&&r<=rg.r2);
+  });
+  wrap.querySelectorAll('th[data-ci]').forEach(th=>{
+    const c=+th.dataset.ci;
+    th.classList.toggle('hl',c>=rg.c1&&c<=rg.c2);
+  });
+  ssUpdateBar();
+}
+function ssUpdateBar(){
+  const ref=document.getElementById('ss-ref'); if(ref)ref.textContent=ssRefText();
+  const mode=document.getElementById('ss-mode');
+  if(mode){ mode.textContent=ssEdit?'편집 중':'선택'; mode.classList.toggle('editing',!!ssEdit); }
+  const fx=document.getElementById('ss-fx');
+  if(fx&&document.activeElement!==fx){
+    fx.value=ssVal(ssSel.r,ssSel.c);
+    const col=ssCols()[ssSel.c];
+    fx.placeholder=col&&col.type==='ch'?'장 이름 — Enter로 적용':'문제번호 (예: 1, 2, 3) — Enter로 적용';
+  }
+}
+
+// ── 편집 모드 ─────────────────────────────
+function ssStartEdit(r,c,initial){
+  if(ssEdit)ssCommitEdit(true);
+  const col=ssCols()[c]; if(!col||!edRows[r])return;
+  ssSel={r,c,r2:r,c2:c};ssPaint();
+  const td=ssCellEl(r,c); if(!td)return;
+  ssEdit={r,c};
+  const isCh=col.type==='ch';
+  const el=document.createElement(isCh?'input':'textarea');
+  el.className='ss-input'+(isCh?' ch':'');
+  el.value=initial!==undefined?initial:ssVal(r,c);
+  td.innerHTML='';td.classList.add('editing');td.appendChild(el);
+  const fit=()=>{ if(!isCh){el.style.height='auto';el.style.height=Math.max(32,el.scrollHeight)+'px';} };
+  el.addEventListener('input',fit);
+  el.addEventListener('keydown',ssEditKey);
+  el.addEventListener('blur',()=>{ if(ssEdit&&ssEdit.r===r&&ssEdit.c===c)ssCommitEdit(true); });
+  el.addEventListener('paste',e=>{
+    const raw=e.clipboardData.getData('text');
+    if(/\t/.test(raw)){ e.preventDefault(); ssCommitEdit(false); ssPasteGrid(raw,r,c); return; }
+    if(/\n/.test(raw.trim())&&!isCh){   // 세로로 복사한 번호 목록 → 한 칸에 쉼표로
+      e.preventDefault();
+      const cleaned=raw.replace(/\r\n?/g,'\n').split('\n').map(s=>s.trim()).filter(Boolean).join(', ');
+      const s0=el.selectionStart,e0=el.selectionEnd,cur=el.value;
+      el.value=cur.slice(0,s0)+cleaned+cur.slice(e0);
+      el.selectionStart=el.selectionEnd=s0+cleaned.length;fit();
+    }
+  });
+  el.focus();
+  if(initial!==undefined)el.selectionStart=el.selectionEnd=el.value.length;
+  else el.select();
+  fit();ssUpdateBar();
+}
+function ssCommitEdit(save){
+  if(!ssEdit)return;
+  const {r,c}=ssEdit;
+  const td=ssCellEl(r,c);
+  const el=td&&td.querySelector('.ss-input');
+  const v=el?el.value:null;
+  ssEdit=null;
+  if(el&&save&&v!==ssVal(r,c)){ ssSnap(); ssSetVal(r,c,v); }
+  if(td){ td.classList.remove('editing'); ssRenderCell(r,c); }
+  ssUpdateBar();
+}
+function ssCancelEdit(){
+  if(!ssEdit)return;
+  const {r,c}=ssEdit;ssEdit=null;
+  const td=ssCellEl(r,c);
+  if(td){td.classList.remove('editing');ssRenderCell(r,c);}
+  ssFocusGrid();ssPaint();
+}
+function ssEditKey(e){
+  if(!ssEdit)return;
+  e.stopPropagation();   // 편집 중 키는 그리드(선택 모드) 핸들러로 올라가면 안 된다 — Enter가 다시 편집을 열어버린다
+  if(e.key==='Escape'){e.preventDefault();ssCancelEdit();return;}
+  if(e.key==='Enter'&&!e.altKey&&!e.shiftKey){e.preventDefault();ssCommitEdit(true);ssFocusGrid();ssMove(1,0,false);return;}
+  if(e.key==='Tab'){e.preventDefault();ssCommitEdit(true);ssFocusGrid();ssMove(0,e.shiftKey?-1:1,false);return;}
+  // Alt/Shift+Enter는 줄바꿈 그대로(문제번호 칸)
+}
+function ssRenderCell(r,c){
+  const td=ssCellEl(r,c); if(!td)return;
+  const col=ssCols()[c];
+  td.innerHTML='';
+  const v=ssVal(r,c);
+  const div=document.createElement('div');
+  div.className='ss-val'+(col&&col.type==='ch'?' ch':'');
+  if(v)div.textContent=v;
+  else{ div.classList.add('ph'); div.textContent=col&&col.type==='ch'?'장 이름':'예) 1, 2, 3'; }
+  td.appendChild(div);
+}
+function ssFocusGrid(){
+  const wrap=document.getElementById('ss-wrap');
+  if(wrap&&document.activeElement!==wrap)wrap.focus({preventScroll:true});
+}
+
+// ── 복사 / 붙여넣기 / 지우기 ───────────────
+function ssGridFocused(){
+  const wrap=document.getElementById('ss-wrap');
+  if(!wrap||wrap.offsetParent===null)return false;
+  return document.activeElement===wrap||wrap.contains(document.activeElement);
+}
+function ssSelText(){
+  const rg=ssRange(),lines=[];
+  for(let r=rg.r1;r<=rg.r2;r++){
+    const cells=[];
+    for(let c=rg.c1;c<=rg.c2;c++)cells.push(ssVal(r,c));
+    lines.push(cells.join('\t'));
+  }
+  return lines.join('\n');
+}
+function ssClearRange(){
+  const rg=ssRange();let changed=false;
+  const snap=JSON.stringify(edRows);
+  for(let r=rg.r1;r<=rg.r2;r++)for(let c=rg.c1;c<=rg.c2;c++)if(ssSetVal(r,c,''))changed=true;
+  if(!changed)return;
+  ssUndo.push(snap);if(ssUndo.length>SS_UNDO_MAX)ssUndo.shift();ssRedo.length=0;
+  for(let r=rg.r1;r<=rg.r2;r++)for(let c=rg.c1;c<=rg.c2;c++)ssRenderCell(r,c);
+  ssUpdateBar();
+}
+function ssFillDown(){
+  const rg=ssRange();
+  if(rg.r1===rg.r2){showToast('아래로 채울 범위를 잡아주세요 (Shift+↓)');return;}
+  ssSnap();
+  for(let c=rg.c1;c<=rg.c2;c++){
+    const src=ssVal(rg.r1,c);
+    for(let r=rg.r1+1;r<=rg.r2;r++){ssSetVal(r,c,src);ssRenderCell(r,c);}
+  }
+  showToast('⬇ 아래로 채웠어요');ssUpdateBar();
+}
+/** TSV/줄바꿈 텍스트를 (r,c)부터 셀에 펼쳐 넣는다. 한 칸만 복사했으면 선택 범위를 그 값으로 채운다. */
+function ssPasteGrid(raw,r,c){
+  const cols=ssCols();
+  const grid=raw.replace(/\r\n?/g,'\n').replace(/\n+$/,'').split('\n').map(l=>l.split('\t'));
+  if(!grid.length)return;
+  ssSnap();
+  const rg=ssRange();
+  if(grid.length===1&&grid[0].length===1&&(rg.r1!==rg.r2||rg.c1!==rg.c2)){
+    for(let i=rg.r1;i<=rg.r2;i++)for(let j=rg.c1;j<=rg.c2;j++)ssSetVal(i,j,grid[0][0]);
+    renderEdGrid();showToast('✅ 선택 범위에 붙여넣기');
+    return;
+  }
+  while(edRows.length<r+grid.length)edRows.push(ssBlankRow());
+  let wide=0;
+  grid.forEach((line,dr)=>{
+    wide=Math.max(wide,line.length);
+    line.forEach((v,dc)=>{const ri=r+dr,ci=c+dc;if(ci<cols.length)ssSetVal(ri,ci,v);});
+  });
+  ssSel={r,c,r2:Math.min(r+grid.length-1,ssMaxR()),c2:Math.min(c+wide-1,ssMaxC())};
+  renderEdGrid();
+  showToast(`✅ ${grid.length}행 × ${Math.min(wide,cols.length-c)}열 붙여넣기`);
+}
+// 예전 이름 호환 (붙여넣기 모드 등에서 호출)
 function handleGridPaste(e,startRi,startCi){
   const raw=e.clipboardData.getData('text');
-  const cols=getEdCols(curEdSubj);
-  const hasStructure=/[\t\r\n]/.test(raw.trim());
-  if(!hasStructure)return;
+  if(!/[\t\r\n]/.test(raw.trim()))return;
   e.preventDefault();
-  const rows=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trimEnd().split('\n').map(line=>line.split('\t').map(cell=>cell.trim()));
-  const neededRows=startRi+rows.length;
-  while(edRows.length<neededRows){const r={};cols.forEach(c=>r[c.key]=c.type==='ch'?'새 장':'');edRows.push(r);}
-  let changed=false;
-  rows.forEach((cells,dr)=>{cells.forEach((val,dc)=>{const ri=startRi+dr,ci=startCi+dc;if(ci>=cols.length)return;const col=cols[ci];if(!col)return;edRows[ri][col.key]=val;changed=true;});});
-  if(changed){renderEdGrid();setTimeout(()=>{const el=document.querySelector(`[data-ri="${startRi}"][data-ci="${startCi}"]`);if(el)el.focus();showToast(`✅ ${rows.length}행 × ${rows[0].length}열 붙여넣기 완료`);},50);}
+  ssPasteGrid(raw,startRi,startCi);
+}
+
+// ── 선택 모드 키 ──────────────────────────
+function ssGridKey(e){
+  if(ssEdit)return;
+  const meta=e.ctrlKey||e.metaKey;
+  const k=e.key;
+  if(meta&&(k==='z'||k==='Z')){e.preventDefault();e.shiftKey?ssRedoStep():ssUndoStep();return;}
+  if(meta&&(k==='y'||k==='Y')){e.preventDefault();ssRedoStep();return;}
+  if(meta&&(k==='a'||k==='A')){e.preventDefault();ssSel={r:0,c:0,r2:ssMaxR(),c2:ssMaxC()};ssPaint();return;}
+  if(meta&&(k==='d'||k==='D')){e.preventDefault();ssFillDown();return;}
+  if(meta&&(k==='c'||k==='C'||k==='x'||k==='X'||k==='v'||k==='V'))return;   // copy/cut/paste 이벤트에서 처리
+  switch(k){
+    case 'ArrowUp':    e.preventDefault(); meta?ssSelect(0,ssSel.c,e.shiftKey):ssMove(-1,0,e.shiftKey); return;
+    case 'ArrowDown':  e.preventDefault(); meta?ssSelect(ssMaxR(),ssSel.c,e.shiftKey):ssMove(1,0,e.shiftKey); return;
+    case 'ArrowLeft':  e.preventDefault(); meta?ssSelect(ssSel.r,0,e.shiftKey):ssMove(0,-1,e.shiftKey); return;
+    case 'ArrowRight': e.preventDefault(); meta?ssSelect(ssSel.r,ssMaxC(),e.shiftKey):ssMove(0,1,e.shiftKey); return;
+    case 'Tab':        e.preventDefault(); ssMove(0,e.shiftKey?-1:1,false); return;
+    case 'Enter': case 'F2':
+      e.preventDefault(); ssStartEdit(ssSel.r,ssSel.c); return;
+    case 'Escape':     e.preventDefault(); ssSelect(ssSel.r,ssSel.c,false); return;
+    case 'Delete': case 'Backspace':
+      e.preventDefault(); ssClearRange(); return;
+    case 'Home':       e.preventDefault(); meta?ssSelect(0,0,e.shiftKey):ssSelect(ssSel.r,0,e.shiftKey); return;
+    case 'End':        e.preventDefault(); meta?ssSelect(ssMaxR(),ssMaxC(),e.shiftKey):ssSelect(ssSel.r,ssMaxC(),e.shiftKey); return;
+    case 'PageUp':     e.preventDefault(); ssMove(-10,0,e.shiftKey); return;
+    case 'PageDown':   e.preventDefault(); ssMove(10,0,e.shiftKey); return;
+  }
+  // 값을 바로 입력하면 편집 모드로 (스프레드시트와 같게)
+  if(!meta&&!e.altKey&&k.length===1){ e.preventDefault(); ssStartEdit(ssSel.r,ssSel.c,k); }
+}
+// 복사/잘라내기/붙여넣기는 문서 레벨에서 — 그리드가 포커스이고 편집 중이 아닐 때만 가로챈다
+document.addEventListener('copy',e=>{
+  if(!ssGridFocused()||ssEdit)return;
+  e.preventDefault();e.clipboardData.setData('text/plain',ssSelText());
+  showToast('📋 복사했어요');
+});
+document.addEventListener('cut',e=>{
+  if(!ssGridFocused()||ssEdit)return;
+  e.preventDefault();e.clipboardData.setData('text/plain',ssSelText());ssClearRange();
+  showToast('✂ 잘라냈어요');
+});
+document.addEventListener('paste',e=>{
+  if(!ssGridFocused()||ssEdit)return;
+  const raw=e.clipboardData.getData('text');
+  if(!raw)return;
+  e.preventDefault();ssPasteGrid(raw,ssSel.r,ssSel.c);
+});
+document.addEventListener('pointerup',()=>{ssDrag=false;});
+document.addEventListener('pointercancel',()=>{ssDrag=false;});
+document.addEventListener('mouseup',()=>{ssDrag=false;});
+
+// 수식 입력줄 — 활성 셀 값을 그대로 고쳐 넣는다(긴 번호 목록 편집용)
+function ssFxKey(e){
+  const fx=document.getElementById('ss-fx');
+  if(e.key==='Enter'){e.preventDefault();ssFxCommit();ssFocusGrid();ssMove(1,0,false);}
+  else if(e.key==='Escape'){e.preventDefault();fx.value=ssVal(ssSel.r,ssSel.c);ssFocusGrid();}
+}
+function ssFxCommit(){
+  const fx=document.getElementById('ss-fx'); if(!fx)return;
+  if(fx.value===ssVal(ssSel.r,ssSel.c))return;
+  ssSnap();ssSetVal(ssSel.r,ssSel.c,fx.value);ssRenderCell(ssSel.r,ssSel.c);
 }
 
 function renderEdGrid(){
-  const wrap=document.getElementById('ss-wrap');wrap.innerHTML='';
-  const cols=getEdCols(curEdSubj);
+  const wrap=document.getElementById('ss-wrap');if(!wrap)return;
+  const hadFocus=ssGridFocused();
+  wrap.innerHTML='';
+  wrap.tabIndex=0;
+  if(!wrap.dataset.bound){
+    wrap.dataset.bound='1';
+    wrap.addEventListener('keydown',ssGridKey);
+    wrap.addEventListener('focus',()=>wrap.classList.add('focused'));
+    wrap.addEventListener('blur',()=>wrap.classList.remove('focused'));
+  }
+  const cols=ssCols();
+  if(!edRows.length)edRows.push(ssBlankRow());
+  // 선택이 범위를 벗어났으면 되돌린다(행 삭제 등)
+  ssSel={r:Math.min(ssSel.r,ssMaxR()),c:Math.min(ssSel.c,ssMaxC()),
+         r2:Math.min(ssSel.r2,ssMaxR()),c2:Math.min(ssSel.c2,ssMaxC())};
+
   const tbl=document.createElement('table');tbl.className='ss-table';
   const thead=document.createElement('thead');const htr=document.createElement('tr');
-  const thN=document.createElement('th');thN.style.minWidth='36px';thN.textContent='#';htr.appendChild(thN);
+  const thN=document.createElement('th');thN.className='th-num';thN.textContent='#';
+  thN.title='전체 선택';thN.onclick=()=>{ssSel={r:0,c:0,r2:ssMaxR(),c2:ssMaxC()};ssPaint();ssFocusGrid();};
+  htr.appendChild(thN);
   cols.forEach((c,ci)=>{
     const th=document.createElement('th');th.className=c.type==='ch'?'ch-col':'prob-col';
-    if(c.color){const sp=document.createElement('span');sp.className='type-badge '+c.color;sp.textContent=c.label.split('\n')[0];th.innerHTML='';th.appendChild(sp);const sub=c.label.split('\n')[1];if(sub){th.appendChild(document.createElement('br'));th.appendChild(document.createTextNode(sub));}}
+    th.dataset.ci=ci;th.title='열 전체 선택';
+    if(c.color){const sp=document.createElement('span');sp.className='type-badge '+c.color;sp.textContent=c.label.split('\n')[0];th.appendChild(sp);const sub=c.label.split('\n')[1];if(sub){th.appendChild(document.createElement('br'));th.appendChild(document.createTextNode(sub));}}
     else th.innerHTML=c.label.replace('\n','<br>');
+    th.onclick=()=>{ssSel={r:0,c:ci,r2:ssMaxR(),c2:ci};ssPaint();ssFocusGrid();};
     htr.appendChild(th);
   });
   const thD=document.createElement('th');thD.textContent='삭제';thD.style.minWidth='44px';htr.appendChild(thD);
   thead.appendChild(htr);tbl.appendChild(thead);
+
   const tbody=document.createElement('tbody');
   edRows.forEach((row,ri)=>{
     const tr=document.createElement('tr');tr.id='edr'+ri;
-    const tdN=document.createElement('td');tdN.className='row-num';tdN.textContent=ri+1;tdN.onclick=()=>tr.classList.toggle('sel-row');
-    const insB=document.createElement('button');insB.className='ins-btn';insB.textContent='+행';insB.title='아래에 행 삽입';insB.onclick=e=>{e.stopPropagation();insEdRow(ri);};
+    const tdN=document.createElement('td');tdN.className='row-num';tdN.dataset.ri=ri;
+    const nSpan=document.createElement('span');nSpan.textContent=ri+1;tdN.appendChild(nSpan);
+    tdN.title='행 전체 선택';
+    tdN.onclick=()=>{ssSel={r:ri,c:0,r2:ri,c2:ssMaxC()};ssPaint();ssFocusGrid();};
+    const insB=document.createElement('button');insB.className='ins-btn';insB.textContent='+행';insB.title='아래에 행 삽입';
+    insB.onclick=e=>{e.stopPropagation();insEdRow(ri);};
     tdN.appendChild(insB);tr.appendChild(tdN);
+
     cols.forEach((c,ci)=>{
       const td=document.createElement('td');
-      if(c.type==='ch'){
-        td.className='cell-ch';
-        const inp=document.createElement('input');inp.value=row[c.key];inp.dataset.ri=ri;inp.dataset.ci=ci;
-        inp.addEventListener('input',()=>edRows[ri][c.key]=inp.value);
-        inp.addEventListener('paste',e=>{const raw=e.clipboardData.getData('text');if(/[\t\n]/.test(raw))handleGridPaste(e,ri,ci);});
-        td.appendChild(inp);
-      } else {
-        td.className='cell-prob';
-        const ta=document.createElement('textarea');ta.value=row[c.key];
-        ta.rows=Math.max(2,Math.ceil(((row[c.key]||'').split(',').length||1)/3));
-        ta.placeholder='예) 1, 2, 3';ta.dataset.ri=ri;ta.dataset.ci=ci;
-        ta.addEventListener('input',()=>{edRows[ri][c.key]=ta.value;ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});
-        ta.addEventListener('paste',e=>{
-          const raw=e.clipboardData.getData('text');
-          if(/[\t\n]/.test(raw)){
-            if(!/\t/.test(raw)){
-              e.preventDefault();
-              const cleaned=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').map(s=>s.trim()).filter(Boolean).join(', ');
-              const s=ta.selectionStart,en=ta.selectionEnd,cur=ta.value;
-              ta.value=cur.slice(0,s)+cleaned+cur.slice(en);ta.selectionStart=ta.selectionEnd=s+cleaned.length;
-              edRows[ri][c.key]=ta.value;ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
-            } else handleGridPaste(e,ri,ci);
-          }
-        });
-        ta.style.height='auto';td.appendChild(ta);
-      }
+      td.className='ss-cell '+(c.type==='ch'?'cell-ch':'cell-prob');
+      td.dataset.ri=ri;td.dataset.ci=ci;
+      td.addEventListener('pointerdown',e=>{
+        if(e.button===2)return;
+        if(ssEdit&&(ssEdit.r!==ri||ssEdit.c!==ci))ssCommitEdit(true);
+        if(ssEdit)return;                                   // 편집 중인 셀 안에서의 클릭은 그대로
+        const wasActive=(ssSel.r===ri&&ssSel.c===ci&&ssSel.r2===ri&&ssSel.c2===ci);
+        // preventDefault는 쓰지 않는다 — pointerdown을 막으면 뒤따르는 click/dblclick까지 죽는다.
+        // 드래그 중 텍스트가 잡히는 건 .ss-cell{user-select:none}이 막아준다.
+        ssFocusGrid();
+        if(e.shiftKey){ssSelect(ri,ci,true);return;}
+        ssSelect(ri,ci,false);ssDrag=true;
+        // 터치: 이미 고른 셀을 다시 탭하면 편집 (스프레드시트 앱과 같은 동작)
+        if(e.pointerType==='touch'&&wasActive)ssStartEdit(ri,ci);
+      });
+      td.addEventListener('pointerenter',()=>{ if(ssDrag&&!ssEdit)ssSelect(ri,ci,true); });
+      td.addEventListener('dblclick',e=>{e.preventDefault();ssStartEdit(ri,ci);});
       tr.appendChild(td);
     });
-    const tdD=document.createElement('td');const delB=document.createElement('button');delB.className='row-del';delB.title='행 삭제';delB.textContent='✕';
-    delB.onclick=()=>{if(confirm((row.ch||ri+1+'행')+' 삭제?')){edRows.splice(ri,1);renderEdGrid();}};
+
+    const tdD=document.createElement('td');tdD.className='cell-del';
+    const delB=document.createElement('button');delB.className='row-del';delB.title='행 삭제';delB.textContent='✕';
+    delB.onclick=()=>{
+      if(edRows.length<=1){showToast('마지막 행은 지울 수 없어요');return;}
+      if(!confirm((row.ch||ri+1+'행')+' 삭제?'))return;
+      ssSnap();edRows.splice(ri,1);renderEdGrid();
+    };
     tdD.appendChild(delB);tr.appendChild(tdD);tbody.appendChild(tr);
   });
   tbl.appendChild(tbody);wrap.appendChild(tbl);
-  setTimeout(()=>{wrap.querySelectorAll('textarea').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});},0);
+  edRows.forEach((row,ri)=>cols.forEach((c,ci)=>ssRenderCell(ri,ci)));
+  ssPaint();
+  if(hadFocus)ssFocusGrid();
 }
 
 function addEdRow(){
-  const cols=getEdCols(curEdSubj);const r={};cols.forEach(c=>r[c.key]=c.type==='ch'?'새 장':'');
-  edRows.push(r);renderEdGrid();
-  setTimeout(()=>{const rows=document.querySelectorAll('#ss-wrap tbody tr');if(rows.length)rows[rows.length-1].scrollIntoView({behavior:'smooth'});},50);
+  ssSnap();
+  edRows.push(ssBlankRow());
+  const r=ssMaxR();
+  ssSel={r,c:0,r2:r,c2:0};
+  renderEdGrid();ssFocusGrid();ssScrollIntoView();
 }
 function insEdRow(afterIdx){
-  const cols=getEdCols(curEdSubj);const r={};cols.forEach(c=>r[c.key]=c.type==='ch'?'새 장':'');
-  edRows.splice(afterIdx+1,0,r);renderEdGrid();
-  setTimeout(()=>{const row=document.querySelector('#edr'+(afterIdx+1));if(row)row.scrollIntoView({behavior:'smooth',block:'nearest'});},50);
+  ssSnap();
+  edRows.splice(afterIdx+1,0,ssBlankRow());
+  ssSel={r:afterIdx+1,c:0,r2:afterIdx+1,c2:0};
+  renderEdGrid();ssFocusGrid();ssScrollIntoView();
 }
 
 // 붙여넣기 모드
@@ -199,7 +517,7 @@ function applyPaste(){
   const chLines=(document.getElementById('paste-col-ch')?.value||'').split('\n').map(l=>l.trim()).filter(Boolean);
   const newRows=[];
   chLines.forEach((ch,i)=>{if(!ch)return;const r={ch};probCols.forEach(c=>{const lines=(document.getElementById('paste-col-'+c.key)?.value||'').split('\n');r[c.key]=(lines[i]||'').trim();});newRows.push(r);});
-  edRows=newRows;goEdMode('grid');showToast(`✅ ${newRows.length}개 장이 그리드에 반영됐어요`);
+  edRows=newRows;ssResetState();goEdMode('grid');showToast(`✅ ${newRows.length}개 장이 그리드에 반영됐어요`);
 }
 
 function goEdSubj(s){
@@ -220,7 +538,7 @@ function goEdMode(m){
   document.getElementById('emt-paste').classList.toggle('on',m==='paste');
   document.getElementById('ed-grid-area').style.display=m==='grid'?'block':'none';
   document.getElementById('ed-paste-area').style.display=m==='paste'?'block':'none';
-  document.getElementById('ed-hint').textContent=m==='grid'?'셀 클릭해서 수정 · 행번호 hover → 행 삽입':'열 단위로 복사해서 붙여넣기';
+  document.getElementById('ed-hint').textContent=m==='grid'?'셀 클릭 → 선택 · Enter/더블클릭 → 편집':'열 단위로 복사해서 붙여넣기';
   document.getElementById('paste-preview').innerHTML='';
   if(m==='paste')renderPastePanel();else renderEdGrid();
 }
