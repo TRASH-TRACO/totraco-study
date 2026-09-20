@@ -360,6 +360,76 @@ function ssFxCommit(){
   ssSnap();ssSetVal(ssSel.r,ssSel.c,fx.value);ssRenderCell(ssSel.r,ssSel.c);
 }
 
+// ── 열(문제 유형) 편집 ────────────────────
+// 그리드의 열 = 과목의 문제 유형(SUBJECTS[].cols)이다. 과목 설정까지 가지 않고 여기서 바로
+// 추가·이름변경·삭제할 수 있게 한다. 구조 변경이라 과목 설정에 바로 저장한다.
+function ssSubjDef(){ return SUBJECTS.find(s=>s.id===curEdSubj); }
+async function ssPersistCols(){
+  const sd=ssSubjDef(); if(!sd)return;
+  updateSubjectCSS();
+  try{ await idbSet('subjects_config',SUBJECTS); }catch(_){}
+  window.CloudSync?.schedulePush();
+  // 과목 설정 표(편집 중일 수 있다)에도 같은 열 구성을 반영 — 다른 미저장 수정은 건드리지 않는다
+  const er=(typeof subjEditRows!=='undefined')&&subjEditRows.find(r=>r.id===curEdSubj);
+  if(er)er.cols=JSON.parse(JSON.stringify(sd.cols));
+  if(typeof renderSubjGrid==='function'&&document.getElementById('subj-grid-wrap'))renderSubjGrid();
+  renderEdSubjTabs();
+}
+/** 새 열(유형) 추가 — 이름을 물어보고 안 쓰는 색을 하나 집어준다. */
+async function ssAddCol(){
+  const sd=ssSubjDef(); if(!sd){showToast('과목을 먼저 선택해주세요');return;}
+  const name=(prompt('새 유형 이름을 정해주세요\n예) 심화 · 계산 · 기출','새 유형')||'').trim();
+  if(!name)return;
+  if(sd.cols.some(c=>(c.label||'')===name)){showToast('같은 이름의 유형이 이미 있어요');return;}
+  const used=sd.cols.map(c=>c.key);
+  let key='col1';
+  for(let i=1;i<999;i++){ if(!used.includes('col'+i)){key='col'+i;break;} }
+  const usedCls=sd.cols.map(c=>c.cls);
+  const pick=(TYPE_CLS_OPTIONS.find(o=>!usedCls.includes(o.id))||{id:'si'}).id;
+  sd.cols.push({key,label:name,cls:pick});
+  edRows.forEach(r=>{ if(r[key]===undefined)r[key]=''; });
+  await ssPersistCols();
+  ssSel={r:ssSel.r,c:ssMaxC(),r2:ssSel.r,c2:ssMaxC()};
+  renderEdGrid();ssFocusGrid();
+  showToast('✅ ‘'+name+'’ 열을 추가했어요');
+}
+/** 열 이름 바꾸기 — 값(문제번호)은 그대로. */
+async function ssRenameCol(ci){
+  const sd=ssSubjDef(); if(!sd)return;
+  const col=ssCols()[ci]; if(!col||col.type!=='prob')return;
+  const target=sd.cols.find(c=>c.key===col.key); if(!target)return;
+  const name=(prompt('유형 이름 바꾸기',target.label||'')||'').trim();
+  if(!name||name===target.label)return;
+  target.label=name;
+  await ssPersistCols();
+  renderEdGrid();
+  showToast('✏️ 이름을 바꿨어요');
+}
+/** 열 삭제 — 그 유형의 문제가 통째로 사라지므로 개수를 세어 확인받는다. */
+async function ssDeleteCol(ci){
+  const sd=ssSubjDef(); if(!sd)return;
+  const col=ssCols()[ci]; if(!col||col.type!=='prob')return;
+  if(sd.cols.length<=1){showToast('유형이 하나뿐이라 지울 수 없어요');return;}
+  const n=(DATA[curEdSubj]||[]).reduce((a,ch)=>a+((ch[col.key]||[]).length),0);
+  const label=(sd.cols.find(c=>c.key===col.key)||{}).label||col.key;
+  if(!confirm('‘'+label+'’ 열을 삭제할까요?'+(n?`\n이 유형의 문제 ${n}개와 진도가 함께 지워집니다.`:'')))return;
+  const tp=colKeyToType(curEdSubj,col.key);
+  sd.cols=sd.cols.filter(c=>c.key!==col.key);
+  (DATA[curEdSubj]||[]).forEach(ch=>{ delete ch[col.key]; });
+  edRows.forEach(r=>{ delete r[col.key]; });
+  // 이 유형에 달린 진도·다시풀기 예약도 정리한다(가리킬 문제가 없어졌다)
+  const pre=curEdSubj+'|';
+  Object.keys(S).forEach(k=>{ const p=k.split('|'); if(k.startsWith(pre)&&p[2]===tp)delete S[k]; });
+  RETRIES=RETRIES.filter(r=>!(r.subj===curEdSubj&&r.type===tp));
+  ssResetState();
+  await ssPersistCols();
+  syncLegacy();
+  await saveAllSubjData();await saveState();await saveRetries();
+  buildMaps();buildDG();updateProgress();
+  renderEdGrid();
+  showToast('🗑 ‘'+label+'’ 열을 지웠어요');
+}
+
 function renderEdGrid(){
   const wrap=document.getElementById('ss-wrap');if(!wrap)return;
   const hadFocus=ssGridFocused();
@@ -384,12 +454,29 @@ function renderEdGrid(){
   htr.appendChild(thN);
   cols.forEach((c,ci)=>{
     const th=document.createElement('th');th.className=c.type==='ch'?'ch-col':'prob-col';
-    th.dataset.ci=ci;th.title='열 전체 선택';
-    if(c.color){const sp=document.createElement('span');sp.className='type-badge '+c.color;sp.textContent=c.label.split('\n')[0];th.appendChild(sp);const sub=c.label.split('\n')[1];if(sub){th.appendChild(document.createElement('br'));th.appendChild(document.createTextNode(sub));}}
-    else th.innerHTML=c.label.replace('\n','<br>');
+    th.dataset.ci=ci;th.title=c.type==='prob'?'클릭: 열 전체 선택 · 더블클릭: 이름 바꾸기':'열 전체 선택';
+    const box=document.createElement('div');box.className='th-in';
+    const txt=document.createElement('div');txt.className='th-txt';
+    if(c.color){const sp=document.createElement('span');sp.className='type-badge '+c.color;sp.textContent=c.label.split('\n')[0];txt.appendChild(sp);const sub=c.label.split('\n')[1];if(sub){txt.appendChild(document.createElement('br'));txt.appendChild(document.createTextNode(sub));}}
+    else txt.innerHTML=c.label.replace('\n','<br>');
+    box.appendChild(txt);
+    if(c.type==='prob'){
+      const del=document.createElement('button');del.className='col-del';del.type='button';
+      del.textContent='✕';del.title='이 열(유형) 삭제';
+      del.onclick=e=>{e.stopPropagation();ssDeleteCol(ci);};
+      box.appendChild(del);
+      th.ondblclick=e=>{e.preventDefault();ssRenameCol(ci);};
+    }
+    th.appendChild(box);
     th.onclick=()=>{ssSel={r:0,c:ci,r2:ssMaxR(),c2:ci};ssPaint();ssFocusGrid();};
     htr.appendChild(th);
   });
+  // 열 추가 — 과목 설정까지 가지 않고 여기서 바로 유형을 늘린다
+  const thA=document.createElement('th');thA.className='th-addcol';
+  const addC=document.createElement('button');addC.className='add-col-btn';addC.type='button';
+  addC.textContent='＋ 열';addC.title='새 문제 유형(열) 추가';
+  addC.onclick=ssAddCol;
+  thA.appendChild(addC);htr.appendChild(thA);
   const thD=document.createElement('th');thD.textContent='삭제';thD.style.minWidth='44px';htr.appendChild(thD);
   thead.appendChild(htr);tbl.appendChild(thead);
 
@@ -426,6 +513,7 @@ function renderEdGrid(){
       tr.appendChild(td);
     });
 
+    const tdSp=document.createElement('td');tdSp.className='cell-spacer';tr.appendChild(tdSp);   // '＋ 열' 머리글 자리
     const tdD=document.createElement('td');tdD.className='cell-del';
     const delB=document.createElement('button');delB.className='row-del';delB.title='행 삭제';delB.textContent='✕';
     delB.onclick=()=>{
