@@ -45,6 +45,10 @@ function makeProbUnit(subj,ci,type,num,cls){
   if(isWrong(subj,ci,type,num))unit.classList.add('wrong');
   unit.appendChild(makeChip(subj,ci,type,num,null,cls));
   const act=document.createElement('div');act.className='pu-actions';
+  // 최근 푼 날짜 — 완료된 문제에서만 보인다(오답·다시풀기 버튼과 같은 조건, CSS로 처리)
+  const lastEl=document.createElement('span');lastEl.className='pu-last';
+  const lastLabel=lastSolvedLabel(subj,ci,type,num);
+  lastEl.textContent=lastLabel?'최근 '+lastLabel:'';
   const wb=document.createElement('button');wb.type='button';
   wb.className='pu-btn pu-wrong'+(isWrong(subj,ci,type,num)?' on':'');wb.textContent='오답';
   wb.onclick=e=>{e.stopPropagation();toggleWrong(subj,ci,type,num);const on=isWrong(subj,ci,type,num);wb.classList.toggle('on',on);unit.classList.toggle('wrong',on);};
@@ -75,6 +79,18 @@ function makeProbUnit(subj,ci,type,num,cls){
     showToast('🔁 '+num+'번 '+parts+' 다시풀기 예약');
   };
   act.appendChild(pb2);
+  // 푼 날짜 고치기 — 체크를 하루 늦게 눌렀을 때 기록을 옮긴다
+  const db=document.createElement('button');db.type='button';
+  db.className='pu-btn pu-date';db.textContent='날짜';db.title='푼 날짜 고치기';
+  db.onclick=e=>{
+    e.stopPropagation();
+    openSolveDateFor(db,subj,ci,type,num,()=>{
+      const l=lastSolvedLabel(subj,ci,type,num);
+      lastEl.textContent=l?'최근 '+l:'';
+      setChipTitle(unit.querySelector('.chip'),subj,ci,type,num);
+    });
+  };
+  act.appendChild(db);
   // 미루기(정규 일차·미완료) / 되돌리기(미뤄둔 문제 버킷)
   if(curDay===POSTPONE_DAY){
     const ub=document.createElement('button');ub.type='button';ub.className='pu-btn pu-unpostpone';ub.textContent='되돌리기';
@@ -85,10 +101,6 @@ function makeProbUnit(subj,ci,type,num,cls){
     pb.onclick=e=>{e.stopPropagation();postponeProblem(subj,ci,type,num);};
     act.appendChild(pb);
   }
-  // 최근 푼 날짜 — 완료된 문제에서만 보인다(오답·다시풀기 버튼과 같은 조건, CSS로 처리)
-  const lastEl=document.createElement('span');lastEl.className='pu-last';
-  const lastLabel=lastSolvedLabel(subj,ci,type,num);
-  lastEl.textContent=lastLabel?'최근 '+lastLabel:'';
   act.appendChild(lastEl);
   unit.appendChild(act);
   return unit;

@@ -89,6 +89,49 @@ function recordSolve(subj,ci,type,num,done){
     }
   }
 }
+// ── 풀이 날짜 고치기 ─────────────────────
+// 체크를 하루 늦게 누르면(저장 실패·깜빡) 그날 날짜로 기록돼 캘린더가 어긋난다.
+// 기록 자체를 옮기거나 지울 수 있게 해 둔다. 다시풀기 표식(RETRY_DONE)도 같이 따라간다.
+function addSolveDate(pid,date,meta){
+  if(!pid||!date)return false;
+  let e=LOG[pid];
+  if(!e){
+    if(!meta)return false;
+    e=LOG[pid]={subj:meta.subj,ci:meta.ci,type:meta.type,num:meta.num,ch:meta.ch||'',dates:[]};
+  }
+  if(e.dates.includes(date))return false;
+  e.dates.push(date);e.dates.sort();
+  saveLog();return true;
+}
+function moveSolveDate(pid,from,to){
+  const e=LOG[pid];
+  if(!e||!from||!to||from===to)return false;
+  const i=e.dates.indexOf(from);
+  if(i<0)return false;
+  e.dates.splice(i,1);
+  if(!e.dates.includes(to))e.dates.push(to);
+  e.dates.sort();
+  const fk=pid+'|'+from,tk=pid+'|'+to;
+  if(RETRY_DONE[fk]){delete RETRY_DONE[fk];RETRY_DONE[tk]=true;}
+  saveLog();saveRetryDone();return true;
+}
+function removeSolveDate(pid,date){
+  const e=LOG[pid];
+  if(!e)return false;
+  const i=e.dates.indexOf(date);
+  if(i<0)return false;
+  e.dates.splice(i,1);
+  delete RETRY_DONE[pid+'|'+date];
+  if(!e.dates.length)delete LOG[pid];
+  saveLog();saveRetryDone();return true;
+}
+/** 'YYYY-MM-DD'에 n일 더한 날짜 */
+function shiftDate(ds,n){
+  const d=new Date(ds+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return todayStr(d);
+}
+
 async function saveLog(){
   try{ await idbSet('study_log',LOG); }
   catch(_){ try{ localStorage.setItem('study_log',JSON.stringify(LOG)); }catch(__){} }
