@@ -50,6 +50,7 @@ async function init(){
   await loadDayNotes();
   await loadRetries();
   await loadRetryDone();
+  await loadWeights();
   if(ensurePids()) await saveAllSubjData();  // 기존 문제에 고유 ID 채우기(최초 1회 마이그레이션)
   // 재수강이 사라졌는데 그게 밀어놓은 일차만 남은 잔재를 정리한다
   if(healRetryDays()){ await saveAllSubjData(); await saveRetries(); }

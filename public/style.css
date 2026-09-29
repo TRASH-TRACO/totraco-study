@@ -192,6 +192,9 @@ select option{background:var(--bg);color:var(--text);}
 .cst{position:absolute;top:-5px;right:-5px;width:12px;height:12px;border-radius:50%;font-size:7px;display:none;align-items:center;justify-content:center;font-weight:700;}
 .chip.done .cst{display:flex;background:var(--done);color:#fff;}
 .chip-day{font-size:8px;font-weight:400;opacity:.55;margin-left:1px;vertical-align:super;}
+.chip-w{font-size:8px;font-weight:700;opacity:.8;margin-left:2px;vertical-align:super;}
+.ss-tip{font-size:10px;color:var(--text3);line-height:1.7;margin-bottom:6px;}
+.ss-tip b{color:var(--text2);font-family:var(--font-mono);font-weight:600;}
 
 /* ── 다시 풀기(재수강) — 완료 시 칩 옆에 오답/다시풀기 버튼 ── */
 .prob-unit{display:inline-flex;align-items:center;gap:4px;}

@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 // 현재 상태 전체를 덩어리 하나로 (버전 스냅샷 · 클라우드 업로드 공용)
 function buildBlob(){
-  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT,log:LOG,dayNotes:DAYNOTES,retries:RETRIES,wrong:WRONG,retryBase:RETRY_BASE,retryDone:RETRY_DONE};
+  const data={version:4,date:new Date().toISOString(),progress:S,subjects:SUBJECTS,title:appTitle,userName,planSnapshot:PLAN_SNAPSHOT,log:LOG,dayNotes:DAYNOTES,retries:RETRIES,wrong:WRONG,retryBase:RETRY_BASE,retryDone:RETRY_DONE,weights:WEIGHTS};
   SUBJECTS.forEach(s=>{data[s.dataKey]=DATA[s.id]||[];});
   return data;
 }
@@ -197,6 +197,7 @@ async function applyBlob(data,opts){
     RETRY_BASE=data.retryBase;
   }
   if(data.wrong&&typeof data.wrong==='object')WRONG=data.wrong;
+  if(data.weights&&typeof data.weights==='object'){ WEIGHTS=data.weights; saveWeights(); }
   // 재수강 완료 표식도 이력 → 동기화는 합집합(빈 값이 덮어쓰지 못하게), 복원은 교체
   if(data.retryDone&&typeof data.retryDone==='object')RETRY_DONE=replaceHistory?data.retryDone:{...RETRY_DONE,...data.retryDone};
 

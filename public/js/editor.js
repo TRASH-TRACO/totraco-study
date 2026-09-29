@@ -21,13 +21,23 @@ function getDefData(){return DEFAULTS[curEdSubj]||[];}
  * 문제 등록은 번호만 다룬다. 일차는 아래 "회독 배정"이 정하므로 화면에 드러내지 않는다.
  * 저장 시 기존 일차를 잃지 않도록 edRowsToData()가 번호를 기준으로 되살린다.
  */
-function probsToText(arr){return(arr||[]).map(p=>Array.isArray(p)?p[0]:p).join(', ');}
+// 물음이 많아 한 문제가 사실상 2~3문제면 "3*3"처럼 분량을 붙인다(체크는 그대로 문제 하나).
+function probsToText(arr){
+  return(arr||[]).map(p=>{
+    const num=Array.isArray(p)?p[0]:p;
+    const w=weightOfProb(p);
+    return w>1?num+'*'+w:String(num);
+  }).join(', ');
+}
 function textToProbs(str){
   if(!str||!str.trim())return[];
   return str.split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean).map(s=>{
-    const m=s.match(/^(\d+)(?:\s*[\(（](\d+)[\)）])?$/);  // 예전 "번호(일차)" 형식도 받아준다
-    if(!m)throw new Error('"'+s+'" — 숫자만 입력하세요');
-    return[parseInt(m[1]), m[2]?parseInt(m[2]):0];
+    // 번호[*분량][(일차)] — 분량은 물음 가중치, (일차)는 예전 형식 호환
+    const m=s.match(/^(\d+)(?:\s*[*xX×]\s*(\d+))?(?:\s*[\(（](\d+)[\)）])?$/);
+    if(!m)throw new Error('"'+s+'" — 숫자만 입력하세요 (물음 많으면 3*2)');
+    const w=m[2]?parseInt(m[2]):1;
+    if(w<1||w>99)throw new Error('"'+s+'" — 분량은 1~99');
+    return[parseInt(m[1]), m[3]?parseInt(m[3]):0, w];
   });
 }
 function buildEdRows(){
@@ -50,9 +60,11 @@ function edRowsToData(){
       // 화면에는 번호만 있으므로, 같은 장·같은 번호의 기존 일차·pid를 되살린다.
       // 새로 추가된 번호는 새 pid를 발급 → 기존 문제의 풀이 기록은 편집해도 유지된다.
       const prev=new Map(((old[ri]||{})[c.key]||[]).map(p=>[p[0],p]));
-      obj[c.key]=textToProbs(r[c.key]).map(([num,day])=>{
+      obj[c.key]=textToProbs(r[c.key]).map(([num,day,w])=>{
         const pv=prev.get(num);
-        return [num, day||(pv&&pv[1])||0, (pv&&pv[2])||newPid()];
+        const pid=(pv&&pv[2])||newPid();
+        if(w>1)WEIGHTS[pid]=w; else delete WEIGHTS[pid];   // 분량(물음 가중치)
+        return [num, day||(pv&&pv[1])||0, pid];
       });
     });
     return obj;
@@ -425,6 +437,7 @@ async function ssDeleteCol(ci){
   await ssPersistCols();
   syncLegacy();
   await saveAllSubjData();await saveState();await saveRetries();
+  if(pruneWeights())await saveWeights();
   buildMaps();buildDG();updateProgress();
   renderEdGrid();
   showToast('🗑 ‘'+label+'’ 열을 지웠어요');
@@ -682,6 +695,8 @@ async function saveEd(){
     DATA[curEdSubj]=data;
     syncLegacy();
     await saveAllSubjData();
+    pruneWeights();
+    await saveWeights();
     buildMaps();buildDG();updateProgress();curDay=null;
     const dp=document.getElementById('dpanel');dp.classList.remove('on');dp.innerHTML='';
     st.className='ed-st ok';st.textContent='✓ 저장 완료 ('+data.length+'개 장)';
@@ -709,7 +724,7 @@ function copyEdAll(){
     const cells=[ch.ch||''];
     subjDef.cols.forEach(col=>{
       const probs=ch[col.key]||[];
-      cells.push(probs.map(p=>p[0]+'('+p[1]+')').join(', '));
+      cells.push(probs.map(p=>p[0]+(weightOfProb(p)>1?'*'+weightOfProb(p):'')+'('+p[1]+')').join(', '));
     });
     return cells.join('\t');
   });
@@ -730,7 +745,7 @@ function copyEdUndone(){
       const tp=colKeyToType(curEdSubj,col.key);
       const undone=(ch[col.key]||[]).filter(p=>!dn(curEdSubj,ci,tp,p[0]));
       if(undone.length)hasUndone=true;
-      cells.push(undone.map(p=>p[0]+'('+p[1]+')').join(', '));
+      cells.push(undone.map(p=>p[0]+(weightOfProb(p)>1?'*'+weightOfProb(p):'')+'('+p[1]+')').join(', '));
     });
     if(hasUndone)lines.push(cells.join('\t'));
   });
@@ -752,7 +767,7 @@ function copyEdDone(){
       const tp=colKeyToType(curEdSubj,col.key);
       const done=(ch[col.key]||[]).filter(p=>dn(curEdSubj,ci,tp,p[0]));
       if(done.length)hasDone=true;
-      cells.push(done.map(p=>p[0]+'('+p[1]+')').join(', '));
+      cells.push(done.map(p=>p[0]+(weightOfProb(p)>1?'*'+weightOfProb(p):'')+'('+p[1]+')').join(', '));
     });
     if(hasDone)lines.push(cells.join('\t'));
   });

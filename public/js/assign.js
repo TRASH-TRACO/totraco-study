@@ -43,24 +43,32 @@ async function runAssign(mode){
   data.forEach((ch,ci)=>subj.cols.forEach(c=>{
     (ch[c.key]||[]).forEach(p=>{
       const num=Array.isArray(p)?p[0]:p;
-      pool.push({ci,key:c.key,num});
+      pool.push({ci,key:c.key,num,w:weightOfProb(p)});   // w = 물음 가중치(분량)
     });
   }));
   if(!pool.length){showToast('먼저 문제를 등록해주세요');return;}
 
   const days=Math.max(1,Math.min(365,parseInt(document.getElementById('rand-days').value)||1));
   const total=pool.length;
-  const perDay=Math.floor(total/days),extra=total%days;
+  // 하루 용량은 '문제 수'가 아니라 '분량' 기준 — 물음 많은 문제는 여러 문제 몫을 차지한다
+  const totalW=pool.reduce((a,p)=>a+p.w,0);
+  const perDay=Math.floor(totalW/days),extra=totalW%days;
   const buckets=[];
-  for(let d=0;d<days;d++)buckets.push({day:d+1,cap:perDay+(d<extra?1:0),items:[],chCounts:{}});
+  for(let d=0;d<days;d++)buckets.push({day:d+1,cap:perDay+(d<extra?1:0),items:[],load:0,chCounts:{}});
 
   if(mode==='order'){
     // 장 순서 → 번호 순서. 용량만큼 차례로 채운다.
     const ordered=[...pool].sort((a,b)=>a.ci-b.ci||a.num-b.num);
-    let bi=0;
+    // 순서를 지켜야 하므로 앞에서부터 채우되, 남은 분량/남은 일수로 목표치를 계속 다시 잡는다.
+    // (분량 큰 문제 때문에 앞 일차가 비고 뒤에 몰리는 걸 막는다)
+    let bi=0,remW=totalW,remDays=days;
+    let target=Math.max(1,Math.ceil(remW/Math.max(1,remDays)));
     ordered.forEach(p=>{
-      while(buckets[bi].items.length>=buckets[bi].cap&&bi<buckets.length-1)bi++;
-      buckets[bi].items.push(p);
+      if(buckets[bi].load>=target&&bi<buckets.length-1){
+        remW-=buckets[bi].load;remDays--;bi++;
+        target=Math.max(1,Math.ceil(remW/Math.max(1,remDays)));
+      }
+      buckets[bi].items.push(p);buckets[bi].load+=p.w;
     });
   }else{
     // 같은 장 몰림 방지: 장별 큐를 라운드로빈으로 돌며 점수가 낮은 일차에 넣는다
@@ -68,15 +76,15 @@ async function runAssign(mode){
     Object.values(byCh).forEach(arr=>{
       for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
     });
-    const score=(b,ci,idx)=>{
-      if(b.items.length>=b.cap)return Infinity;
+    const score=(b,ci,idx,w)=>{
+      if(b.load>0&&b.load+(w||1)>b.cap)return Infinity;   // 빈 일차엔 분량이 큰 문제도 들어간다
       let s=(b.chCounts[ci]||0)*1000;
       [[1,300],[2,80],[3,20]].forEach(([off,pen])=>{
         const pv=buckets[idx-off],nx=buckets[idx+off];
         if(pv&&pv.chCounts[ci])s+=pen*pv.chCounts[ci];
         if(nx&&nx.chCounts[ci])s+=pen*nx.chCounts[ci];
       });
-      return s+b.items.length*2;
+      return s+b.load*2;
     };
     const queues=Object.entries(byCh)
       .sort((a,b)=>b[1].length-a[1].length)          // 많은 장부터 (분산 효과 ↑)
@@ -87,12 +95,15 @@ async function runAssign(mode){
         const prob=q.queue.shift();
         let best=Infinity,cands=[];
         buckets.forEach((b,idx)=>{
-          const sc=score(b,q.ci,idx);
+          const sc=score(b,q.ci,idx,prob.w);
           if(sc<best){best=sc;cands=[idx];}else if(sc===best)cands.push(idx);
         });
-        if(!cands.length)continue;
+        if(!cands.length){   // 어디에도 안 들어가면(분량이 큰 문제) 가장 덜 찬 일차로
+          let li=0;buckets.forEach((b,idx)=>{ if(b.load<buckets[li].load)li=idx; });
+          cands=[li];
+        }
         const pick=buckets[cands[Math.floor(Math.random()*cands.length)]];
-        pick.items.push(prob);
+        pick.items.push(prob);pick.load+=prob.w;
         pick.chCounts[q.ci]=(pick.chCounts[q.ci]||0)+1;
       }
     }
@@ -189,7 +200,11 @@ function renderAssignInfo(){
     const badge = audit.ok
       ? `<span class="audit-ok">✅ 전체 ${total}문제 모두 확인 · 누락 0</span>`
       : `<span class="audit-warn">⚠️ 확인 필요${audit.orphan?` · 사라진 문제 ${audit.orphan}`:''}${audit.doneBucketUndone?` · 완료묶음에 미완료 ${audit.doneBucketUndone}`:''}</span>`;
-    sum.innerHTML=`${escapeHtml(subj.name)} · 전체 <b>${total}</b>문제 = ${parts.join(' · ')}<br>${badge}`;
+    // 물음 가중치가 걸린 문제가 있으면 '분량'도 같이 — 하루 배정은 분량 기준이다
+    let loadW=0;
+    data.forEach(ch=>(subj?subj.cols:[]).forEach(c=>{ (ch[c.key]||[]).forEach(p=>{ if(Array.isArray(p))loadW+=weightOfProb(p); }); }));
+    const loadTxt=loadW>total?` <span style="color:var(--text3)">(분량 ${loadW})</span>`:'';
+    sum.innerHTML=`${escapeHtml(subj.name)} · 전체 <b>${total}</b>문제${loadTxt} = ${parts.join(' · ')}<br>${badge}`;
   }
 
   // 일차별로 어떤 장의 몇 번 문제가 들어갔는지 미리 보여준다
@@ -724,23 +739,26 @@ function rsReshuffle(){ rsNewSeed(); updateReschedulePreview(); }
 // 인접 일차(±1..3)에 같은 장이 있으면 페널티를 줘서 한 장이 연달아 나오는 것도 누른다.
 function rsShuffleGroups(undone,pd,seed){
   const rnd=rsRandom(seed);
-  const days=Math.max(1,Math.ceil(undone.length/pd));
+  const subjId=rescheduleData?rescheduleData.subjId:curEdSubj;
+  const wOf=p=>weightOf(subjId,p.ci,p.type,p.num);              // 물음 가중치(분량)
+  const totalW=undone.reduce((a,p)=>a+wOf(p),0);
+  const days=Math.max(1,Math.ceil(totalW/pd));
   const buckets=[];
-  for(let d=0;d<days;d++)buckets.push({day:d+1,cap:Math.min(pd,undone.length-d*pd),items:[],chCounts:{}});
+  for(let d=0;d<days;d++)buckets.push({day:d+1,cap:Math.min(pd,totalW-d*pd),items:[],load:0,chCounts:{}});
   const byCh={};
   undone.forEach(p=>{ (byCh[p.ci]=byCh[p.ci]||[]).push(p); });
   Object.values(byCh).forEach(arr=>{
     for(let i=arr.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
   });
-  const score=(b,ci,idx)=>{
-    if(b.items.length>=b.cap)return Infinity;
+  const score=(b,ci,idx,w)=>{
+    if(b.load>0&&b.load+(w||1)>b.cap)return Infinity;   // 빈 일차엔 분량이 큰 문제도 들어간다
     let s=(b.chCounts[ci]||0)*1000;
     [[1,300],[2,80],[3,20]].forEach(([off,pen])=>{
       const pv=buckets[idx-off],nx=buckets[idx+off];
       if(pv&&pv.chCounts[ci])s+=pen*pv.chCounts[ci];
       if(nx&&nx.chCounts[ci])s+=pen*nx.chCounts[ci];
     });
-    return s+b.items.length*2;
+    return s+b.load*2;
   };
   const queues=Object.entries(byCh)
     .sort((a,b)=>b[1].length-a[1].length||(+a[0])-(+b[0]))   // 많은 장부터 (분산 효과 ↑)
@@ -750,13 +768,17 @@ function rsShuffleGroups(undone,pd,seed){
       if(!q.queue.length)continue;
       const prob=q.queue.shift();
       let best=Infinity,cands=[];
+      const w=wOf(prob);
       buckets.forEach((b,idx)=>{
-        const sc=score(b,q.ci,idx);
+        const sc=score(b,q.ci,idx,w);
         if(sc<best){best=sc;cands=[idx];}else if(sc===best)cands.push(idx);
       });
-      if(!cands.length){ buckets[buckets.length-1].items.push(prob); continue; }   // 안전망: 빠뜨리지 않는다
+      if(!cands.length){   // 어디에도 안 들어가면 가장 덜 찬 일차로 (빠뜨리지 않는다)
+        let li=0;buckets.forEach((b,idx)=>{ if(b.load<buckets[li].load)li=idx; });
+        cands=[li];
+      }
       const pick=buckets[cands[Math.floor(rnd()*cands.length)]];
-      pick.items.push(prob);
+      pick.items.push(prob);pick.load+=w;
       pick.chCounts[q.ci]=(pick.chCounts[q.ci]||0)+1;
     }
   }
@@ -855,9 +877,10 @@ function computeReschedule(perDay){
   const dayGroups = {};
   let day=1, inDay=0;
   undone.forEach(p=>{
-    if(inDay>=pd){ day++; inDay=0; }
+    const w=weightOf(rescheduleData.subjId,p.ci,p.type,p.num);   // 물음 가중치(분량)
+    if(inDay>0&&inDay+w>pd){ day++; inDay=0; }
     (dayGroups[day]=dayGroups[day]||[]).push(p);
-    inDay++;
+    inDay+=w;
   });
   return { bucket, dayGroups, totalDays: undone.length?day:0 };
 }
@@ -910,13 +933,13 @@ function rescheduleLayout(sim){
   (sim.data||[]).forEach((ch,ci)=>(sdef?sdef.cols:[]).forEach(c=>{
     (ch[c.key]||[]).forEach(p=>{
       if(!Array.isArray(p)||p[1]===POSTPONE_DAY)return;   // 미뤄둔 문제는 따로 보여준다
-      const it={ci,ch:ch.ch,num:p[0]};
+      const it={ci,ch:ch.ch,num:p[0],w:weightOfProb(p)};
       if(p[1]===0)bucket.push(it); else (days[p[1]]=days[p[1]]||[]).push(it);
     });
   }));
   (sim.retries||[]).forEach(r=>{
     const ch=(sim.data[r.ci]&&sim.data[r.ci].ch)||'';
-    const it={ci:r.ci,ch,num:r.num,retry:true,parts:normParts(r.parts)};
+    const it={ci:r.ci,ch,num:r.num,retry:true,parts:normParts(r.parts),w:weightOf(r.subj,r.ci,r.type,r.num)};
     if(r.day<1)bucket.push(it);                    // 이미 푼 예약 → 「완료된 문제」로
     else (days[r.day]=days[r.day]||[]).push(it);
   });
@@ -940,7 +963,7 @@ function updateReschedulePreview(){
     `<div style="background:${color==='cost'?'var(--bg3)':'var(--bg)'};border:1px solid var(--${color});border-radius:4px;padding:6px 10px;display:flex;gap:10px;align-items:flex-start;">`+
       `<div style="font-size:11px;font-weight:600;color:var(--${color});min-width:78px;">${label}</div>`+
       `<div style="flex:1;font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.6;">${probs.map(chip).join(', ')}</div>`+
-      `<div style="font-size:10px;color:var(--text3);text-align:right;min-width:44px;">${count}문제</div>`+
+      `<div style="font-size:10px;color:var(--text3);text-align:right;min-width:44px;">${count}</div>`+
     `</div>`;
 
   // 대사(점검) — 전체 = 완료 + 남은, 빠진 문제 없는지 미리 확인
@@ -961,16 +984,17 @@ function updateReschedulePreview(){
   const bucketRetries=(layout.bucket||[]).filter(x=>x.retry).sort((a,b)=>a.ci-b.ci||a.num-b.num);
   if(bucket.length||bucketRetries.length){
     const bs=[...bucket].sort((a,b)=>a.day-b.day||a.ci-b.ci||a.num-b.num).concat(bucketRetries);
-    html += row('✓ 완료된 문제','cost',bs,bs.length);
+    html += row('✓ 완료된 문제','cost',bs,bs.length+'문제');
   }
   for(let d=1; d<=totalDays; d++){
     // 정규 문제 먼저, 다시 풀기는 뒤에 — 일차 패널에 보이는 순서와 같게
     const probs=(layout.days[d]||[]).slice().sort((a,b)=>(a.retry?1:0)-(b.retry?1:0)||a.ci-b.ci||a.num-b.num);
-    html += row(d+'일','accent',probs,probs.length);
+    const load=probs.reduce((a,x)=>a+(x.w||1),0);
+    html += row(d+'일','accent',probs,probs.length+'문제'+(load>probs.length?'<br>분량 '+load:''));
   }
   if(held){
     const hs=(rescheduleData.postponed||[]).slice().sort((a,b)=>a.ci-b.ci||a.num-b.num);
-    html += row('⏸ 미뤄둔 문제 (그대로)','text3',hs,hs.length);
+    html += row('⏸ 미뤄둔 문제 (그대로)','text3',hs,hs.length+'문제');
   }
   html += '</div>';
   html += '<div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.5;">전체 또는 이 과목을 미완료로 초기화하면, 완료 묶음이 원래 순서대로 되돌아옵니다.</div>';

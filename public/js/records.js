@@ -141,6 +141,44 @@ async function loadLog(){
   try{ const v=await idbGet('study_log'); if(v&&typeof v==='object')LOG=v; }
   catch(_){ try{ const s=localStorage.getItem('study_log'); if(s)LOG=JSON.parse(s); }catch(__){} }
 }
+// ── 물음 가중치 ──────────────────────────
+// 물음이 많아 한 문제가 사실상 2~3문제인 경우가 있다. 시트에 "3*3"처럼 적으면
+// 그 문제는 분량 3으로 친다. 체크는 지금처럼 문제 하나 단위이고, 가중치는
+// 회독 배정·남은 문제 조정의 '하루에 풀 분량' 계산에만 쓰인다.
+// { pid: 2 이상의 정수 } — 1이면 아예 넣지 않는다.
+let WEIGHTS={};
+async function saveWeights(){
+  try{ await idbSet('weights',WEIGHTS); }
+  catch(_){ try{ localStorage.setItem('weights',JSON.stringify(WEIGHTS)); }catch(__){} }
+  window.CloudSync?.schedulePush();
+}
+async function loadWeights(){
+  try{ const v=await idbGet('weights'); if(v&&typeof v==='object')WEIGHTS=v; }
+  catch(_){ try{ const s=localStorage.getItem('weights'); if(s)WEIGHTS=JSON.parse(s); }catch(__){} }
+}
+/** pid의 분량(기본 1) */
+function weightOfPid(pid){ const w=pid&&WEIGHTS[pid]; return (w&&w>1)?w:1; }
+/** 문제 위치로 구하는 분량 */
+function weightOf(subj,ci,type,num){ return weightOfPid(pidOf(subj,ci,type,num)); }
+/** 문제 튜플([num,day,pid])의 분량 */
+function weightOfProb(p){ return weightOfPid(Array.isArray(p)?p[2]:null); }
+/** 사라진 문제(pid)의 분량 기록을 정리한다 — 저장 때 한 번씩 훑는다. */
+function pruneWeights(){
+  const keys=Object.keys(WEIGHTS);
+  if(!keys.length)return false;
+  const alive=new Set();
+  SUBJECTS.forEach(s=>(DATA[s.id]||[]).forEach(ch=>s.cols.forEach(c=>{
+    (ch[c.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[2])alive.add(p[2]); });
+  })));
+  let changed=false;
+  keys.forEach(pid=>{ if(!alive.has(pid)){delete WEIGHTS[pid];changed=true;} });
+  return changed;
+}
+/** 항목 목록의 분량 합 — {subj,ci,type,num} 또는 pid를 가진 것들 */
+function sumWeight(list,get){
+  return (list||[]).reduce((a,x)=>a+(get?get(x):weightOf(x.subj,x.ci,x.type,x.num)),0);
+}
+
 async function saveDayNotes(){
   try{ await idbSet('day_notes',DAYNOTES); }
   catch(_){ try{ localStorage.setItem('day_notes',JSON.stringify(DAYNOTES)); }catch(__){} }

@@ -6,7 +6,9 @@ function makeChip(subj,ci,type,num,day,cls){
   el.className='chip '+(cls||CC[type]||'si');
   if(dn(subj,ci,type,num))el.classList.add('done');
   el.dataset.subj=subj;el.dataset.ci=ci;el.dataset.type=type;el.dataset.num=num;
-  el.innerHTML=num+'번'+(day?'<sup class="chip-day">'+day+'일</sup>':'');
+  const w=weightOf(subj,ci,type,num);
+  el.innerHTML=num+'번'+(w>1?'<sup class="chip-w" title="물음이 많아 분량 '+w+'문제로 칩니다">×'+w+'</sup>':'')
+    +(day?'<sup class="chip-day">'+day+'일</sup>':'');
   setChipTitle(el,subj,ci,type,num);
   const cst=document.createElement('div');cst.className='cst';
   cst.textContent='✓';
@@ -272,7 +274,7 @@ function renderDP(day){
   const hdr=document.createElement('div');hdr.className='dpanel-hdr';
   const titleEl=document.createElement('div');titleEl.className='dpanel-title';titleEl.textContent=day===0?'완료된 문제':day===POSTPONE_DAY?'미뤄둔 문제':day+'일차';
   const metaEl=document.createElement('div');metaEl.style.display='flex';metaEl.style.alignItems='center';metaEl.style.gap='10px';
-  const subEl=document.createElement('div');subEl.className='dpanel-meta';subEl.id='dp-sub';subEl.textContent=totalN+'문제 · '+dk+'개 완료';
+  const subEl=document.createElement('div');subEl.className='dpanel-meta';subEl.id='dp-sub';subEl.textContent=dpMetaText(day);
   const abtn=document.createElement('button');abtn.className='toggle-all-btn '+(allD?'ad':'nd');abtn.textContent=allD?'전체 해제':'전체 완료';abtn.id='all-btn';abtn.onclick=()=>toggleAll(day);
   metaEl.appendChild(subEl);metaEl.appendChild(abtn);hdr.appendChild(titleEl);hdr.appendChild(metaEl);dp.appendChild(hdr);
   const tip=document.createElement('div');tip.className='dpanel-tip';tip.textContent='클릭: 완료 토글';dp.appendChild(tip);
@@ -483,13 +485,22 @@ function renderDPChunks(body,sp,subj){
     });
 }
 
+/** 일차 패널 요약 — 문제 수 · 완료 수 (물음 가중치가 있으면 분량도) */
+function dpMetaText(day){
+  const ps=(getDM()[day])||[];const rs=retriesForDay(day);
+  const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length + rs.filter(r=>r.done).length;
+  const totalN=ps.length+rs.length;
+  const load=ps.reduce((a,p)=>a+weightOf(p.subj,p.ci,p.type,p.num),0)
+            +rs.reduce((a,r)=>a+weightOf(r.subj,r.ci,r.type,r.num),0);
+  return totalN+'문제 · '+dk+'개 완료'+(load>totalN?' · 분량 '+load:'');
+}
 function refreshDPMeta(day){
   if(day==null)return;
   const ps=(getDM()[day])||[];const rs=retriesForDay(day);
   const dk=ps.filter(p=>dn(p.subj,p.ci,p.type,p.num)).length + rs.filter(r=>r.done).length;
   const totalN=ps.length+rs.length;
   const allD=totalN>0&&dk===totalN;
-  const sub=document.getElementById('dp-sub');if(sub)sub.textContent=totalN+'문제 · '+dk+'개 완료';
+  const sub=document.getElementById('dp-sub');if(sub)sub.textContent=dpMetaText(day);
   const btn=document.getElementById('all-btn');if(btn){btn.className='toggle-all-btn '+(allD?'ad':'nd');btn.textContent=allD?'전체 해제':'전체 완료';}
 }
 function toggleAll(day){
