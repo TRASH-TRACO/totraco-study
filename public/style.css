@@ -223,7 +223,16 @@ select option{background:var(--bg);color:var(--text);}
 .retry-sec-cnt{font-size:11px;font-weight:500;color:var(--text3);font-family:var(--font-mono);}
 .retry-body{padding:0 16px 12px;}
 .retry-body .ch-block:last-child{border-bottom:none;}
-.chip-part{font-size:8px;font-weight:400;opacity:.7;margin-left:1px;vertical-align:super;}
+/* 물음만 예약한 다시풀기 — 물음을 번호만큼 또렷하게 (작은 첨자는 놓치기 쉬웠다) */
+.chip.has-parts{padding-right:4px;gap:4px;}
+.chip-parts{display:inline-flex;align-items:center;height:17px;padding:0 6px;border-radius:999px;
+  font-size:10px;font-weight:700;white-space:nowrap;color:var(--bg);background:var(--text2);}
+.chip.th .chip-parts{background:var(--theory);}
+.chip.ba .chip-parts{background:var(--cost);}
+.chip.av .chip-parts{background:var(--fin);}
+.chip.ca .chip-parts{background:var(--tax);}
+.chip.si .chip-parts{background:var(--text2);}
+.chip.done .chip-parts{text-decoration:none;}
 /* 일차 타일에 재수강 표시 점 */
 .db.has-retry{position:relative;}
 .db.has-retry::after{content:'';position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;background:var(--accent);}

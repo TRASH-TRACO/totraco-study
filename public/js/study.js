@@ -398,7 +398,13 @@ function makeRetryUnit(r,day,cls){
   chip.dataset.subj=r.subj;chip.dataset.ci=r.ci;chip.dataset.type=r.type;chip.dataset.num=r.num;
   setChipTitle(chip,r.subj,r.ci,r.type,r.num);
   const parts=normParts(r.parts);
-  chip.innerHTML=r.num+'번'+(parts?'<sup class="chip-part">'+escapeHtml(parts)+'</sup>':'');
+  // 물음만 예약한 건 — 번호 옆에 꽉 찬 배지로 크게 붙인다(작은 첨자는 눈에 안 띈다)
+  chip.innerHTML=r.num+'번'+(parts?'<span class="chip-parts">'+escapeHtml(parts)+'</span>':'');
+  if(parts){
+    chip.classList.add('has-parts');
+    const t=chip.getAttribute('title');
+    chip.setAttribute('title','물음 '+parts+'만 다시 풀기'+(t?'\n'+t:''));
+  }
   const cst=document.createElement('div');cst.className='cst';cst.textContent='✓';chip.appendChild(cst);
   chip.addEventListener('click',()=>{
     toggleRetryDone(r.rid);
