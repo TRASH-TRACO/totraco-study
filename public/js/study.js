@@ -134,12 +134,13 @@ async function unpostponeProblem(subj,ci,type,num){
 function goNav(n){
   if(n==='setup'){ openSetup(); return; }   // 과목 설정은 이제 모달 (옛 호출 호환용 가드)
   curNav=n;
-  ['study','cal','wrong'].forEach(id=>{
+  ['study','cal','wrong','todo'].forEach(id=>{
     const nav=document.getElementById('nav-'+id); if(nav)nav.style.display=id===n?'block':'none';
     const nt=document.getElementById('nt-'+id); if(nt)nt.classList.toggle('on',id===n);
   });
   if(n==='cal') renderCalendar();
   if(n==='wrong') renderWrongNote();
+  if(n==='todo') renderTodos();
   updateEmptyStates();
   saveView();
 }

@@ -17,7 +17,7 @@ function loadSavedView(){
   try{ const s=localStorage.getItem(VIEW_KEY); if(s)v=JSON.parse(s); }catch(_){}
   if(!v||typeof v!=='object')return;
   const ids=SUBJECTS.map(s=>s.id);
-  if(v.nav==='study'||v.nav==='cal'||v.nav==='wrong') curNav=v.nav;   // setup은 모달이라 탭 복원 대상 아님
+  if(v.nav==='study'||v.nav==='cal'||v.nav==='wrong'||v.nav==='todo') curNav=v.nav;   // setup은 모달이라 탭 복원 대상 아님
   if(v.subj==='all'||ids.includes(v.subj)) curSubj=v.subj;
   if(v.view==='day'||v.view==='chap') curView=v.view;
   _pendingDay=(typeof v.day==='number')?v.day:null;   // 실제 적용·검증은 restoreView에서
@@ -51,6 +51,7 @@ async function init(){
   await loadRetries();
   await loadRetryDone();
   await loadWeights();
+  await loadTodos();
   if(ensurePids()) await saveAllSubjData();  // 기존 문제에 고유 ID 채우기(최초 1회 마이그레이션)
   // 재수강이 사라졌는데 그게 밀어놓은 일차만 남은 잔재를 정리한다
   if(healRetryDays()){ await saveAllSubjData(); await saveRetries(); }

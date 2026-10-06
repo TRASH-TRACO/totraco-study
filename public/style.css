@@ -703,6 +703,36 @@ label.fbtn{cursor:pointer;}
   .cal-ch-nm{min-width:0;}
 }
 
+/* ── 할 일 ── */
+.todo-add{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+.todo-input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;outline:none;}
+.todo-input:focus{border-color:var(--accent);}
+.todo-input::placeholder{color:var(--text3);}
+.todo-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;color:var(--text3);min-height:18px;}
+.todo-sum{font-family:var(--font-mono);}
+.todo-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);
+  border-radius:var(--r);background:var(--bg);margin-bottom:6px;}
+.todo-item:hover{border-color:var(--border2);}
+.todo-item.done{background:var(--bg2);}
+.todo-check{width:20px;height:20px;flex:0 0 20px;border:1.5px solid var(--border2);border-radius:6px;
+  background:transparent;color:#fff;font-size:11px;font-weight:700;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;padding:0;}
+.todo-check:hover{border-color:var(--accent);}
+.todo-item.done .todo-check{background:var(--done);border-color:var(--done);}
+.todo-text{flex:1;min-width:0;font-size:13px;color:var(--text);line-height:1.5;cursor:text;word-break:break-word;}
+.todo-item.done .todo-text{color:var(--text3);text-decoration:line-through;}
+.todo-date{font-size:10px;color:var(--text3);font-family:var(--font-mono);white-space:nowrap;}
+.todo-edit{flex:1;min-width:0;padding:5px 8px;border:1px solid var(--accent);border-radius:var(--r2);
+  background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;outline:none;}
+.todo-act{opacity:0;transition:opacity .12s;}
+.todo-item:hover .todo-act,.todo-act:focus{opacity:1;}
+.todo-del{border:none;background:transparent;color:var(--text3);font-size:13px;line-height:1;cursor:pointer;
+  padding:3px 5px;border-radius:var(--r2);opacity:0;transition:opacity .12s;}
+.todo-item:hover .todo-del,.todo-del:focus{opacity:1;}
+.todo-del:hover{color:var(--red);background:var(--fin-bg);}
+@media(max-width:640px){ .todo-act,.todo-del{opacity:1;} }
+
 /* ── 오답노트 ── */
 .wrong-empty{text-align:center;padding:56px 20px;border:1px dashed var(--border2);border-radius:var(--radius-lg);}
 .wrong-hdr{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}

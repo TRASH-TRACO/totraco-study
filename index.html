@@ -69,6 +69,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
     <div class="nt on" id="nt-study" onclick="goNav('study')">학습</div>
     <div class="nt" id="nt-cal" onclick="goNav('cal')">학습 캘린더</div>
     <div class="nt" id="nt-wrong" onclick="goNav('wrong')">오답노트</div>
+    <div class="nt" id="nt-todo" onclick="goNav('todo')">할 일</div>
   </div>
 
   <!-- 학습 탭 -->
@@ -136,6 +137,21 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
       <p class="empty-desc">학습 탭에서 문제를 완료한 뒤 <b>오답</b>을 누르면 여기에 모여요.</p>
     </div>
     <div id="wrong-body"></div>
+  </div>
+
+  <!-- 할 일 탭 — 공부 외 잡다한 할 일 메모 -->
+  <div id="nav-todo" style="display:none">
+    <div class="todo-add">
+      <input id="todo-input" class="todo-input" type="text" maxlength="200"
+             placeholder="할 일을 적고 Enter" onkeydown="todoInputKey(event)">
+      <button class="rbtn pri" onclick="todoAddFromInput()">추가</button>
+    </div>
+    <div class="todo-meta" id="todo-meta"></div>
+    <div class="wrong-empty" id="todo-empty" style="display:none">
+      <div class="empty-title">할 일이 없어요</div>
+      <p class="empty-desc">위 칸에 적고 <b>Enter</b>를 누르면 추가됩니다. 적어둔 할 일은 눌러서 수정할 수 있어요.</p>
+    </div>
+    <div id="todo-body"></div>
   </div>
 
   <!-- 과목 설정 모달 — 과목 등록 → 문제 등록 → 회독 시작 순서 -->
@@ -468,6 +484,7 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
 <script src="/js/account.js"></script>
 <script src="/js/calendar.js"></script>
 <script src="/js/wrongnote.js"></script>
+<script src="/js/todo.js"></script>
 <script src="/js/boot.js"></script>
 <script type="module" src="/src/sync.js"></script>
 </body>
