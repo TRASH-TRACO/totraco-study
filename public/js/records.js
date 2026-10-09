@@ -330,6 +330,36 @@ function applyRetrySchedule(subj,ctx){
     while(slots>0&&i<regs.length){ regs[i++].p[1]=d; slots--; }
   }
 }
+/**
+ * 지금 화면의 일차 배치를 '재수강 삽입 전' 스냅샷으로 다시 잡는다.
+ *
+ * applyRetrySchedule은 base로 되돌린 뒤 재수강에 자리를 내주며 다시 담는다. 그래서 화면 배치를
+ * 직접 손댄 뒤(당기기 등)에는 base도 같이 고쳐야 다음 재배치 때 손댄 게 풀리지 않는다.
+ * 각 일차의 base 정원 = (지금 그 일차에 보이는 문제 수) + (그 일차의 재수강 수) 로 잡으면,
+ * 다시 돌렸을 때 지금 배치가 그대로 재현된다.
+ */
+function rebuildRetryBase(subj){
+  const sdef=SUBJECTS.find(s=>s.id===subj), data=DATA[subj];
+  if(!sdef||!data)return;
+  const regs=[];
+  data.forEach((ch,ci)=>sdef.cols.forEach(col=>{
+    (ch[col.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[2]&&p[1]>=1&&p[1]!==POSTPONE_DAY)regs.push({p,ci,num:p[0]}); });
+  }));
+  if(!regs.length){ delete RETRY_BASE[subj]; return; }
+  const viewCnt={},retryAt={};
+  regs.forEach(r=>{ viewCnt[r.p[1]]=(viewCnt[r.p[1]]||0)+1; });
+  RETRIES.forEach(r=>{ if(r.subj===subj&&r.day>=1&&r.day!==POSTPONE_DAY)retryAt[r.day]=(retryAt[r.day]||0)+1; });
+  regs.sort((a,b)=>a.p[1]-b.p[1]||a.ci-b.ci||a.num-b.num);
+  const maxD=Math.max(...Object.keys(viewCnt).map(Number),...Object.keys(retryAt).map(Number),1);
+  const base={};
+  let i=0;
+  for(let d=1;d<=maxD&&i<regs.length;d++){
+    let cap=(viewCnt[d]||0)+(retryAt[d]||0);
+    while(cap-->0&&i<regs.length){ base[regs[i].p[2]]=d; i++; }
+  }
+  while(i<regs.length){ base[regs[i].p[2]]=maxD; i++; }   // 안전망
+  RETRY_BASE[subj]=base;
+}
 // 완료 버킷 등 실제 일차가 없는 경우, "현재 진행 위치"(첫 미완료 일차)를 기준일차로 삼는다.
 function frontDayOf(subj){
   const dm=MAPS[subj]||{}; const max=MAXS[subj]||0;

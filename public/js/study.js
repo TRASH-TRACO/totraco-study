@@ -263,6 +263,48 @@ function updateDBtns(){
 }
 function selDay(day){curDay=day;updateDBtns();const dp=document.getElementById('dpanel');dp.classList.add('on');renderDP(day);saveView();}
 
+// ── 당기기 ────────────────────────────────
+// 원칙은 앞 일차부터 차례로 푸는 것이지만, 뒤쪽 일차를 먼저 풀고 싶을 때가 있다.
+// 그 일차를 '지금 풀 일차'(첫 미완료 일차)로 당기고, 그 사이 일차들은 하루씩 뒤로 민다.
+//   예) 1~3일차 완료 · 9일차 당기기 → 9일차가 4일차로, 기존 4~8일차는 5~9일차로
+/** 지금 보고 있는 과목 기준 '지금 풀 일차' — 미완료가 처음 나오는 일차 */
+function frontDayView(){
+  const dm=getDM(),max=getMax();
+  for(let d=1;d<=max;d++){
+    if((dm[d]||[]).some(p=>!dn(p.subj,p.ci,p.type,p.num)))return d;
+    if(retriesForDay(d).some(r=>!r.done))return d;
+  }
+  return Math.max(1,max);
+}
+/** 이 일차를 당길 수 있나 — 정규 일차이고 앞 일차보다 뒤일 때만 */
+function canPullDay(day){
+  if(!(day>=1)||day===POSTPONE_DAY)return false;
+  return day>frontDayView();
+}
+async function pullDay(target){
+  const front=frontDayView();
+  if(!canPullDay(target)){showToast('이미 가장 앞 일차예요');return;}
+  const subjs=curSubj==='all'?SUBJECTS.map(s=>s.id):[curSubj];
+  if(!confirm(`${target}일차를 ${front}일차로 당길까요?\n지금 ${front}${target-1>front?'~'+(target-1):''}일차는 하루씩 뒤로 밀립니다.\n(완료 체크는 그대로 유지돼요)`))return;
+  // 일차 번호를 돌린다: target → front, [front, target-1] → +1. 나머지는 그대로.
+  const shift=d=>(d===target?front:(d>=front&&d<target?d+1:d));
+  subjs.forEach(sid=>{
+    const sdef=SUBJECTS.find(s=>s.id===sid); if(!sdef)return;
+    (DATA[sid]||[]).forEach(ch=>sdef.cols.forEach(c=>{
+      (ch[c.key]||[]).forEach(p=>{ if(Array.isArray(p)&&p[1]>=1&&p[1]!==POSTPONE_DAY)p[1]=shift(p[1]); });
+    }));
+  });
+  RETRIES.forEach(r=>{ if(subjs.includes(r.subj)&&r.day>=1&&r.day!==POSTPONE_DAY)r.day=shift(r.day); });
+  // 화면 배치를 직접 돌렸으니 '재수강 삽입 전' 스냅샷도 지금 배치로 다시 잡는다.
+  // (안 그러면 다음에 다시풀기를 걸거나 풀 때 base로 되돌아가며 당긴 게 풀린다)
+  subjs.forEach(sid=>{ if(RETRY_BASE[sid]){ rebuildRetryBase(sid); applyRetrySchedule(sid); } });
+  syncLegacy();
+  await saveAllSubjData();await saveRetries();
+  buildMaps();buildDG();updateProgress();
+  selDay(front);
+  showToast('⤒ '+target+'일차를 '+front+'일차로 당겼어요');
+}
+
 function renderDP(day){
   const dp=document.getElementById('dpanel');dp.innerHTML='';
   const dm=getDM();const ps=dm[day]||[];
@@ -277,7 +319,17 @@ function renderDP(day){
   const metaEl=document.createElement('div');metaEl.style.display='flex';metaEl.style.alignItems='center';metaEl.style.gap='10px';
   const subEl=document.createElement('div');subEl.className='dpanel-meta';subEl.id='dp-sub';subEl.textContent=dpMetaText(day);
   const abtn=document.createElement('button');abtn.className='toggle-all-btn '+(allD?'ad':'nd');abtn.textContent=allD?'전체 해제':'전체 완료';abtn.id='all-btn';abtn.onclick=()=>toggleAll(day);
-  metaEl.appendChild(subEl);metaEl.appendChild(abtn);hdr.appendChild(titleEl);hdr.appendChild(metaEl);dp.appendChild(hdr);
+  metaEl.appendChild(subEl);
+  // 당기기 — 뒤쪽 일차를 먼저 풀고 싶을 때 지금 풀 일차로 끌어온다
+  if(canPullDay(day)){
+    const front=frontDayView();
+    const pb=document.createElement('button');pb.className='pull-btn';
+    pb.textContent='⤒ '+front+'일차로 당기기';
+    pb.title=day+'일차를 '+front+'일차로 당기고, '+front+'~'+(day-1)+'일차는 하루씩 뒤로 밉니다';
+    pb.onclick=()=>pullDay(day);
+    metaEl.appendChild(pb);
+  }
+  metaEl.appendChild(abtn);hdr.appendChild(titleEl);hdr.appendChild(metaEl);dp.appendChild(hdr);
   const tip=document.createElement('div');tip.className='dpanel-tip';tip.textContent='클릭: 완료 토글';dp.appendChild(tip);
   // 내용
   const body=document.createElement('div');body.style.padding='12px 16px';
