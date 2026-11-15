@@ -469,6 +469,13 @@ async function saveSubjects(){
     });
   });
   // 검증
+  // 과목 0개 저장은 막는다 — 통과시키면 아래 '삭제된 과목 정리'가 모든 과목의 데이터와
+  // 진도를 지우고, 그 빈 상태가 클라우드로 올라가 서버 데이터까지 날아간다.
+  if(!subjEditRows.length){
+    st.className='ed-st err';st.textContent='❌ 과목이 최소 1개는 있어야 해요 (전부 지울 수는 없습니다)';
+    renderSubjGrid(true);   // 화면이 비어 보이는 상태를 실제 설정으로 되돌린다
+    return;
+  }
   const ids = subjEditRows.map(r=>r.id);
   if(ids.some(id=>!id)){st.className='ed-st err';st.textContent='❌ ID가 비어있는 과목이 있어요';return;}
   if(new Set(ids).size!==ids.length){st.className='ed-st err';st.textContent='❌ 중복된 ID가 있어요';return;}

@@ -52,6 +52,20 @@ async function init(){
   await loadRetryDone();
   await loadWeights();
   await loadTodos();
+  // ── 불완전 로드 감지 ──────────────────────
+  // 과목 설정(subjects_config)만 못 읽어도 SUBJECTS가 빈 배열이 되고, 그러면 문제 데이터가
+  // 통째로 안 실린 상태가 된다. 그게 클라우드로 올라가면 서버 데이터까지 날아간다.
+  // 진도·기록은 남아 있는데 과목만 0이면 '정상적인 빈 상태'가 아니므로 업로드를 막는다.
+  if(!SUBJECTS.length && (Object.keys(S).length || Object.keys(LOG).length)){
+    window.__loadIncomplete = true;
+    console.warn('[boot] 과목 설정을 읽지 못했습니다 — 동기화 업로드를 중단합니다');
+    setTimeout(()=>{
+      alert('⚠️ 저장된 과목 설정을 읽지 못했습니다.\n\n' +
+            '진도 기록은 남아 있는데 과목 목록이 비어 있어요. 이 상태가 서버로 올라가면\n' +
+            '클라우드 데이터까지 지워지기 때문에 자동 업로드를 멈춰 두었습니다.\n\n' +
+            '새로고침하거나, 로그인 후 「버전 관리 → ☁️ 서버 것 내보내기」로 서버 백업을 먼저 받아두세요.');
+    },600);
+  }
   if(ensurePids()) await saveAllSubjData();  // 기존 문제에 고유 ID 채우기(최초 1회 마이그레이션)
   // 재수강이 사라졌는데 그게 밀어놓은 일차만 남은 잔재를 정리한다
   if(healRetryDays()){ await saveAllSubjData(); await saveRetries(); }

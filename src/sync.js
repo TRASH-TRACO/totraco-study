@@ -38,7 +38,7 @@ let suppress = 0;        // >0 이면 schedulePush 무시 (원격 적용 중)
 let lastRev = null;      // 우리가 알고 있는 원격 문서의 rev
 let reconciled = false;  // 최초 조정 완료 여부
 let pendingConflict = null;
-let warnedEmptyPush = false;   // 빈 덮어쓰기 차단 안내는 한 번만
+let blockEmptyPush = false;    // 빈 상태 업로드를 사용자가 막았으면 이 세션 내내 차단
 
 // ── 유틸 ────────────────────────────────────
 const ref = () => doc(db, 'users', uid);
@@ -163,22 +163,34 @@ async function push(){
     setChip('동기화됨', 'ok');
     return;
   }
-  // ── 안전장치: 이 기기가 비어 있으면 서버 백업을 덮어쓰지 않는다 ──
-  // 브라우저가 사이트 데이터를 비웠거나 새 기기에서 빈 상태로 열렸을 때,
-  // 그 빈 상태가 올라가 서버의 데이터를 통째로 날리는 사고를 막는다.
-  if(isEmptyish(blob)){
+  // ── 안전장치 1: 로컬이 불완전하게 뜬 상태면 절대 올리지 않는다 ──
+  // (과목 설정만 못 읽어도 blob에서 문제 데이터가 통째로 빠진다 — 그게 올라가면 서버가 날아간다)
+  if(window.__loadIncomplete){
+    setChip('보호됨', 'err');
+    return;
+  }
+  // ── 안전장치 2: 문제가 0개인 상태로 서버의 데이터를 덮어쓰지 않는다 ──
+  // 브라우저가 사이트 데이터를 비웠거나, 과목 설정을 못 읽어 빈 상태로 떴거나,
+  // 새 기기에서 빈 채로 열렸을 때 그게 올라가 서버를 지워버리는 사고를 막는다.
+  if(blobStats(blob).problems === 0){
+    if(blockEmptyPush){ setChip('보호됨', 'err'); return; }
     let snap = null;
     try{ snap = await getDoc(ref()); }catch(_){}
     const remote = snap && snap.exists() ? unpack(snap) : null;
-    if(remote && !isEmptyish(remote.blob)){
-      setChip('보호됨', 'err');
-      if(!warnedEmptyPush){
-        warnedEmptyPush = true;
-        alert('⚠️ 이 기기의 데이터가 비어 있어서 서버 백업을 덮어쓰지 않았습니다.\n\n' +
-              '서버에는 데이터가 그대로 있습니다 (체크 ' + countChecked(remote.blob) + '개).\n' +
-              '새로고침하면 서버에서 불러옵니다.');
+    const rst = remote ? blobStats(remote.blob) : null;
+    if(rst && rst.problems > 0){
+      const ok = confirm(
+        '⚠️ 이 기기에는 등록된 문제가 하나도 없습니다.\n' +
+        '서버에는 문제 ' + rst.problems + '개 · 체크 ' + rst.checked + '개가 저장돼 있어요.\n\n' +
+        '지금 올리면 서버 데이터가 이 빈 상태로 덮어써집니다.\n' +
+        '[취소]를 누르면 덮어쓰지 않습니다. (새로고침하면 서버에서 불러옵니다)\n\n' +
+        '정말 서버를 이 빈 상태로 덮어쓸까요?'
+      );
+      if(!ok){
+        blockEmptyPush = true;           // 이 세션에서는 다시 묻지 않고 계속 막는다
+        setChip('보호됨', 'err');
+        return;
       }
-      return;
     }
   }
   setChip('저장 중', 'busy');
