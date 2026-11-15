@@ -113,6 +113,92 @@ function openVersionModal(){
 function closeVersionModal(){
   document.getElementById('version-modal').style.display='none';
 }
+// ── 백업 파일 (내보내기 / 가져오기) ──────────
+// 버전은 이 기기의 IndexedDB에만 있고, 클라우드는 문서 하나를 계속 덮어쓰는 구조라
+// 이력이 없다. 그래서 "기기 밖에 남는" 백업 수단이 하나는 있어야 한다.
+function backupFileName(tag){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  // 파일명은 ASCII로 — 기기·OS를 오가도 깨지지 않게
+  return `study-backup-${tag||'local'}-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
+}
+function downloadJson(obj,name){
+  const blob=new Blob([JSON.stringify(obj,null,1)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},0);
+}
+/** 지금 상태를 JSON 파일로 저장 */
+function exportBackup(){
+  const blob=buildBlob();
+  const st=blobCounts(blob);
+  downloadJson(blob,backupFileName());
+  showToast(`💾 백업 파일 저장 (문제 ${st.problems} · 체크 ${st.checked})`);
+}
+/** 서버(클라우드)에 저장된 내용을 그대로 파일로 저장 — 이 기기가 비어 있어도 받아둘 수 있다 */
+async function exportRemoteBackup(){
+  if(!window.CloudSync||!window.CloudSync.isLoggedIn||!window.CloudSync.isLoggedIn()){
+    showToast('로그인 상태에서만 받을 수 있어요');return;
+  }
+  try{
+    const remote=await window.CloudSync.fetchRemote();
+    if(!remote||!remote.blob){showToast('서버에 저장된 데이터가 없어요');return;}
+    const st=blobCounts(remote.blob);
+    downloadJson(remote.blob,backupFileName('cloud'));
+    showToast(`☁️ 서버 백업 파일 저장 (문제 ${st.problems} · 체크 ${st.checked})`);
+  }catch(e){ alert('서버 백업을 받지 못했어요: '+(e.message||e)); }
+}
+/** 덩어리 요약 — 백업이 비어 있지 않은지 확인용 */
+function blobCounts(blob){
+  let problems=0;
+  (blob.subjects||[]).forEach(s=>{
+    const arr=blob[s.dataKey];
+    if(!Array.isArray(arr))return;
+    arr.forEach(ch=>(s.cols||[]).forEach(c=>{ const l=ch[c.key]; if(Array.isArray(l))problems+=l.length; }));
+  });
+  const prog=blob.progress||{};
+  return {problems,checked:Object.keys(prog).filter(k=>prog[k]).length,subjects:(blob.subjects||[]).length};
+}
+/** 백업 파일 고르기 → 검증 → 복원 */
+function pickBackupFile(){
+  const inp=document.getElementById('backup-file');
+  if(inp){ inp.value=''; inp.click(); }
+}
+async function importBackupFile(input){
+  const file=input&&input.files&&input.files[0];
+  if(!file)return;
+  let data;
+  try{
+    const text=await file.text();
+    data=validateBlob(JSON.parse(text));
+  }catch(e){ alert('백업 파일을 읽지 못했어요: '+(e.message||e)); input.value=''; return; }
+  const st=blobCounts(data);
+  const when=data.date?fmtVersionDate(data.date):'시각 모름';
+  if(!confirm(`이 백업으로 되돌릴까요?\n${when}\n과목 ${st.subjects} · 문제 ${st.problems} · 체크 ${st.checked}\n\n지금 상태는 버전으로 자동 저장됩니다.`)){ input.value=''; return; }
+  try{
+    await createVersion('백업 가져오기 전 자동 저장');
+    await applyBlob(data,{replaceHistory:true});
+    await renderVersionList();
+    window.CloudSync?.syncNow?.();
+    showToast('✅ 백업을 복원했어요');
+  }catch(e){ alert('복원 실패: '+(e.message||e)); }
+  input.value='';
+}
+
+// ── 자동 버전 스냅샷 ─────────────────────────
+// 되돌릴 지점이 하나도 없는 상태를 막는다. 하루에 한 번, 앱을 열 때 조용히 남긴다.
+const AUTO_DAILY_LABEL='자동 저장(하루 1회)';
+async function autoVersionDaily(){
+  try{
+    const blob=buildBlob();
+    if(blobCounts(blob).problems===0)return;         // 빈 상태는 남길 필요 없다
+    const versions=await loadVersions();
+    const last=versions.find(v=>v.label===AUTO_DAILY_LABEL);
+    if(last&&(Date.now()-new Date(last.date).getTime())<20*60*60*1000)return;
+    await createVersion(AUTO_DAILY_LABEL);
+  }catch(_){}
+}
+
 // 덩어리 검증 — 문제가 있으면 throw (버전 복원 · 클라우드 다운로드 공용)
 function validateBlob(data){
   if(!data.version||typeof data.version!=='number')throw new Error('올바른 백업 파일이 아니에요');

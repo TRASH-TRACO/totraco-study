@@ -65,7 +65,8 @@ async function init(){
   document.getElementById('hdr-sub-names').textContent=SUBJECTS.map(s=>s.name).join(' · ');
   applyEntryGate();
   refreshOnboarding();
-  restoreView();     // 뷰 토글·선택 일자·활성 탭을 DOM에 반영
+  restoreView();         // 뷰 토글·선택 일자·활성 탭을 DOM에 반영
+  autoVersionDaily();    // 되돌릴 지점이 하나도 없는 상태를 막는다 (하루 1회 자동 버전)
   updateEmptyStates();   // 문제가 없으면 학습 탭에 안내(+과목 설정 버튼)를 띄운다
   // 모든 렌더가 끝났으니 앱을 드러낸다 (깜빡임 방지용 booting 해제)
   document.documentElement.classList.remove('booting');

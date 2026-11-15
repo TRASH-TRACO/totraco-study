@@ -38,6 +38,7 @@ let suppress = 0;        // >0 이면 schedulePush 무시 (원격 적용 중)
 let lastRev = null;      // 우리가 알고 있는 원격 문서의 rev
 let reconciled = false;  // 최초 조정 완료 여부
 let pendingConflict = null;
+let warnedEmptyPush = false;   // 빈 덮어쓰기 차단 안내는 한 번만
 
 // ── 유틸 ────────────────────────────────────
 const ref = () => doc(db, 'users', uid);
@@ -59,6 +60,30 @@ function deviceLabel(){
 function countChecked(blob){
   const p = blob.progress || {};
   return Object.keys(p).filter(k => p[k]).length;
+}
+
+// 덩어리가 '사실상 비어 있는지' — 문제도 진도도 할 일도 없는 상태.
+// 기기 하나가 빈 채로 올라와 서버 백업을 지워버리는 사고를 막는 데 쓴다.
+function blobStats(blob){
+  let problems = 0;
+  (blob.subjects || []).forEach(s => {
+    const arr = blob[s.dataKey];
+    if(!Array.isArray(arr)) return;
+    arr.forEach(ch => (s.cols || []).forEach(c => {
+      const list = ch[c.key];
+      if(Array.isArray(list)) problems += list.length;
+    }));
+  });
+  return {
+    problems,
+    checked: countChecked(blob),
+    todos:   Array.isArray(blob.todos) ? blob.todos.length : 0,
+    log:     Object.keys(blob.log || {}).length
+  };
+}
+function isEmptyish(blob){
+  const st = blobStats(blob);
+  return st.problems === 0 && st.checked === 0 && st.todos === 0 && st.log === 0;
 }
 
 function fmtTime(ms){
@@ -137,6 +162,24 @@ async function push(){
   if(meta && meta.uid === uid && meta.syncedHash === hash){ // 바뀐 게 없음
     setChip('동기화됨', 'ok');
     return;
+  }
+  // ── 안전장치: 이 기기가 비어 있으면 서버 백업을 덮어쓰지 않는다 ──
+  // 브라우저가 사이트 데이터를 비웠거나 새 기기에서 빈 상태로 열렸을 때,
+  // 그 빈 상태가 올라가 서버의 데이터를 통째로 날리는 사고를 막는다.
+  if(isEmptyish(blob)){
+    let snap = null;
+    try{ snap = await getDoc(ref()); }catch(_){}
+    const remote = snap && snap.exists() ? unpack(snap) : null;
+    if(remote && !isEmptyish(remote.blob)){
+      setChip('보호됨', 'err');
+      if(!warnedEmptyPush){
+        warnedEmptyPush = true;
+        alert('⚠️ 이 기기의 데이터가 비어 있어서 서버 백업을 덮어쓰지 않았습니다.\n\n' +
+              '서버에는 데이터가 그대로 있습니다 (체크 ' + countChecked(remote.blob) + '개).\n' +
+              '새로고침하면 서버에서 불러옵니다.');
+      }
+      return;
+    }
   }
   setChip('저장 중', 'busy');
   const rev = newRev();
@@ -288,8 +331,9 @@ async function reconcile(){
 
   // 이 기기에서 이 계정으로 처음 동기화 — 공통 조상이 없음
   if(!sameAccount){
-    if(countChecked(local) === 0){
-      // 로컬이 사실상 비어 있으면 그냥 서버 것을 받으면 됩니다
+    if(isEmptyish(local)){
+      // 로컬이 사실상 비어 있으면(문제·진도·기록 전부 없음) 그냥 서버 것을 받으면 됩니다.
+      // 체크만 0인 경우는 등록해 둔 문제가 날아갈 수 있으니 물어본다.
       reconciled = true;
       await pull(remote);
       subscribe();
@@ -308,6 +352,10 @@ async function reconcile(){
     return;
   }
 
+  if(remoteChanged && isEmptyish(remote.blob) && !isEmptyish(local)){
+    showConflict(local, remote, meta.localTouchedAt);   // 빈 서버가 내 데이터를 지우지 않게
+    return;
+  }
   reconciled = true;
   if(remoteChanged){
     await pull(remote);
@@ -329,6 +377,12 @@ function subscribe(){
     if(snap.metadata.hasPendingWrites) return;   // 우리가 방금 쓴 것
     const remote = unpack(snap);
     if(!remote || remote.rev === lastRev) return; // 이미 반영됨
+    // 안전장치: 서버가 빈 상태로 바뀌었는데 이 기기엔 데이터가 있으면 바로 지우지 않고 물어본다
+    const localNow = buildBlob();
+    if(isEmptyish(remote.blob) && !isEmptyish(localNow)){
+      getMeta().then(m => showConflict(localNow, remote, m && m.localTouchedAt));
+      return;
+    }
     pull(remote)
       .then(() => showToast('☁️ 다른 기기의 변경을 받았어요'))
       .catch(e => { console.warn('[sync] 적용 실패:', e.message); setChip('동기화 오류', 'err'); });
@@ -416,7 +470,15 @@ window.CloudSync = {
   // 로그아웃(동기화 중단). 로컬 데이터 삭제 여부는 호출 측(doLogout)이 결정합니다.
   signOut(){ return signOut(auth); },
   // 지금 즉시 업로드
-  syncNow(){ return uid ? push() : Promise.resolve(); }
+  syncNow(){ return uid ? push() : Promise.resolve(); },
+  // 서버에 저장된 덩어리를 그대로 읽어온다 (백업 파일로 내보내기용)
+  async fetchRemote(){
+    if(!uid) return null;
+    const snap = await getDoc(ref());
+    if(!snap.exists()) return null;
+    return unpack(snap);
+  },
+  isLoggedIn(){ return !!uid; }
 };
 
 getRedirectResult(auth).catch(() => {});

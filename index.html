@@ -325,11 +325,23 @@ setTimeout(function(){document.documentElement.classList.remove('booting');},200
         현재 진도·데이터를 이 기기에 버전으로 저장해두고, 언제든 그 시점으로 되돌릴 수 있어요.<br>
         <span>최근 20개까지 보관됩니다.</span>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
         <input id="version-label" type="text" maxlength="40" placeholder="메모 (선택) — 예: 1회독 완료"
           style="flex:1;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r2);background:var(--bg);color:var(--text);outline:none;"
           onkeydown="if(event.key==='Enter')createVersionFromInput()">
         <button class="rbtn pri" onclick="createVersionFromInput()">💾 지금 저장</button>
+      </div>
+      <!-- 기기 밖으로 남기는 백업 — 버전은 이 기기에만 있고 클라우드는 이력이 없다 -->
+      <div class="backup-box">
+        <div class="backup-title">백업 파일</div>
+        <div class="backup-desc">버전은 이 기기에만, 클라우드는 최신 1벌만 남습니다. 가끔 파일로 받아두면 어떤 경우에도 되살릴 수 있어요.</div>
+        <div class="backup-btns">
+          <button class="rbtn sec" onclick="exportBackup()">⬇ 이 기기 내보내기</button>
+          <button class="rbtn sec" onclick="exportRemoteBackup()">☁️ 서버 것 내보내기</button>
+          <button class="rbtn sec" onclick="pickBackupFile()">⬆ 백업 파일로 복원</button>
+          <input type="file" id="backup-file" accept="application/json,.json" style="display:none"
+                 onchange="importBackupFile(this)">
+        </div>
       </div>
       <div id="version-list"></div>
     </div>
