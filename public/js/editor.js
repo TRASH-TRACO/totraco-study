@@ -189,15 +189,11 @@ function ssStartEdit(r,c,initial){
   el.addEventListener('keydown',ssEditKey);
   el.addEventListener('blur',()=>{ if(ssEdit&&ssEdit.r===r&&ssEdit.c===c)ssCommitEdit(true); });
   el.addEventListener('paste',e=>{
+    // 여러 칸짜리를 붙여넣으면 편집 중이어도 스프레드시트처럼 행·열로 펼친다.
+    // (예전엔 세로 목록을 한 칸에 쉼표로 합쳤는데, 선택 모드와 결과가 달라 혼란스러웠다.
+    //  한 칸에 몰아넣고 싶으면 '붙여넣기' 탭의 열 단위 입력을 쓰면 된다.)
     const raw=e.clipboardData.getData('text');
-    if(/\t/.test(raw)){ e.preventDefault(); ssCommitEdit(false); ssPasteGrid(raw,r,c); return; }
-    if(/\n/.test(raw.trim())&&!isCh){   // 세로로 복사한 번호 목록 → 한 칸에 쉼표로
-      e.preventDefault();
-      const cleaned=raw.replace(/\r\n?/g,'\n').split('\n').map(s=>s.trim()).filter(Boolean).join(', ');
-      const s0=el.selectionStart,e0=el.selectionEnd,cur=el.value;
-      el.value=cur.slice(0,s0)+cleaned+cur.slice(e0);
-      el.selectionStart=el.selectionEnd=s0+cleaned.length;fit();
-    }
+    if(isMultiCellPaste(raw)){ e.preventDefault(); ssCommitEdit(false); ssPasteGrid(raw,r,c); }
   });
   el.focus();
   if(initial!==undefined)el.selectionStart=el.selectionEnd=el.value.length;
@@ -280,6 +276,12 @@ function ssFillDown(){
   }
   showToast('⬇ 아래로 채웠어요');ssUpdateBar();
 }
+/** 여러 칸(행·열)으로 펼쳐야 하는 붙여넣기인가 — 탭이 있거나 실제 줄이 2줄 이상 */
+function isMultiCellPaste(raw){
+  if(!raw)return false;
+  if(/\t/.test(raw))return true;
+  return raw.replace(/\r\n?/g,'\n').replace(/\n+$/,'').split('\n').length>1;
+}
 /** TSV/줄바꿈 텍스트를 (r,c)부터 셀에 펼쳐 넣는다. 한 칸만 복사했으면 선택 범위를 그 값으로 채운다. */
 function ssPasteGrid(raw,r,c){
   const cols=ssCols();
@@ -305,7 +307,7 @@ function ssPasteGrid(raw,r,c){
 // 예전 이름 호환 (붙여넣기 모드 등에서 호출)
 function handleGridPaste(e,startRi,startCi){
   const raw=e.clipboardData.getData('text');
-  if(!/[\t\r\n]/.test(raw.trim()))return;
+  if(!isMultiCellPaste(raw))return;
   e.preventDefault();
   ssPasteGrid(raw,startRi,startCi);
 }

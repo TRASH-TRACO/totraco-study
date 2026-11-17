@@ -133,7 +133,21 @@ function exportBackup(){
   const blob=buildBlob();
   const st=blobCounts(blob);
   downloadJson(blob,backupFileName());
+  try{ idbSet('last_backup_at', Date.now()); }catch(_){}
   showToast(`💾 백업 파일 저장 (문제 ${st.problems} · 체크 ${st.checked})`);
+}
+/** 파일 백업을 너무 오래 안 받았으면 한 번 알려준다 (앱 시작 시 1회) */
+const BACKUP_REMIND_DAYS=14;
+async function remindBackup(){
+  try{
+    if(blobCounts(buildBlob()).problems===0)return;
+    const at=await idbGet('last_backup_at');
+    const days=at?Math.floor((Date.now()-at)/86400000):null;
+    if(at&&days<BACKUP_REMIND_DAYS)return;
+    setTimeout(()=>showToast(at
+      ? `💾 백업 파일을 받은 지 ${days}일 됐어요 — 버전 관리에서 받아두세요`
+      : '💾 백업 파일을 아직 안 받았어요 — 버전 관리에서 한 번 받아두세요'),2500);
+  }catch(_){}
 }
 /** 서버(클라우드)에 저장된 내용을 그대로 파일로 저장 — 이 기기가 비어 있어도 받아둘 수 있다 */
 async function exportRemoteBackup(){
@@ -159,6 +173,32 @@ function blobCounts(blob){
   const prog=blob.progress||{};
   return {problems,checked:Object.keys(prog).filter(k=>prog[k]).length,subjects:(blob.subjects||[]).length};
 }
+/** 서버 안전본 — 최신본이 망가져도 서버가 따로 들고 있는 '가장 완전한' 스냅샷 */
+async function restoreCloudSafe(){
+  if(!window.CloudSync||!window.CloudSync.isLoggedIn||!window.CloudSync.isLoggedIn()){
+    showToast('로그인 상태에서만 쓸 수 있어요');return;
+  }
+  let safe;
+  try{ safe=await window.CloudSync.fetchSafe(); }
+  catch(e){ alert('안전본을 읽지 못했어요: '+(e.message||e)); return; }
+  if(!safe||!safe.blob){ showToast('서버에 안전본이 아직 없어요'); return; }
+  const st=blobCounts(safe.blob);
+  const when=safe.at?fmtVersionDate(new Date(safe.at).toISOString()):'시각 모름';
+  const how=confirm(`서버 안전본\n${when}${safe.device?' · '+safe.device:''}\n과목 ${st.subjects} · 문제 ${st.problems} · 체크 ${st.checked}\n\n[확인] 이 상태로 되돌리기\n[취소] 파일로만 받기`);
+  if(!how){
+    downloadJson(safe.blob,backupFileName('safe'));
+    showToast('💾 안전본을 파일로 받았어요');
+    return;
+  }
+  try{
+    await createVersion('안전본 복원 전 자동 저장');
+    await applyBlob(safe.blob,{replaceHistory:true});
+    await renderVersionList();
+    window.CloudSync?.syncNow?.();
+    showToast('✅ 서버 안전본으로 되돌렸어요');
+  }catch(e){ alert('복원 실패: '+(e.message||e)); }
+}
+
 /** 백업 파일 고르기 → 검증 → 복원 */
 function pickBackupFile(){
   const inp=document.getElementById('backup-file');

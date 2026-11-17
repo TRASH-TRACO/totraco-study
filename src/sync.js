@@ -3,7 +3,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
          getRedirectResult, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-         doc, getDoc, setDoc, onSnapshot, serverTimestamp }
+         doc, getDoc, setDoc, onSnapshot, serverTimestamp, deleteField }
   from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -195,15 +195,45 @@ async function push(){
   }
   setChip('저장 중', 'busy');
   const rev = newRev();
+  const payloadStr = JSON.stringify(blob);
+  const myProblems = blobStats(blob).problems;
+  const docData = {
+    version:   4,
+    rev,
+    device:    deviceLabel(),
+    updatedAt: serverTimestamp(),
+    updatedAtMs: Date.now(),
+    payload:   payloadStr
+  };
+  // ── 안전본(safePayload) ──────────────────
+  // 문서는 덮어쓰기라 이력이 없다. 그래서 '지금까지 본 것 중 가장 완전한 스냅샷'을
+  // 같은 문서에 한 벌 더 들고 다닌다. 잘못된 payload가 올라와도 이건 남는다.
+  //  · 내 것이 서버 안전본보다 문제 수가 많거나 같을 때만 갱신 → 빈 상태가 안전본을 밀어내지 못한다
+  //  · 확인에 실패하면(오프라인 등) 손대지 않는다 — merge 저장이라 기존 안전본이 그대로 남는다
+  const SAFE_MAX = 450000;   // 문서 1MB 제한 안에서 최신본+안전본 두 벌이 들어가게
+  if(payloadStr.length > SAFE_MAX){
+    // 이 payload 하나만으로도 벅차다 → 안전본은 자리를 비워 쓰기 실패를 막는다
+    docData.safePayload = deleteField();
+    docData.safeAt = deleteField();
+    docData.safeDevice = deleteField();
+    docData.safeProblems = deleteField();
+    console.warn('[sync] payload가 커서 서버 안전본을 보관하지 않습니다 — 백업 파일을 받아두세요');
+  }else if(myProblems > 0){
+    try{
+      const cur = await getDoc(ref());
+      const d = cur.exists() ? cur.data() : null;
+      const curSafe = (d && d.safePayload) ? (d.safeProblems || 0) : -1;
+      if(myProblems >= curSafe){
+        docData.safePayload  = payloadStr;
+        docData.safeAt       = Date.now();
+        docData.safeDevice   = deviceLabel();
+        docData.safeProblems = myProblems;
+      }
+    }catch(_){ /* 확인 실패 → 기존 안전본을 그대로 둔다 */ }
+  }
   try{
-    await setDoc(ref(), {
-      version:   4,
-      rev,
-      device:    deviceLabel(),
-      updatedAt: serverTimestamp(),
-      updatedAtMs: Date.now(),
-      payload:   JSON.stringify(blob)
-    });
+    // merge: 이번에 쓰지 않는 필드(안전본 등)를 지우지 않는다 — setDoc 기본값은 문서 통째 교체다
+    await setDoc(ref(), docData, { merge: true });
     lastRev = rev;
     await setMeta({ uid, syncedHash: hash, syncedRev: rev, localTouchedAt: Date.now() });
     setChip('동기화됨', 'ok');
@@ -217,6 +247,13 @@ async function push(){
 
 // ── 다운로드(원격 → 로컬) ───────────────────
 async function pull(remote){
+  // 받는 쪽이 줄어드는 변경이면, 적용 전에 이 기기 상태를 버전으로 남겨둔다.
+  // (다른 기기가 잘못 올린 걸 받아도 이 기기에 되돌릴 지점이 남는다)
+  try{
+    const ls = blobStats(buildBlob()), rs = blobStats(remote.blob);
+    if(ls.problems > rs.problems || ls.checked > rs.checked)
+      await createVersion('서버 변경 적용 전 자동 저장');
+  }catch(_){}
   suppress++;
   try{
     await applyBlob(remote.blob);
@@ -489,6 +526,18 @@ window.CloudSync = {
     const snap = await getDoc(ref());
     if(!snap.exists()) return null;
     return unpack(snap);
+  },
+  // 서버가 따로 들고 있는 '안전본' — 최신본이 망가져도 이건 남아 있다
+  async fetchSafe(){
+    if(!uid) return null;
+    const snap = await getDoc(ref());
+    if(!snap.exists()) return null;
+    const d = snap.data();
+    if(!d || !d.safePayload) return null;
+    try{
+      return { blob: validateBlob(JSON.parse(d.safePayload)),
+               at: d.safeAt || 0, device: d.safeDevice || '', problems: d.safeProblems || 0 };
+    }catch(e){ return null; }
   },
   isLoggedIn(){ return !!uid; }
 };
